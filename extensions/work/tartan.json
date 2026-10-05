@@ -1,0 +1,101 @@
+{
+	"schema": 1,
+	"id": "tartan.work",
+	"name": "Work",
+	"description": "Issues, intents and resolver items: claims with footprints open lanes (work@1)",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.work"
+	},
+	"storage": {
+		"scope": "repo",
+		"migrations": [
+			"migrations/0001_init.sql",
+			"migrations/0002_links.sql",
+			"migrations/0003_drop_tournament.sql"
+		]
+	},
+	"provides": [
+		"work@1"
+	],
+	"permissions": {
+		"repo": "read",
+		"lanes": [
+			"open",
+			"close"
+		],
+		"notes": true,
+		"notify": true,
+		"events.read": [
+			"lane.*",
+			"changes.*"
+		],
+		"interfaces.call": [
+			"conflicts@1"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "lane.lost"
+		},
+		{
+			"event": "lane.closed"
+		},
+		{
+			"event": "changes.submitted"
+		},
+		{
+			"event": "changes.abandoned"
+		},
+		{
+			"event": "changes.superseded"
+		},
+		{
+			"event": "changes.landed"
+		}
+	],
+	"contributes": {
+		"slots": [
+			{
+				"slot": "repo.tab",
+				"id": "work",
+				"label": "Work",
+				"icon": "list-checks",
+				"route": "work",
+				"when": "node.kind == 'repo'"
+			},
+			{
+				"slot": "repo.header.action",
+				"id": "new-work",
+				"label": "New work",
+				"icon": "plus",
+				"when": "node.kind == 'repo'",
+				"role": 30
+			},
+			{
+				"slot": "work.panel",
+				"id": "item",
+				"dynamic": true,
+				"refreshOn": [
+					"work.*",
+					"changes.*"
+				]
+			},
+			{
+				"slot": "blame.annotation",
+				"id": "intent",
+				"dynamic": true
+			}
+		],
+		"context": [
+			{
+				"id": "work-item",
+				"maxBytes": 4096,
+				"priority": "protocol"
+			}
+		],
+		"protocol": "protocol.md"
+	}
+}

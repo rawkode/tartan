@@ -1,0 +1,109 @@
+{
+	"schema": 1,
+	"id": "tartan.ci",
+	"name": "CI",
+	"description": "Affected-project CI on Workflows and Sandbox containers; answers land testing (checks@1)",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.ci"
+	},
+	"storage": {
+		"scope": "repo",
+		"migrations": [
+			"migrations/0001_init.sql",
+			"migrations/0002_runs.sql",
+			"migrations/0003_config_waits.sql"
+		]
+	},
+	"provides": [
+		"checks@1"
+	],
+	"permissions": {
+		"repo": "read",
+		"runs": [
+			"start",
+			"cancel"
+		],
+		"land.report": true,
+		"notify": true,
+		"events.read": [
+			"changes.*",
+			"land.*",
+			"run.*",
+			"job.*",
+			"push.*",
+			"repo.config.*"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "changes.submitted"
+		},
+		{
+			"event": "changes.revised"
+		},
+		{
+			"event": "land.testing"
+		},
+		{
+			"event": "run.*"
+		},
+		{
+			"event": "job.*"
+		},
+		{
+			"event": "push.diffed"
+		},
+		{
+			"event": "repo.config.resolved"
+		}
+	],
+	"contributes": {
+		"slots": [
+			{
+				"slot": "change.sidebar",
+				"id": "checks",
+				"dynamic": true,
+				"refreshOn": [
+					"checks.*",
+					"run.*",
+					"job.*"
+				]
+			},
+			{
+				"slot": "repo.tab",
+				"id": "ci",
+				"label": "CI",
+				"icon": "play",
+				"route": "ci",
+				"when": "node.kind == 'repo'"
+			},
+			{
+				"slot": "repo.sidebar",
+				"id": "projects",
+				"dynamic": true,
+				"refreshOn": [
+					"checks.*"
+				]
+			}
+		],
+		"context": [
+			{
+				"id": "test-commands",
+				"maxBytes": 2048,
+				"priority": "hints"
+			}
+		]
+	},
+	"config": {
+		"default": {
+			"image": "tartan-runner"
+		},
+		"cue": "config/settings.cue",
+		"repoPolicy": [
+			"pipeline"
+		]
+	}
+}

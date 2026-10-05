@@ -1,0 +1,21 @@
+[package]
+name = "acme-no-secrets"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "acme.no-secrets: a Tartan extension in Rust that warns on pushes and vetoes advances that add credentials"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+tartan-ext = { path = "../../sdk/rust/tartan-ext" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -1,0 +1,55 @@
+{
+	"schema": 1,
+	"kind": "pack",
+	"id": "tartan.pack.swarm",
+	"name": "Swarm",
+	"description": "Agent swarm protocol: claims with footprints, lanes, radar, review by exception, Weave",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.pack.swarm"
+	},
+	"storage": {
+		"scope": "node"
+	},
+	"permissions": {},
+	"members": [
+		{
+			"id": "tartan.work",
+			"version": "0.1.0"
+		},
+		{
+			"id": "tartan.changes",
+			"version": "0.1.0"
+		},
+		{
+			"id": "tartan.radar",
+			"version": "0.1.0"
+		},
+		{
+			"id": "tartan.ci",
+			"version": "0.1.0"
+		},
+		{
+			"id": "tartan.review",
+			"version": "0.1.0",
+			"config": {
+				"mode": "by-exception",
+				"autoThreshold": 0.35
+			}
+		},
+		{
+			"id": "tartan.weave",
+			"version": "0.1.0",
+			"config": {
+				"batch": 4
+			},
+			"backgroundRole": 30
+		},
+		{
+			"id": "tartan.board",
+			"version": "0.1.0"
+		}
+	]
+}

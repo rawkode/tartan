@@ -1,0 +1,143 @@
+/*
+ * Tartan design tokens. Light is the default; dark
+ * applies under `prefers-color-scheme: dark` unless the viewer picked light,
+ * and always under an explicit `data-theme="dark"` on <html> (see theme.ts).
+ * Tone names match `tartan-ui@1` tones.
+ */
+
+:root {
+	color-scheme: light;
+
+	--tt-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--tt-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+	--tt-text-sm: 0.8125rem;
+	--tt-text-md: 0.9375rem;
+	--tt-text-lg: 1.25rem;
+	--tt-text-xl: 1.625rem;
+
+	--tt-space-1: 0.25rem;
+	--tt-space-2: 0.5rem;
+	--tt-space-3: 0.75rem;
+	--tt-space-4: 1rem;
+	--tt-space-6: 1.5rem;
+	--tt-gutter: 1rem;
+	--tt-radius: 6px;
+	--tt-radius-pill: 999px;
+	--tt-content-max: 72rem;
+
+	--tt-bg: #f7f6f2;
+	--tt-surface: #ffffff;
+	--tt-surface-sunken: #efede6;
+	--tt-border: #d9d5ca;
+	--tt-text: #1c1f1e;
+	--tt-text-muted: #5b605d;
+	--tt-accent: #1f5c4d;
+	--tt-accent-strong: #164437;
+	--tt-on-accent: #ffffff;
+	--tt-focus: #2f7dd1;
+
+	--tt-tone-neutral: #3d4240;
+	--tt-tone-neutral-bg: #e7e4dc;
+	--tt-tone-info: #1d5fa8;
+	--tt-tone-info-bg: #dde9f7;
+	--tt-tone-success: #1e6b3a;
+	--tt-tone-success-bg: #dcefe2;
+	--tt-tone-warning: #8a5a00;
+	--tt-tone-warning-bg: #f6ead0;
+	--tt-tone-danger: #a3271b;
+	--tt-tone-danger-bg: #f7dfdb;
+	--tt-tone-muted: #5b605d;
+	--tt-tone-muted-bg: #ecebe6;
+
+	--tt-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.08);
+	--tt-diff-add-bg: #e3f4e8;
+	--tt-diff-del-bg: #fbe5e2;
+	--tt-heat-0: #efede6;
+	--tt-heat-1: #e1efe9;
+	--tt-heat-2: #bcdccf;
+	--tt-heat-3: #84bfa8;
+	--tt-heat-4: #3f8d72;
+	--tt-heat-5: #1f5c4d;
+	--tt-on-heat: #ffffff;
+	--tt-header-h: 3.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		color-scheme: dark;
+
+		--tt-bg: #121514;
+		--tt-surface: #1a1e1d;
+		--tt-surface-sunken: #0e1110;
+		--tt-border: #2e3432;
+		--tt-text: #e6e8e6;
+		--tt-text-muted: #9aa19d;
+		--tt-accent: #5fb89f;
+		--tt-accent-strong: #84cdb8;
+		--tt-on-accent: #0c1512;
+		--tt-focus: #6aa8ec;
+
+		--tt-tone-neutral: #c9cdca;
+		--tt-tone-neutral-bg: #2a2f2d;
+		--tt-tone-info: #8dbcf0;
+		--tt-tone-info-bg: #1b2a3b;
+		--tt-tone-success: #8fd1a6;
+		--tt-tone-success-bg: #18301f;
+		--tt-tone-warning: #e7bf6b;
+		--tt-tone-warning-bg: #3a2e14;
+		--tt-tone-danger: #f0998e;
+		--tt-tone-danger-bg: #3d1f1b;
+		--tt-tone-muted: #9aa19d;
+		--tt-tone-muted-bg: #232826;
+
+		--tt-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.45);
+		--tt-diff-add-bg: #16301f;
+		--tt-diff-del-bg: #3a1c19;
+		--tt-heat-0: #1d2221;
+		--tt-heat-1: #1d332c;
+		--tt-heat-2: #24493d;
+		--tt-heat-3: #2f6a57;
+		--tt-heat-4: #4e9d83;
+		--tt-heat-5: #84cdb8;
+		--tt-on-heat: #0c1512;
+	}
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+
+	--tt-bg: #121514;
+	--tt-surface: #1a1e1d;
+	--tt-surface-sunken: #0e1110;
+	--tt-border: #2e3432;
+	--tt-text: #e6e8e6;
+	--tt-text-muted: #9aa19d;
+	--tt-accent: #5fb89f;
+	--tt-accent-strong: #84cdb8;
+	--tt-on-accent: #0c1512;
+	--tt-focus: #6aa8ec;
+
+	--tt-tone-neutral: #c9cdca;
+	--tt-tone-neutral-bg: #2a2f2d;
+	--tt-tone-info: #8dbcf0;
+	--tt-tone-info-bg: #1b2a3b;
+	--tt-tone-success: #8fd1a6;
+	--tt-tone-success-bg: #18301f;
+	--tt-tone-warning: #e7bf6b;
+	--tt-tone-warning-bg: #3a2e14;
+	--tt-tone-danger: #f0998e;
+	--tt-tone-danger-bg: #3d1f1b;
+	--tt-tone-muted: #9aa19d;
+	--tt-tone-muted-bg: #232826;
+
+	--tt-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.45);
+	--tt-diff-add-bg: #16301f;
+	--tt-diff-del-bg: #3a1c19;
+	--tt-heat-0: #1d2221;
+	--tt-heat-1: #1d332c;
+	--tt-heat-2: #24493d;
+	--tt-heat-3: #2f6a57;
+	--tt-heat-4: #4e9d83;
+	--tt-heat-5: #84cdb8;
+	--tt-on-heat: #0c1512;
+}

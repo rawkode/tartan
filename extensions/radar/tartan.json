@@ -1,0 +1,133 @@
+{
+	"schema": 1,
+	"id": "tartan.radar",
+	"name": "Conflict Radar",
+	"description": "Predicts conflicts between lanes from footprints and pushes, before they reach trunk (conflicts@1)",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.radar"
+	},
+	"storage": {
+		"scope": "repo",
+		"migrations": [
+			"migrations/0001_init.sql",
+			"migrations/0002_m1.sql"
+		]
+	},
+	"provides": [
+		"conflicts@1"
+	],
+	"permissions": {
+		"repo": "read",
+		"notes": true,
+		"notify": true,
+		"events.read": [
+			"lane.*",
+			"push.*",
+			"ref.*",
+			"changes.*"
+		],
+		"interfaces.call": [
+			"work@1"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "lane.opened"
+		},
+		{
+			"event": "lane.closed"
+		},
+		{
+			"event": "lane.lost"
+		},
+		{
+			"event": "lane.archived"
+		},
+		{
+			"event": "lane.deleted"
+		},
+		{
+			"event": "push.diffed"
+		},
+		{
+			"event": "ref.advanced"
+		},
+		{
+			"event": "changes.submitted"
+		},
+		{
+			"event": "changes.abandoned"
+		},
+		{
+			"event": "changes.superseded"
+		}
+	],
+	"contributes": {
+		"slots": [
+			{
+				"slot": "repo.tab",
+				"id": "radar",
+				"label": "Radar",
+				"icon": "radar",
+				"route": "radar",
+				"when": "node.kind == 'repo'"
+			},
+			{
+				"slot": "file.banner",
+				"id": "editing",
+				"dynamic": true,
+				"refreshOn": [
+					"conflicts.*",
+					"push.diffed"
+				]
+			},
+			{
+				"slot": "lane.badge",
+				"id": "severity",
+				"dynamic": true,
+				"refreshOn": [
+					"conflicts.*"
+				]
+			},
+			{
+				"slot": "change.sidebar",
+				"id": "conflicts",
+				"dynamic": true,
+				"refreshOn": [
+					"conflicts.*"
+				]
+			},
+			{
+				"slot": "hud.metric",
+				"id": "conflicts-avoided",
+				"dynamic": true,
+				"cache": "role"
+			}
+		],
+		"context": [
+			{
+				"id": "neighbourhood",
+				"maxBytes": 4096,
+				"priority": "conflicts"
+			}
+		],
+		"protocol": "protocol.md",
+		"settings": {
+			"type": "object",
+			"properties": {
+				"origin": {
+					"type": "string",
+					"title": "Forge origin",
+					"description": "The forge's https origin (for example https://code.example.com), used in the fetch commands radar suggests for lanes on the repo backend"
+				}
+			},
+			"additionalProperties": false
+		}
+	},
+	"limits": {
+		"effects_per_second": 200
+	}
+}

@@ -1,0 +1,11 @@
+{
+	"name": "@tartan/diff",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Tartan diff: Myers line diff, hunks, unified patches and a three-way line merge with conflict regions (own implementation, MIT; WP8)",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	}
+}

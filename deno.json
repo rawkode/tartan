@@ -1,0 +1,76 @@
+{
+	"nodeModulesDir": "manual",
+	"tasks": {
+		"gen": "deno run -A packages/contract/scripts/gen-schemas.ts && deno fmt packages/contract/interfaces packages/contract/schema/envelope-1.json",
+		"fmt": "deno fmt",
+		"fmt:check": "deno fmt --check",
+		"lint": "deno lint && deno run -A scripts/check-imports.ts && deno run -A scripts/check-public.ts",
+		"check:public:history": "deno run -A scripts/check-public.ts --history",
+		"publish": "deno run -A scripts/publish.ts",
+		"check": "deno run -A scripts/check.ts",
+		"test": "deno run -A scripts/test.ts",
+		"test:workers": "node node_modules/vitest/vitest.mjs run",
+		"test:web": "node node_modules/vitest/vitest.mjs run --project web",
+		"check:web": "node node_modules/vue-tsc/bin/vue-tsc.js --noEmit -p web",
+		"build:web": "npm run build:web",
+		"dryrun": "deno run -A scripts/render-config.ts --stage dryrun --no-containers && npx wrangler deploy --dry-run -c .wrangler/deploy/wrangler.dryrun.jsonc",
+		"dryrun:k2": "deno run -A scripts/render-config.ts --stage dryrun --no-containers --k2-stream 0123456789abcdef0123456789abcdef --k2-token-store 0123456789abcdef0123456789abcdef --k2-token-secret k2-consumer && npx wrangler deploy --dry-run -c .wrangler/deploy/wrangler.dryrun.jsonc",
+		"build:ext": "deno run -A scripts/build-ext.ts",
+		"deploy": "deno run -A scripts/deploy.ts",
+		"destroy": "deno run -A scripts/destroy.ts",
+		"preflight": "deno run -A scripts/preflight.ts",
+		"smoke": "deno run -A scripts/smoke/run.ts",
+		"live": "deno run -A scripts/live/run.ts",
+		"e2e": "deno run -A scripts/e2e/main.ts",
+		"seed": "deno run -A scripts/seed.ts",
+		"reset": "deno run -A scripts/reset.ts",
+		"cli": "deno run -A tools/cli/main.ts",
+		"build:cli": "deno compile -A -o dist/tartan tools/cli/main.ts",
+		"license:check": "deno run -A scripts/license-check.ts",
+		"verify": "deno task gen && deno task fmt:check && deno task lint && deno task check && deno task test && deno task license:check"
+	},
+	"imports": {
+		"@tartan/contract": "./packages/contract/src/index.ts",
+		"@tartan/contract/": "./packages/contract/src/",
+		"@tartan/testkit": "./packages/testkit/src/index.ts",
+		"@tartan/testkit/": "./packages/testkit/src/",
+		"@tartan/gitproto": "./packages/gitproto/src/index.ts",
+		"@tartan/gitproto/": "./packages/gitproto/src/",
+		"@tartan/ext-api": "./packages/ext-api/src/index.ts",
+		"@tartan/ext-api/": "./packages/ext-api/src/",
+		"@tartan/monorepo": "./packages/monorepo/src/index.ts",
+		"@tartan/monorepo/": "./packages/monorepo/src/",
+		"@tartan/diff": "./packages/diff/src/index.ts",
+		"@tartan/diff/": "./packages/diff/src/",
+		"@tartan/pipeline": "./packages/pipeline/src/index.ts",
+		"@tartan/pipeline/": "./packages/pipeline/src/"
+	},
+	"compilerOptions": {
+		"strict": true,
+		"types": ["@cloudflare/workers-types"],
+		"lib": ["deno.ns", "dom", "dom.iterable", "esnext"]
+	},
+	"exclude": [
+		"node_modules",
+		".claude/worktrees",
+		"dist",
+		"web/dist",
+		".wrangler",
+		"target",
+		"coverage",
+		"e2e/.e2e"
+	],
+	"fmt": {
+		"useTabs": true,
+		"proseWrap": "preserve",
+		"exclude": ["docs/design/"]
+	},
+	"lint": {
+		"rules": {
+			"exclude": ["no-slow-types"]
+		}
+	},
+	"test": {
+		"exclude": ["**/*.workers.test.ts"]
+	}
+}

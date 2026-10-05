@@ -1,0 +1,155 @@
+# CI for the Tartan repository itself: the local verification ladder
+# (AGENTS.md, "Verification ladder") plus the dependency license check.
+# Steps whose inputs do not exist yet (web/, wrangler.jsonc, render-config.ts,
+# the runner Dockerfile) are skipped until the owning work package adds them.
+# No secrets are used; nothing is deployed.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  WRANGLER_SEND_METRICS: "false"
+  DENO_NO_UPDATE_CHECK: "1"
+
+jobs:
+  ladder:
+    name: Verification ladder
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.9.x
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # The generated contract JSON is not committed; the contract tests read it.
+      - name: Generate contract JSON
+        run: deno task gen
+
+      - name: Format
+        run: deno task fmt:check
+
+      - name: Lint, extension import boundaries and public-content grep
+        run: deno task lint
+
+      - name: Type check
+        run: deno task check
+
+      # The CLI-backed repository-config tests (src/kernel/repoconfig/
+      # corpus.test.ts) need the official cue release that the runner image
+      # pins (containers/runner/Dockerfile; same version and sha256, checked
+      # by src/kernel/runs/cue.test.ts). Without CUE_BIN they skip.
+      - name: Install cue (pinned) for the repository-config tests
+        env:
+          CUE_VERSION: v0.17.1
+          CUE_SHA256: a39b0c97695069d95d276d99be0f5dbabb081d801bfdc9ba49b76efaf94e2369
+        run: |
+          tarball="cue_${CUE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$tarball" \
+            "https://github.com/cue-lang/cue/releases/download/${CUE_VERSION}/${tarball}"
+          echo "${CUE_SHA256}  $RUNNER_TEMP/$tarball" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/cue"
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP/cue" cue
+          test "$("$RUNNER_TEMP/cue/cue" version | sed -n '1p')" = "cue version ${CUE_VERSION}"
+          echo "CUE_BIN=$RUNNER_TEMP/cue/cue" >> "$GITHUB_ENV"
+
+      # The Rust → WASM extension package (extensions/acme-no-secrets): its
+      # wasm cases in the Deno and workerd suites skip without dist/.
+      - name: Setup Rust with the wasm32 target
+        if: hashFiles('extensions/acme-no-secrets/Cargo.toml') != ''
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+
+      - name: Build the Rust → WASM extension package
+        if: hashFiles('extensions/acme-no-secrets/Cargo.toml') != ''
+        run: |
+          cargo install --locked wasm-tools@1.248.0
+          deno task build:ext acme-no-secrets
+
+      - name: Unit tests (Deno)
+        run: deno task test
+
+      - name: Workers-runtime tests (vitest-pool-workers)
+        if: hashFiles('src/index.ts') != ''
+        run: deno task test:workers
+
+      - name: Web type check
+        if: hashFiles('web/tsconfig.json') != ''
+        run: deno task check:web
+
+      - name: Web build
+        if: hashFiles('web/index.html') != ''
+        run: deno task build:web
+
+      - name: Wrangler dry run (no containers)
+        if: hashFiles('scripts/render-config.ts') != '' && hashFiles('wrangler.jsonc') != ''
+        run: deno task dryrun
+
+      # Docker is available on GitHub-hosted runners, so the container image
+      # variant is validated here too.
+      - name: Wrangler dry run (with runner container)
+        if: hashFiles('scripts/render-config.ts') != '' && hashFiles('wrangler.jsonc') != '' && hashFiles('containers/runner/Dockerfile') != ''
+        run: |
+          deno run -A scripts/render-config.ts --stage ci
+          npx wrangler deploy --dry-run -c .wrangler/deploy/wrangler.ci.jsonc
+
+  licenses:
+    name: License check (no GPL/AGPL/LGPL dependencies)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.9.x
+
+      - name: Setup Rust (only when the repo has Cargo crates)
+        if: hashFiles('**/Cargo.toml') != ''
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          toolchain: stable
+
+      - name: Install dependencies (no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: License check
+        run: deno task license:check

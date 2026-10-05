@@ -1,0 +1,395 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://tartan.dev/schema/manifest-1.json",
+	"title": "Tartan extension manifest v1",
+	"description": "Normative. Zod mirror: packages/contract/src/manifest.ts. Install-time rules beyond this schema: manifestPolicyIssues().",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"schema",
+		"id",
+		"name",
+		"version",
+		"api",
+		"runtime",
+		"entry",
+		"storage",
+		"permissions"
+	],
+	"properties": {
+		"schema": { "const": 1 },
+		"kind": { "enum": ["extension", "pack"], "default": "extension" },
+		"id": {
+			"type": "string",
+			"pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)+$",
+			"maxLength": 64,
+			"description": "'tartan.*' is reserved for builtins"
+		},
+		"name": { "type": "string", "minLength": 1, "maxLength": 80 },
+		"description": { "type": "string", "maxLength": 500 },
+		"version": {
+			"type": "string",
+			"pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-[0-9A-Za-z.-]+)?$"
+		},
+		"api": { "const": "tartan:ext@0.1.0" },
+		"runtime": { "enum": ["builtin", "js", "wasm"] },
+		"entry": {
+			"type": "object",
+			"additionalProperties": false,
+			"minProperties": 1,
+			"properties": {
+				"builtin": { "type": "string", "pattern": "^tartan\\.[a-z0-9.-]+$" },
+				"js": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+\\.js$" },
+				"wasm": {
+					"type": "array",
+					"items": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+\\.wasm$" },
+					"minItems": 1
+				}
+			}
+		},
+		"storage": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["scope"],
+			"properties": {
+				"scope": { "enum": ["node", "repo"] },
+				"mode": { "enum": ["sql", "kv"], "default": "sql" },
+				"migrations": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^migrations/[0-9]{4}_[a-z0-9_]+\\.sql$"
+					}
+				},
+				"quotaMB": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 1024,
+					"default": 256
+				}
+			}
+		},
+		"provides": {
+			"type": "array",
+			"uniqueItems": true,
+			"items": {
+				"enum": [
+					"work@1",
+					"changes@1",
+					"conflicts@1",
+					"checks@1",
+					"review@1",
+					"queue@1"
+				]
+			}
+		},
+		"requires": {
+			"type": "array",
+			"uniqueItems": true,
+			"items": { "type": "string", "pattern": "^[a-z]+@[0-9]+$" }
+		},
+		"permissions": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"repo": { "enum": ["none", "read"], "default": "none" },
+				"lanes": {
+					"type": "array",
+					"items": {
+						"enum": [
+							"open",
+							"close",
+							"archive",
+							"adopt",
+							"sync",
+							"restack",
+							"delegate"
+						]
+					}
+				},
+				"land": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^refs/heads/[A-Za-z0-9._/*-]+$"
+					}
+				},
+				"land.report": { "type": "boolean" },
+				"runs": { "type": "array", "items": { "enum": ["start", "cancel"] } },
+				"notes": { "type": "boolean" },
+				"notify": { "type": "boolean" },
+				"events.read": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^([a-z0-9_-]+\\.)*([a-z0-9_-]+|\\*)$"
+					}
+				},
+				"interfaces.call": {
+					"type": "array",
+					"items": { "type": "string", "pattern": "^[a-z]+@[0-9]+$" }
+				},
+				"agents.dispatch": {
+					"type": "array",
+					"items": { "enum": ["resolver", "worker"] }
+				},
+				"ai": { "type": "boolean", "description": "builtin-only in v1" },
+				"net": {
+					"type": "array",
+					"items": { "type": "string", "format": "hostname" },
+					"maxItems": 0,
+					"description": "reserved for v2 (Outbound); must be empty in v1"
+				},
+				"secrets": {
+					"type": "array",
+					"items": { "type": "string" },
+					"maxItems": 0
+				}
+			}
+		},
+		"inputs": {
+			"type": "array",
+			"items": {
+				"type": "string",
+				"pattern": "^(diff|added-lines|changed-paths|file:[^\\s]+)$"
+			},
+			"description": "data the host prefetches for gates and echo hooks"
+		},
+		"subscribe": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["event"],
+				"properties": {
+					"event": {
+						"type": "string",
+						"pattern": "^([a-z0-9_-]+\\.)*([a-z0-9_-]+|\\*)$"
+					},
+					"filter": {
+						"type": "object",
+						"additionalProperties": { "type": ["string", "number", "boolean"] }
+					}
+				}
+			}
+		},
+		"backfill": { "enum": ["none", "30d", "all"], "default": "none" },
+		"onError": { "enum": ["skip", "block"], "default": "skip" },
+		"gates": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["point"],
+				"properties": {
+					"point": { "enum": ["ref.advance", "lane.open", "push"] },
+					"timeoutMs": {
+						"type": "integer",
+						"minimum": 50,
+						"maximum": 5000,
+						"default": 1500
+					},
+					"default": { "enum": ["allow", "veto"], "default": "allow" },
+					"onTruncated": {
+						"enum": ["allow", "veto"],
+						"description": "default veto for ref.advance, allow elsewhere"
+					},
+					"inputs": { "type": "array", "items": { "type": "string" } }
+				}
+			}
+		},
+		"echo": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["event"],
+				"properties": {
+					"event": { "const": "push.accepted" },
+					"timeoutMs": { "type": "integer", "maximum": 1500, "default": 800 },
+					"inputs": { "type": "array", "items": { "type": "string" } }
+				}
+			}
+		},
+		"contributes": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"slots": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["slot", "id"],
+						"properties": {
+							"slot": { "type": "string" },
+							"id": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" },
+							"label": { "type": "string", "maxLength": 40 },
+							"title": { "type": "string", "maxLength": 80 },
+							"icon": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" },
+							"route": { "type": "string", "pattern": "^[a-z0-9-/*]{1,64}$" },
+							"when": { "type": "string", "maxLength": 200 },
+							"dynamic": { "type": "boolean", "default": false },
+							"refreshOn": { "type": "array", "items": { "type": "string" } },
+							"role": { "enum": [10, 20, 30, 40, 50] },
+							"cache": {
+								"enum": ["viewer", "role", "none"],
+								"default": "viewer",
+								"description": "render cache key scope"
+							},
+							"order": {
+								"type": "integer",
+								"minimum": -1000,
+								"maximum": 1000,
+								"default": 0,
+								"description": "display order among contributions to the same slot (lower first)"
+							}
+						}
+					}
+				},
+				"tools": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name", "description", "input"],
+						"properties": {
+							"name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,47}$" },
+							"description": { "type": "string", "maxLength": 1000 },
+							"input": {
+								"type": ["string", "object"],
+								"description": "path to a JSON Schema in the package, or inline schema"
+							},
+							"role": { "enum": [10, 20, 30, 40, 50], "default": 30 }
+						}
+					}
+				},
+				"context": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["id"],
+						"properties": {
+							"id": { "type": "string" },
+							"maxBytes": {
+								"type": "integer",
+								"maximum": 4096,
+								"default": 2048
+							},
+							"priority": {
+								"enum": [
+									"protocol",
+									"negative",
+									"conflicts",
+									"ownership",
+									"hints"
+								],
+								"default": "hints"
+							}
+						}
+					}
+				},
+				"protocol": {
+					"type": "string",
+					"pattern": "^[A-Za-z0-9._/-]+\\.md$",
+					"description": "≤ 2 KB card for MCP instructions"
+				},
+				"settings": {
+					"type": "object",
+					"description": "JSON Schema rendered as a form in settings.page by the safe tartan-ui components; every string (title, description) is rendered as text, never HTML"
+				}
+			}
+		},
+		"config": {
+			"type": "object",
+			"properties": {
+				"schema": { "type": "string" },
+				"default": { "type": "object" },
+				"cue": {
+					"description": "package-relative CUE file: package settings, a closed #Settings (repository config)",
+					"type": "string",
+					"maxLength": 256,
+					"pattern": "^(?!\\/)(?!.*\\.\\.)[A-Za-z0-9._/-]+\\.cue$"
+				},
+				"targets": {
+					"description": "settings (dotted paths) that name nodes; K12, enforced by the kernel",
+					"type": "array",
+					"maxItems": 32,
+					"uniqueItems": true,
+					"items": {
+						"type": "string",
+						"maxLength": 128,
+						"pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"
+					}
+				},
+				"repoOverridable": {
+					"description": "top-level settings keys a repository may overlay on an inherited installation",
+					"type": "array",
+					"maxItems": 32,
+					"uniqueItems": true,
+					"items": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+					}
+				},
+				"repoPolicy": {
+					"description": "top-level keys a repository authors as policy in its package tartan, read by the extension at each change's base (never installed)",
+					"type": "array",
+					"maxItems": 16,
+					"uniqueItems": true,
+					"items": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+					}
+				}
+			}
+		},
+		"limits": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"event_cpu_ms": { "type": "integer", "maximum": 5000 },
+				"render_cpu_ms": { "type": "integer", "maximum": 200 },
+				"action_cpu_ms": { "type": "integer", "maximum": 2000 },
+				"tool_cpu_ms": { "type": "integer", "maximum": 10000 },
+				"subrequests": { "type": "integer", "maximum": 200 },
+				"effects_per_second": { "type": "integer", "maximum": 500 }
+			}
+		},
+		"members": {
+			"type": "array",
+			"description": "kind=pack only",
+			"items": {
+				"type": "object",
+				"required": ["id", "version"],
+				"properties": {
+					"id": { "type": "string" },
+					"version": { "type": "string" },
+					"config": { "type": "object" },
+					"mode": { "enum": ["enforce", "shadow"] },
+					"backgroundRole": {
+						"description": "Owner-approved above 20",
+						"enum": [10, 20, 30, 40]
+					}
+				}
+			}
+		}
+	},
+	"allOf": [
+		{
+			"if": { "properties": { "runtime": { "const": "wasm" } } },
+			"then": { "properties": { "entry": { "required": ["js", "wasm"] } } }
+		},
+		{
+			"if": { "properties": { "runtime": { "const": "js" } } },
+			"then": { "properties": { "entry": { "required": ["js"] } } }
+		},
+		{
+			"if": { "properties": { "runtime": { "const": "builtin" } } },
+			"then": { "properties": { "entry": { "required": ["builtin"] } } }
+		}
+	]
+}

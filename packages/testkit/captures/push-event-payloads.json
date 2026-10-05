@@ -1,0 +1,668 @@
+{
+	"source": "Fixture: the shape of `cf.artifacts.repo.pushed` events (one per ref update), with synthetic repo names, ids, commits and times",
+	"events": [
+		{
+			"label": "branch create, one commit",
+			"event": {
+				"id": "3eb90f5e-c624-5d85-8477-d91e3bbded34",
+				"type": "cf.artifacts.repo.pushed",
+				"source": {
+					"namespace": "tartan-test",
+					"repoName": "r-fixture-a"
+				},
+				"payload": {
+					"ref": "refs/heads/main",
+					"before": "0000000000000000000000000000000000000000",
+					"after": "0ab6a16672f4c4f9c9cb828b1db216c8a3eda2ed",
+					"commits": [
+						{
+							"id": "0ab6a16672f4c4f9c9cb828b1db216c8a3eda2ed",
+							"message": "first commit",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:01.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": []
+						}
+					],
+					"totalCommitsCount": 1,
+					"commitsTruncated": false
+				}
+			}
+		},
+		{
+			"label": "branch update, one commit",
+			"event": {
+				"id": "505bc4d6-66de-5ca4-9390-d94c575ede32",
+				"type": "cf.artifacts.repo.pushed",
+				"source": {
+					"namespace": "tartan-test",
+					"repoName": "r-fixture-a"
+				},
+				"payload": {
+					"ref": "refs/heads/main",
+					"before": "0ab6a16672f4c4f9c9cb828b1db216c8a3eda2ed",
+					"after": "f9b69811effbc28c842add96882ae9d837092947",
+					"commits": [
+						{
+							"id": "f9b69811effbc28c842add96882ae9d837092947",
+							"message": "second commit",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:02.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"0ab6a16672f4c4f9c9cb828b1db216c8a3eda2ed"
+							]
+						}
+					],
+					"totalCommitsCount": 1,
+					"commitsTruncated": false
+				}
+			}
+		},
+		{
+			"label": "branch update, three commits",
+			"event": {
+				"id": "ae7129bb-8a8e-5b67-9ad5-a99b1b17cf3a",
+				"type": "cf.artifacts.repo.pushed",
+				"source": {
+					"namespace": "tartan-test",
+					"repoName": "r-fixture-b"
+				},
+				"payload": {
+					"ref": "refs/heads/main",
+					"before": "c2005bd8c7e9bceedae3cbfc9bada023bdd4687a",
+					"after": "ec77c0e001cf9d420050c73af97778fa2775adea",
+					"commits": [
+						{
+							"id": "ec77c0e001cf9d420050c73af97778fa2775adea",
+							"message": "batch commit 3",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:02:23.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"f01264ab166003351fc71be99ecb9eaf787a014b"
+							]
+						},
+						{
+							"id": "f01264ab166003351fc71be99ecb9eaf787a014b",
+							"message": "batch commit 2",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:02:22.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"e7970d9cf64d77a677c0b4a184b726d02d15edb6"
+							]
+						},
+						{
+							"id": "e7970d9cf64d77a677c0b4a184b726d02d15edb6",
+							"message": "batch commit 1",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:02:21.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"c2005bd8c7e9bceedae3cbfc9bada023bdd4687a"
+							]
+						}
+					],
+					"totalCommitsCount": 3,
+					"commitsTruncated": false
+				}
+			}
+		},
+		{
+			"label": "new branch: history to the root",
+			"event": {
+				"id": "6d8d494d-7113-512c-bfa3-69dc2f601f5f",
+				"type": "cf.artifacts.repo.pushed",
+				"source": {
+					"namespace": "tartan-test",
+					"repoName": "r-fixture-c"
+				},
+				"payload": {
+					"ref": "refs/heads/feature",
+					"before": "0000000000000000000000000000000000000000",
+					"after": "20d40c84d683c01237b1e922430a009c99ffa111",
+					"commits": [
+						{
+							"id": "20d40c84d683c01237b1e922430a009c99ffa111",
+							"message": "feature commit 5",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:03:24.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"d4d6ac78b222ce7c0f4660d9f9e962b31f533931"
+							]
+						},
+						{
+							"id": "d4d6ac78b222ce7c0f4660d9f9e962b31f533931",
+							"message": "feature commit 4",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:03:23.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"82550d2e1b4b4b81283b5bf7a2de5d9c56a8da7f"
+							]
+						},
+						{
+							"id": "82550d2e1b4b4b81283b5bf7a2de5d9c56a8da7f",
+							"message": "feature commit 3",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:03:22.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"17182396be8efbcf0ce7422a7b40a469419ae815"
+							]
+						},
+						{
+							"id": "17182396be8efbcf0ce7422a7b40a469419ae815",
+							"message": "feature commit 2",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:03:21.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"b485f7677ee4cb8cb3980726ff16d6262db7b981"
+							]
+						},
+						{
+							"id": "b485f7677ee4cb8cb3980726ff16d6262db7b981",
+							"message": "feature commit 1",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:03:20.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": []
+						}
+					],
+					"totalCommitsCount": 5,
+					"commitsTruncated": false
+				}
+			}
+		},
+		{
+			"label": "60-commit push: commits capped at 20, count at 21",
+			"event": {
+				"id": "b5b77e7c-3c19-5a9a-a3f0-0207fe89bc94",
+				"type": "cf.artifacts.repo.pushed",
+				"source": {
+					"namespace": "tartan-test",
+					"repoName": "r-fixture-b"
+				},
+				"payload": {
+					"ref": "refs/heads/main",
+					"before": "45a68d2f8abcaa26f2ee849a8b5ae5f7e92839e7",
+					"after": "c2005bd8c7e9bceedae3cbfc9bada023bdd4687a",
+					"commits": [
+						{
+							"id": "c2005bd8c7e9bceedae3cbfc9bada023bdd4687a",
+							"message": "history 60",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:10.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"c224d4fb2a28feee3adeb6910310f527574cf74a"
+							]
+						},
+						{
+							"id": "c224d4fb2a28feee3adeb6910310f527574cf74a",
+							"message": "history 59",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:09.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"ffe76b053370b60f067b9b642ac7bffd92bf2492"
+							]
+						},
+						{
+							"id": "ffe76b053370b60f067b9b642ac7bffd92bf2492",
+							"message": "history 58",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:08.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"264f5bb0536238d196bd63da96b40cb9193e4f04"
+							]
+						},
+						{
+							"id": "264f5bb0536238d196bd63da96b40cb9193e4f04",
+							"message": "history 57",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:07.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"5471cb837abb770a2d97b4c49bcaf2cc9b88212e"
+							]
+						},
+						{
+							"id": "5471cb837abb770a2d97b4c49bcaf2cc9b88212e",
+							"message": "history 56",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:06.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"786f820ad5ca9ec634ca7111678542a5eba817ff"
+							]
+						},
+						{
+							"id": "786f820ad5ca9ec634ca7111678542a5eba817ff",
+							"message": "history 55",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:05.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"29e6b43e7b3b7acf7e47883b86ca9acd45e9f38a"
+							]
+						},
+						{
+							"id": "29e6b43e7b3b7acf7e47883b86ca9acd45e9f38a",
+							"message": "history 54",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:04.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"60c051f7351384409ddc91d01ffe8c4b79186624"
+							]
+						},
+						{
+							"id": "60c051f7351384409ddc91d01ffe8c4b79186624",
+							"message": "history 53",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:03.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"af595bce9e4d9d1e8986e7e5bffcc2c60cbf3d75"
+							]
+						},
+						{
+							"id": "af595bce9e4d9d1e8986e7e5bffcc2c60cbf3d75",
+							"message": "history 52",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:02.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"4deafda429b877bf7cfce3ca6beed592c2d8b07d"
+							]
+						},
+						{
+							"id": "4deafda429b877bf7cfce3ca6beed592c2d8b07d",
+							"message": "history 51",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:01.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"53e21cc347dae519e3402c716e08e624b6f936fc"
+							]
+						},
+						{
+							"id": "53e21cc347dae519e3402c716e08e624b6f936fc",
+							"message": "history 50",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:01:00.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"b98b06daa698ff3d4b0297d6a1f9b4d4b950801c"
+							]
+						},
+						{
+							"id": "b98b06daa698ff3d4b0297d6a1f9b4d4b950801c",
+							"message": "history 49",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:59.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"e08dc453b6beacfea86a6d107335e5295cdd193b"
+							]
+						},
+						{
+							"id": "e08dc453b6beacfea86a6d107335e5295cdd193b",
+							"message": "history 48",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:58.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"381bb69ace944bbde86095b40ad9ae2543e62694"
+							]
+						},
+						{
+							"id": "381bb69ace944bbde86095b40ad9ae2543e62694",
+							"message": "history 47",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:57.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"874445c395d9a2ac036dbdfc324d86dd38bbf7a3"
+							]
+						},
+						{
+							"id": "874445c395d9a2ac036dbdfc324d86dd38bbf7a3",
+							"message": "history 46",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:56.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"b35acfd93e33429113d7bad8547bce2b302c9e2c"
+							]
+						},
+						{
+							"id": "b35acfd93e33429113d7bad8547bce2b302c9e2c",
+							"message": "history 45",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:55.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"9d628fe5d009256be429d2c87910231db08b14dc"
+							]
+						},
+						{
+							"id": "9d628fe5d009256be429d2c87910231db08b14dc",
+							"message": "history 44",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:54.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"929b79defdd3e2bae6da20ea242285fe13105dc8"
+							]
+						},
+						{
+							"id": "929b79defdd3e2bae6da20ea242285fe13105dc8",
+							"message": "history 43",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:53.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"c77b67afc887e43419b46b5a39d579df30b757ce"
+							]
+						},
+						{
+							"id": "c77b67afc887e43419b46b5a39d579df30b757ce",
+							"message": "history 42",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:52.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"1438cb235a9dd893a7e5b22145925dd54c062dac"
+							]
+						},
+						{
+							"id": "1438cb235a9dd893a7e5b22145925dd54c062dac",
+							"message": "history 41",
+							"messageTruncated": false,
+							"timestamp": "2026-01-01T00:00:51.000Z",
+							"author": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"committer": {
+								"name": "Tartan Fixture",
+								"email": "fixture@example.invalid"
+							},
+							"parents": [
+								"95e3989cd0c27438b21ad75e777e20c4c742aa62"
+							]
+						}
+					],
+					"totalCommitsCount": 21,
+					"commitsTruncated": true
+				}
+			}
+		},
+		{
+			"label": "tag create: no commits",
+			"event": {
+				"id": "24de7dc0-5e4c-5709-b77a-b4182c464a14",
+				"type": "cf.artifacts.repo.pushed",
+				"source": {
+					"namespace": "tartan-test",
+					"repoName": "r-fixture-c"
+				},
+				"payload": {
+					"ref": "refs/tags/v0.0.1",
+					"before": "0000000000000000000000000000000000000000",
+					"after": "2916ca4874606f6372753cf478b92893300c93db",
+					"commits": [],
+					"totalCommitsCount": 0,
+					"commitsTruncated": false
+				}
+			}
+		},
+		{
+			"label": "notes ref: no commits",
+			"event": {
+				"id": "efabd133-7a36-57c6-84e8-2480db2b9ec5",
+				"type": "cf.artifacts.repo.pushed",
+				"source": {
+					"namespace": "tartan-test",
+					"repoName": "r-fixture-d"
+				},
+				"payload": {
+					"ref": "refs/notes/tartan/intent",
+					"before": "0000000000000000000000000000000000000000",
+					"after": "c3a68c4f26298673c45a8984a71168c1a0adf778",
+					"commits": [],
+					"totalCommitsCount": 0,
+					"commitsTruncated": false
+				}
+			}
+		},
+		{
+			"label": "branch delete",
+			"event": {
+				"id": "cc59cec6-0cc3-5912-9b5a-f7b92a394fb6",
+				"type": "cf.artifacts.repo.pushed",
+				"source": {
+					"namespace": "tartan-test",
+					"repoName": "r-fixture-c"
+				},
+				"payload": {
+					"ref": "refs/heads/feat-x",
+					"before": "82550d2e1b4b4b81283b5bf7a2de5d9c56a8da7f",
+					"after": "0000000000000000000000000000000000000000",
+					"commits": [],
+					"totalCommitsCount": 0,
+					"commitsTruncated": false
+				}
+			}
+		}
+	]
+}

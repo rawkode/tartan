@@ -1,0 +1,27 @@
+// tartan-smoke-lanes: the lane smoke Worker (U51–U55, U57, U59).
+// Throwaway: deployed by `deno task smoke -- --stage dev --suite lanes
+// --deploy` and deleted with its repos at the end (`--teardown`). Every
+// resource carries the `tartan-smoke-lanes` prefix. Secrets (`LANE_CAP_KEY`,
+// a dedicated capability key, and `SMOKE_KEY`) are put by the driver from
+// `scripts/smoke/.dev.vars` (gitignored) and never printed.
+{
+	"$schema": "../../../node_modules/wrangler/config-schema.json",
+	"name": "tartan-smoke-lanes",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-15",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": true,
+	"observability": { "enabled": true },
+	"artifacts": [
+		{
+			"binding": "ARTIFACTS",
+			"namespace": "tartan-smoke-lanes",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [{ "name": "CAP_STATE", "class_name": "CapState" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["CapState"] }],
+	"vars": { "LANE_CAP_PIN_BASE": "0" }
+}

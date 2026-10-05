@@ -1,0 +1,103 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "tartan", // deploy script renders "tartan-<stage>"
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-15", // one constant (contract COMPAT_DATE); the vitest pool accepts dates up to 2026-08-22
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public",
+		"durable_object_io_tasks_prevent_eviction"
+	],
+	// The eviction flag is in the DEPLOYED config only, kept as cheap insurance for long container jobs.
+	// The vitest pool's INLINE miniflare options omit it (stock pool 0.22.0 rejects it) — a documented test/prod divergence.
+	// Fallback: `render-config.ts --no-eviction-flag` drops it; the container watchdog still holds.
+	"workers_dev": true,
+	"observability": { "enabled": true }, // Workers Logs: setup claim code on the button path
+	"limits": { "cpu_ms": 60000 },
+	"build": { "command": "npm run build:web" }, // Vite SPA → web/dist (Workers Builds runs this for the button)
+	"assets": {
+		"directory": "web/dist",
+		"binding": "ASSETS",
+		"run_worker_first": true,
+		"not_found_handling": "single-page-application"
+	},
+	"artifacts": [{ "binding": "ARTIFACTS", "namespace": "tartan" }],
+	"worker_loaders": [{ "binding": "LOADER" }],
+	"durable_objects": {
+		"bindings": [
+			{ "name": "FORGE", "class_name": "ForgeDO" },
+			{ "name": "REPO", "class_name": "RepoDO" },
+			{ "name": "INBOX", "class_name": "InboxDO" },
+			{ "name": "EXT", "class_name": "ExtensionDO" },
+			{ "name": "SANDBOX", "class_name": "TartanSandbox" },
+			{ "name": "BUS", "class_name": "BusDO" } // the global log consumer (WP26)
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": [
+				"ForgeDO",
+				"RepoDO",
+				"InboxDO",
+				"ExtensionDO",
+				"TartanSandbox"
+			]
+		},
+		{ "tag": "v2", "new_sqlite_classes": ["BusDO"] }
+	],
+	// The global log's "k2" producer binding and its Secrets Store token are rendered per stage only
+	// (render-config.ts --k2-stream / --k2-token-store / --k2-token-secret): the button path has neither, so the relay is off
+	// and every run dispatches inline (WP26).
+	// classic (default) scheduling policy; no "images" map (images entries must be digest-pinned registry.cloudflare.com refs).
+	// IMAGE_VARIANT "dockerfile" (default, and the only variant for third-party self-deploys today); "registry"
+	// renders a DIGEST-pinned "ttl.sh/tartan-runner-<gitsha>@sha256:<digest>" for dev/demo stages (S7d)
+	"containers": [
+		{
+			"class_name": "TartanSandbox",
+			"image": "./containers/runner/Dockerfile",
+			"instance_type": "standard-1",
+			"max_instances": 20
+		}
+	],
+	"workflows": [
+		{ "name": "tartan-run", "binding": "RUNS", "class_name": "RunWorkflow" },
+		{ "name": "tartan-land", "binding": "LAND", "class_name": "LandWorkflow" },
+		{
+			"name": "tartan-ingest",
+			"binding": "INGEST",
+			"class_name": "IngestWorkflow"
+		},
+		{
+			"name": "tartan-swarm",
+			"binding": "SWARM",
+			"class_name": "SwarmWorkflow"
+		}
+	],
+	"r2_buckets": [{ "binding": "BLOBS", "bucket_name": "tartan-blobs" }],
+	"kv_namespaces": [{ "binding": "OAUTH_KV" }], // id omitted → auto-provisioned; fallback: deploy script creates it
+	"ai": { "binding": "AI" },
+	"vars": {
+		"TARTAN_STAGE": "default",
+		"TARTAN_FEATURES": "echo,oauth", // never "swarm"; echo also needs ECHO_ENABLED (S3)
+		"TARTAN_DEV_TOOLS": "0", // swarm, bulk tokens, reset, seedHistory need "1" AND TARTAN_STAGE ^dev
+		"TARTAN_MAX_PUSH_MB": "95", // push body cap, ≤ the zone plan's body limit
+		"TARTAN_JUDGE_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast", // [E S11]
+		"OIDC_ISSUER": "",
+		"OIDC_CLIENT_ID": ""
+	},
+	"triggers": {
+		// lane GC (lane repos, branch refs), seed re-drive + orphan sweep, reconciliation (canonical + lane repos),
+		// retention, IdP metadata
+		"crons": ["*/5 * * * *"],
+		"events": [
+			{
+				"type": "cf.artifacts.repo.pushed",
+				"filter": { "namespace": "tartan" },
+				"targets": [{ "type": "workflow", "workflow_name": "tartan-ingest" }]
+			}
+		]
+	} // one IngestWorkflow instance per ref update, r-* and l-* repos [E A5]
+	// "routes": [{ "pattern": "git.example.com", "custom_domain": true }]   ← rendered by `deno task deploy -- --domain`
+	//                                                                          (demo: code.rawkode.academy)
+}

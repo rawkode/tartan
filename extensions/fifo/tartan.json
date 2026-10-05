@@ -1,0 +1,101 @@
+{
+	"schema": 1,
+	"id": "tartan.fifo",
+	"name": "FIFO",
+	"description": "Serial queue: lands one human-approved change at a time (queue@1)",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.fifo"
+	},
+	"storage": {
+		"scope": "repo",
+		"migrations": [
+			"migrations/0001_init.sql",
+			"migrations/0002_train.sql"
+		]
+	},
+	"provides": [
+		"queue@1"
+	],
+	"requires": [
+		"changes@1",
+		"review@1"
+	],
+	"permissions": {
+		"repo": "read",
+		"land": [
+			"refs/heads/*"
+		],
+		"notify": true,
+		"events.read": [
+			"changes.*",
+			"review.*",
+			"land.*",
+			"ref.*",
+			"queue.*"
+		],
+		"interfaces.call": [
+			"work@1",
+			"changes@1"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "changes.submitted"
+		},
+		{
+			"event": "changes.revised"
+		},
+		{
+			"event": "changes.abandoned"
+		},
+		{
+			"event": "changes.superseded"
+		},
+		{
+			"event": "review.decided"
+		},
+		{
+			"event": "land.*"
+		},
+		{
+			"event": "ref.advanced"
+		}
+	],
+	"contributes": {
+		"slots": [
+			{
+				"slot": "repo.tab",
+				"id": "queue",
+				"label": "Queue",
+				"icon": "list-ordered",
+				"route": "queue",
+				"when": "node.kind == 'repo'"
+			},
+			{
+				"slot": "change.sidebar",
+				"id": "position",
+				"dynamic": true,
+				"refreshOn": [
+					"queue.*",
+					"land.*"
+				]
+			}
+		],
+		"context": [
+			{
+				"id": "queue-health",
+				"maxBytes": 1024,
+				"priority": "hints"
+			}
+		],
+		"protocol": "protocol.md"
+	},
+	"config": {
+		"default": {
+			"debounceMs": 2000
+		}
+	}
+}

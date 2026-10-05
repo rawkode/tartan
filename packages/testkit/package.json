@@ -1,0 +1,13 @@
+{
+	"name": "@tartan/testkit",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Tartan testkit: FakeArtifacts, FakeK2 (the global log stream: producer binding and data plane), an in-memory git object store and smart-HTTP server, FakeKernelCaps, FakeExtDispatch, the runExtension harness, the fixture monorepo with conflict scenarios, and protocol captures",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./sqlite": "./src/ext/sqlite.ts",
+		"./*": "./src/*"
+	}
+}

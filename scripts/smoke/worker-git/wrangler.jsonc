@@ -1,0 +1,42 @@
+// tartan-smoke-git: the git smoke Worker (A1–A5, S4b, U45–U48, S3-raw, the
+// FakeArtifacts conformance run). Throwaway: deployed by
+// `deno task smoke -- --stage dev --suite git --deploy`, deleted by
+// `--teardown`. Every resource carries the `tartan-smoke-git` prefix. The
+// `SMOKE_KEY` secret is put by the driver from `scripts/smoke/.dev.vars`
+// (gitignored) and never printed. The Artifacts namespace is deleted with
+// the REST call in docs/SMOKE.md (wrangler has no command for it).
+{
+	"$schema": "../../../node_modules/wrangler/config-schema.json",
+	"name": "tartan-smoke-git",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-15",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": true,
+	"observability": { "enabled": true },
+	"artifacts": [
+		{ "binding": "ARTIFACTS", "namespace": "tartan-smoke-git", "remote": true }
+	],
+	"durable_objects": {
+		"bindings": [{ "name": "RECORDER", "class_name": "Recorder" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Recorder"] }],
+	"workflows": [
+		{
+			"name": "tartan-smoke-git-pushes",
+			"binding": "PUSH_WF",
+			"class_name": "PushRecorder"
+		}
+	],
+	"triggers": {
+		"events": [
+			{
+				"type": "cf.artifacts.repo.pushed",
+				"filter": { "namespace": "tartan-smoke-git" },
+				"targets": [
+					{ "type": "workflow", "workflow_name": "tartan-smoke-git-pushes" }
+				]
+			}
+		]
+	},
+	"vars": { "UPSTREAM_AUTH_MODE": "bearer" }
+}

@@ -1,0 +1,133 @@
+{
+	"schema": 1,
+	"id": "tartan.weave",
+	"name": "Weave",
+	"description": "Merge train: serial batches of approved changes, ejection with notify-author (M1); sub-trains, bisect, resolver items (M2)",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.weave"
+	},
+	"storage": {
+		"scope": "repo",
+		"migrations": [
+			"migrations/0001_init.sql",
+			"migrations/0002_train.sql"
+		]
+	},
+	"provides": [
+		"queue@1"
+	],
+	"requires": [
+		"changes@1",
+		"checks@1",
+		"review@1"
+	],
+	"permissions": {
+		"repo": "read",
+		"land": [
+			"refs/heads/*"
+		],
+		"notes": true,
+		"notify": true,
+		"events.read": [
+			"changes.*",
+			"review.*",
+			"checks.*",
+			"land.*",
+			"ref.*",
+			"queue.*"
+		],
+		"interfaces.call": [
+			"work@1",
+			"changes@1"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "changes.submitted"
+		},
+		{
+			"event": "changes.revised"
+		},
+		{
+			"event": "changes.abandoned"
+		},
+		{
+			"event": "changes.superseded"
+		},
+		{
+			"event": "review.decided"
+		},
+		{
+			"event": "land.*"
+		},
+		{
+			"event": "ref.advanced"
+		}
+	],
+	"contributes": {
+		"slots": [
+			{
+				"slot": "repo.tab",
+				"id": "weave",
+				"label": "Weave",
+				"icon": "git-merge",
+				"route": "weave",
+				"when": "node.kind == 'repo'"
+			},
+			{
+				"slot": "change.sidebar",
+				"id": "position",
+				"dynamic": true,
+				"refreshOn": [
+					"queue.*",
+					"land.*"
+				]
+			},
+			{
+				"slot": "hud.metric",
+				"id": "landed-per-hour",
+				"dynamic": true,
+				"cache": "role"
+			}
+		],
+		"context": [
+			{
+				"id": "resolver",
+				"maxBytes": 4096,
+				"priority": "conflicts"
+			},
+			{
+				"id": "weave-health",
+				"maxBytes": 1024,
+				"priority": "hints"
+			}
+		],
+		"protocol": "protocol.md"
+	},
+	"config": {
+		"default": {
+			"batch": 4,
+			"debounceMs": 2000,
+			"resolver": "notify-author",
+			"reuseDisjointEvidence": true,
+			"bisect": true
+		},
+		"cue": "config/settings.cue",
+		"targets": [],
+		"repoOverridable": [
+			"batch",
+			"debounceMs"
+		]
+	},
+	"limits": {
+		"event_cpu_ms": 1000,
+		"render_cpu_ms": 50,
+		"action_cpu_ms": 500,
+		"tool_cpu_ms": 2000,
+		"subrequests": 50,
+		"effects_per_second": 50
+	}
+}

@@ -1,0 +1,62 @@
+{
+	"schema": 1,
+	"kind": "pack",
+	"id": "tartan.pack.classic",
+	"name": "Classic",
+	"description": "Classic protocol: issues and pull requests; a human approves every pull request, and FIFO lands them one at a time",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.pack.classic"
+	},
+	"storage": {
+		"scope": "node"
+	},
+	"permissions": {},
+	"contributes": {
+		"protocol": "protocol.md"
+	},
+	"members": [
+		{
+			"id": "tartan.work",
+			"version": "0.1.0",
+			"config": {
+				"wording": "classic",
+				"labels": {
+					"work": "Issues",
+					"new-work": "New issue"
+				}
+			}
+		},
+		{
+			"id": "tartan.changes",
+			"version": "0.1.0",
+			"config": {
+				"wording": "classic",
+				"labels": {
+					"changes": "Pull requests"
+				}
+			}
+		},
+		{
+			"id": "tartan.ci",
+			"version": "0.1.0"
+		},
+		{
+			"id": "tartan.review",
+			"version": "0.1.0",
+			"config": {
+				"mode": "human-required"
+			}
+		},
+		{
+			"id": "tartan.fifo",
+			"version": "0.1.0"
+		},
+		{
+			"id": "tartan.board",
+			"version": "0.1.0"
+		}
+	]
+}

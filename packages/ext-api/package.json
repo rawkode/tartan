@@ -1,0 +1,12 @@
+{
+	"name": "@tartan/ext-api",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Tartan extension SDK: defineExtension, tartan-ui@1 builders, SQL helpers and the statement guard the host enforces, plus Deno test helpers (WP7b)",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*"
+	}
+}

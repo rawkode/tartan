@@ -1,0 +1,108 @@
+{
+	"schema": 1,
+	"id": "tartan.review",
+	"name": "Review",
+	"description": "Review by exception: risk routing from trunk policy, evidence bundles, attention inbox (review@1)",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.review"
+	},
+	"storage": {
+		"scope": "repo",
+		"migrations": [
+			"migrations/0001_init.sql",
+			"migrations/0002_flow.sql"
+		]
+	},
+	"provides": [
+		"review@1"
+	],
+	"permissions": {
+		"repo": "read",
+		"notes": true,
+		"notify": true,
+		"ai": true,
+		"events.read": [
+			"changes.*",
+			"checks.*",
+			"conflicts.*",
+			"queue.*",
+			"land.*",
+			"ref.*",
+			"repo.config.*"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "changes.submitted"
+		},
+		{
+			"event": "changes.revised"
+		},
+		{
+			"event": "checks.completed"
+		},
+		{
+			"event": "conflicts.*"
+		},
+		{
+			"event": "queue.ejected"
+		},
+		{
+			"event": "land.vetoed"
+		},
+		{
+			"event": "ref.advanced"
+		},
+		{
+			"event": "repo.config.resolved"
+		}
+	],
+	"gates": [
+		{
+			"point": "ref.advance",
+			"onTruncated": "allow",
+			"default": "veto"
+		}
+	],
+	"contributes": {
+		"slots": [
+			{
+				"slot": "change.panel",
+				"id": "evidence",
+				"dynamic": true,
+				"refreshOn": [
+					"review.*",
+					"checks.*"
+				]
+			},
+			{
+				"slot": "home.section",
+				"id": "attention",
+				"dynamic": true,
+				"refreshOn": [
+					"review.*"
+				]
+			}
+		],
+		"context": [
+			{
+				"id": "review-rules",
+				"maxBytes": 2048,
+				"priority": "ownership"
+			}
+		]
+	},
+	"config": {
+		"default": {
+			"mode": "by-exception",
+			"autoThreshold": 0.35
+		},
+		"cue": "config/settings.cue",
+		"repoPolicy": [
+			"owners"
+		]
+	}
+}

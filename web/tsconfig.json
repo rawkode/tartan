@@ -1,0 +1,30 @@
+{
+	"compilerOptions": {
+		"target": "ES2023",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
+		"types": ["vite/client"],
+		"strict": true,
+		"noEmit": true,
+		"noFallthroughCasesInSwitch": true,
+		"allowImportingTsExtensions": true,
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true,
+		"useDefineForClassFields": true,
+		"skipLibCheck": true,
+		"jsx": "preserve",
+		"paths": {
+			"@tartan/contract/*": ["../packages/contract/src/*"]
+		}
+	},
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.vue",
+		"test/**/*.ts",
+		"vite.config.ts",
+		"csp.ts",
+		"vitest.config.ts"
+	],
+	"exclude": ["dist", "node_modules"]
+}

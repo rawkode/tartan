@@ -1,0 +1,57 @@
+{
+	"schema": 1,
+	"id": "tartan.epics",
+	"name": "Epics",
+	"description": "Cross-repo epics: roll up work items and decompose epics",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.epics"
+	},
+	"storage": {
+		"scope": "node",
+		"migrations": [
+			"migrations/0001_init.sql"
+		]
+	},
+	"permissions": {
+		"events.read": [
+			"work.*"
+		],
+		"interfaces.call": [
+			"work@1"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "work.*"
+		}
+	],
+	"contributes": {
+		"slots": [
+			{
+				"slot": "nav.global",
+				"id": "nav",
+				"label": "Epics",
+				"icon": "layers",
+				"route": "epics"
+			},
+			{
+				"slot": "node.tab",
+				"id": "epics",
+				"label": "Epics",
+				"icon": "layers",
+				"route": "epics"
+			},
+			{
+				"slot": "work.sidebar",
+				"id": "epic",
+				"dynamic": true,
+				"refreshOn": [
+					"work.*"
+				]
+			}
+		]
+	}
+}

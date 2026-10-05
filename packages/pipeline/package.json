@@ -1,0 +1,11 @@
+{
+	"name": "@tartan/pipeline",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Tartan CI pipeline: the tartan.ci pipeline schema (repo policy key `pipeline` of package tartan), zero-config detection, JobGraph planner over affected sets and result-cache input hashes (WP14)",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	}
+}

@@ -1,0 +1,11 @@
+{
+	"name": "@tartan/gitproto",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Tartan gitproto: git smart-HTTP codecs, fail-closed parsers, advertisement rewriters, report-status, side-band relay, pack writer, ls-refs and receive-pack clients (WP22)",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	}
+}

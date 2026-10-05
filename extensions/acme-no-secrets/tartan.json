@@ -1,0 +1,131 @@
+{
+	"schema": 1,
+	"id": "acme.no-secrets",
+	"name": "No Secrets",
+	"description": "Third-party Rust/WASM policy: warns on pushes and vetoes advances that add credentials",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "wasm",
+	"entry": {
+		"js": "ext.js",
+		"wasm": [
+			"ext.core.wasm",
+			"ext.core2.wasm",
+			"ext.core3.wasm"
+		]
+	},
+	"storage": {
+		"scope": "repo",
+		"migrations": [
+			"migrations/0001_init.sql"
+		]
+	},
+	"permissions": {},
+	"inputs": [
+		"added-lines"
+	],
+	"gates": [
+		{
+			"point": "ref.advance",
+			"timeoutMs": 1500,
+			"default": "veto",
+			"inputs": [
+				"added-lines"
+			]
+		}
+	],
+	"echo": [
+		{
+			"event": "push.accepted",
+			"timeoutMs": 800,
+			"inputs": [
+				"added-lines"
+			]
+		}
+	],
+	"contributes": {
+		"slots": [
+			{
+				"slot": "change.sidebar",
+				"id": "findings",
+				"title": "Secrets",
+				"dynamic": true,
+				"refreshOn": [
+					"gate.decided"
+				]
+			},
+			{
+				"slot": "change.gate",
+				"id": "no-secrets",
+				"dynamic": true,
+				"refreshOn": [
+					"gate.decided"
+				]
+			},
+			{
+				"slot": "repo.tab",
+				"id": "secrets",
+				"label": "Secrets",
+				"icon": "shield",
+				"route": "secrets",
+				"when": "node.kind == 'repo'"
+			}
+		],
+		"tools": [
+			{
+				"name": "scan",
+				"description": "Report the credentials found in a change (AWS keys, private keys, .env files), or scan a snippet before pushing it. Values are masked.",
+				"input": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": [
+						"changeId"
+					],
+					"properties": {
+						"changeId": {
+							"type": "string",
+							"maxLength": 64
+						},
+						"text": {
+							"type": "string",
+							"maxLength": 65536,
+							"description": "Text to scan instead of the change's stored findings"
+						},
+						"path": {
+							"type": "string",
+							"maxLength": 512,
+							"description": "The path the text would be committed at (allow globs and .env detection)"
+						}
+					}
+				},
+				"role": 20
+			}
+		],
+		"settings": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"allow": {
+					"title": "Allowed paths",
+					"description": "Globs of paths that may hold test credentials (fixtures/**)",
+					"type": "array",
+					"maxItems": 100,
+					"items": {
+						"type": "string",
+						"maxLength": 200
+					}
+				}
+			}
+		}
+	},
+	"config": {
+		"default": {
+			"allow": []
+		}
+	},
+	"limits": {
+		"event_cpu_ms": 200,
+		"render_cpu_ms": 100,
+		"tool_cpu_ms": 500
+	}
+}

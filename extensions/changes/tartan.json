@@ -1,0 +1,120 @@
+{
+	"schema": 1,
+	"id": "tartan.changes",
+	"name": "Changes",
+	"description": "Agent-first changes: drafts from lanes, submit, revisions per push, threads (changes@1)",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.changes"
+	},
+	"storage": {
+		"scope": "repo",
+		"migrations": [
+			"migrations/0001_init.sql",
+			"migrations/0002_timeline.sql",
+			"migrations/0003_drop_selection_ref.sql"
+		]
+	},
+	"provides": [
+		"changes@1"
+	],
+	"permissions": {
+		"repo": "read",
+		"lanes": [
+			"adopt"
+		],
+		"notes": true,
+		"notify": true,
+		"events.read": [
+			"lane.*",
+			"push.*",
+			"review.*",
+			"queue.*",
+			"land.*",
+			"ref.*"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "lane.opened"
+		},
+		{
+			"event": "lane.closed"
+		},
+		{
+			"event": "push.diffed"
+		},
+		{
+			"event": "review.decided"
+		},
+		{
+			"event": "review.requested"
+		},
+		{
+			"event": "queue.*"
+		},
+		{
+			"event": "land.*"
+		},
+		{
+			"event": "ref.advanced"
+		}
+	],
+	"contributes": {
+		"slots": [
+			{
+				"slot": "repo.tab",
+				"id": "changes",
+				"label": "Changes",
+				"icon": "git-pull-request",
+				"route": "changes",
+				"when": "node.kind == 'repo'"
+			},
+			{
+				"slot": "change.tab",
+				"id": "diff",
+				"label": "Diff",
+				"icon": "file-diff",
+				"route": "diff"
+			},
+			{
+				"slot": "change.tab",
+				"id": "revisions",
+				"label": "Revisions",
+				"icon": "history",
+				"route": "revisions"
+			},
+			{
+				"slot": "change.panel",
+				"id": "overview",
+				"order": -10,
+				"dynamic": true,
+				"refreshOn": [
+					"changes.*",
+					"review.*",
+					"queue.*",
+					"land.*"
+				]
+			},
+			{
+				"slot": "change.panel",
+				"id": "threads",
+				"dynamic": true,
+				"refreshOn": [
+					"changes.*"
+				]
+			},
+			{
+				"slot": "lane.sidebar",
+				"id": "change",
+				"dynamic": true,
+				"refreshOn": [
+					"changes.*"
+				]
+			}
+		],
+		"protocol": "protocol.md"
+	}
+}

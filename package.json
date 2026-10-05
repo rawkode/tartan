@@ -1,0 +1,46 @@
+{
+	"name": "tartan",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Tartan: a self-deployable, agent-native Git forge on Cloudflare",
+	"license": "MIT",
+	"type": "module",
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"build:web": "vite build web",
+		"check:web": "vue-tsc --noEmit -p web",
+		"test:workers": "vitest run",
+		"license:check": "deno run -A scripts/license-check.ts"
+	},
+	"dependencies": {
+		"@cloudflare/sandbox": "0.12.1",
+		"@cloudflare/workers-oauth-provider": "1.2.1",
+		"@modelcontextprotocol/server": "2.0.0",
+		"agents": "0.24.0",
+		"jose": "6.2.12",
+		"oauth4webapi": "3.8.8",
+		"vue": "3.5.43",
+		"vue-router": "5.3.1",
+		"zod": "4.5.4"
+	},
+	"devDependencies": {
+		"@bytecodealliance/jco": "1.35.0",
+		"@cfworker/json-schema": "4.1.1",
+		"@cloudflare/vitest-pool-workers": "0.22.0",
+		"@cloudflare/workers-types": "5.20261001.1",
+		"@e2e-dev/web": "0.11.2",
+		"@modelcontextprotocol/client": "2.0.0",
+		"@types/node": "22.20.4",
+		"@vitejs/plugin-vue": "6.0.9",
+		"e2e": "0.16.0",
+		"esbuild": "0.28.1",
+		"playwright": "1.63.0",
+		"typescript": "5.9.3",
+		"vite": "8.3.2",
+		"vitest": "4.1.11",
+		"vue-tsc": "3.3.11",
+		"wrangler": "4.145.0"
+	}
+}

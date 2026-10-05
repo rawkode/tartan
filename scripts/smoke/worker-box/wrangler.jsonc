@@ -1,0 +1,35 @@
+// tartan-smoke-box (S7, S8, S11), Dockerfile variant: the Sandbox 0.12.1
+// base plus git ≥ 2.38 (`merge-tree --write-tree`, S7b). Deploying builds
+// the image, so it needs Docker and is run by the integrator only (AGENTS.md
+// disk hygiene); the classic-image variant (`wrangler.classic.jsonc`) needs
+// no build but its git 2.34 cannot compose (S7a). Throwaway; every resource
+// carries the `tartan-smoke-box` prefix.
+{
+	"$schema": "../../../node_modules/wrangler/config-schema.json",
+	"name": "tartan-smoke-box",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-15",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"durable_object_io_tasks_prevent_eviction"
+	],
+	"workers_dev": true,
+	"observability": { "enabled": false },
+	"containers": [
+		{
+			"class_name": "BoxSandbox",
+			"image": "./image/Dockerfile",
+			"instance_type": "standard-1",
+			"max_instances": 4
+		}
+	],
+	"durable_objects": {
+		"bindings": [{ "name": "BOX", "class_name": "BoxSandbox" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["BoxSandbox"] }],
+	"artifacts": [
+		{ "binding": "ARTIFACTS", "namespace": "tartan-smoke-box", "remote": true }
+	],
+	"ai": { "binding": "AI" },
+	"vars": { "VARIANT": "dockerfile" }
+}

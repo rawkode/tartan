@@ -1,0 +1,22 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	// The e2e mock OIDC IdP. Deployed only by `deno task e2e -- stage up`, which
+	// adds `--var ISSUER:…` and `--var ALLOWED_REDIRECT_URIS:[…]` and writes the
+	// two secrets (E2E_IDP_SEED, E2E_IDP_SIGNING_JWK) through stdin. The name is
+	// one no `deno task deploy --stage` can render (double hyphen). No account
+	// is named here: the launcher gives every wrangler call the account of
+	// CLOUDFLARE_ACCOUNT_ID, which it has checked against the login first.
+	"name": "tartan-e2e--idp",
+	"main": "src/worker.ts",
+	"compatibility_date": "2026-08-15",
+	"compatibility_flags": ["global_fetch_strictly_public"],
+	"workers_dev": true,
+	"preview_urls": false,
+	"send_metrics": false,
+	// Off: request URLs carry `state` and `nonce`, which this IdP never logs.
+	"observability": { "enabled": false },
+	"durable_objects": {
+		"bindings": [{ "name": "IDP", "class_name": "IdpState" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["IdpState"] }]
+}

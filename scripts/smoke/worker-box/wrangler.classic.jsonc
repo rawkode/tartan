@@ -1,0 +1,33 @@
+// tartan-smoke-box, classic-image variant (S7a): the published Sandbox
+// 0.12.1 image by reference, no local build. Its git 2.34 cannot run
+// `merge-tree --write-tree`, so S8 fails here by design; use it for the
+// liveness, stream, RPC, env and destroy checks of S7 only.
+{
+	"$schema": "../../../node_modules/wrangler/config-schema.json",
+	"name": "tartan-smoke-box",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-15",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"durable_object_io_tasks_prevent_eviction"
+	],
+	"workers_dev": true,
+	"observability": { "enabled": false },
+	"containers": [
+		{
+			"class_name": "BoxSandbox",
+			"image": "docker.io/cloudflare/sandbox:0.12.1",
+			"instance_type": "standard-1",
+			"max_instances": 4
+		}
+	],
+	"durable_objects": {
+		"bindings": [{ "name": "BOX", "class_name": "BoxSandbox" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["BoxSandbox"] }],
+	"artifacts": [
+		{ "binding": "ARTIFACTS", "namespace": "tartan-smoke-box", "remote": true }
+	],
+	"ai": { "binding": "AI" },
+	"vars": { "VARIANT": "classic-image" }
+}

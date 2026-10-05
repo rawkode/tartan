@@ -1,0 +1,11 @@
+{
+	"name": "@tartan/monorepo",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Tartan monorepo planner: hash-pruned tree diff, project detection (pipeline.yaml, pnpm, npm, deno, Cargo, go.work), affected closure, K6 disjointness and input hashes over SHA-only reads (WP8)",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	}
+}

@@ -1,0 +1,71 @@
+{
+	"schema": 1,
+	"id": "tartan.board",
+	"name": "Board",
+	"description": "Kanban projection of work, changes, queue and lanes; moves update work items as the viewer",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.board"
+	},
+	"storage": {
+		"scope": "node",
+		"migrations": [
+			"migrations/0001_init.sql",
+			"migrations/0002_links.sql"
+		]
+	},
+	"permissions": {
+		"events.read": [
+			"work.*",
+			"changes.*",
+			"queue.*",
+			"lane.*"
+		],
+		"interfaces.call": [
+			"work@1"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "work.*"
+		},
+		{
+			"event": "changes.*"
+		},
+		{
+			"event": "queue.*"
+		},
+		{
+			"event": "lane.*"
+		}
+	],
+	"backfill": "all",
+	"contributes": {
+		"slots": [
+			{
+				"slot": "nav.global",
+				"id": "nav",
+				"label": "Board",
+				"icon": "kanban",
+				"route": "board"
+			},
+			{
+				"slot": "node.tab",
+				"id": "board",
+				"label": "Board",
+				"icon": "kanban",
+				"route": "board"
+			},
+			{
+				"slot": "repo.tab",
+				"id": "repo-board",
+				"label": "Board",
+				"icon": "kanban",
+				"route": "board",
+				"when": "node.kind == 'repo'"
+			}
+		]
+	}
+}

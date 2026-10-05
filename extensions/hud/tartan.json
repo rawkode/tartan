@@ -1,0 +1,106 @@
+{
+	"schema": 1,
+	"id": "tartan.hud",
+	"name": "HUD",
+	"description": "Heads-up display for a subtree: active lanes, predicted and avoided conflicts, landed per hour, changes that needed a human",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "builtin",
+	"entry": {
+		"builtin": "tartan.hud"
+	},
+	"storage": {
+		"scope": "node",
+		"migrations": [
+			"migrations/0001_init.sql",
+			"migrations/0002_state.sql"
+		]
+	},
+	"permissions": {
+		"events.read": [
+			"lane.*",
+			"conflicts.detected",
+			"conflicts.cleared",
+			"ref.advanced",
+			"review.requested",
+			"review.decided"
+		]
+	},
+	"subscribe": [
+		{
+			"event": "lane.*"
+		},
+		{
+			"event": "conflicts.detected"
+		},
+		{
+			"event": "conflicts.cleared"
+		},
+		{
+			"event": "ref.advanced"
+		},
+		{
+			"event": "review.requested"
+		},
+		{
+			"event": "review.decided"
+		}
+	],
+	"backfill": "30d",
+	"contributes": {
+		"slots": [
+			{
+				"slot": "home.section",
+				"id": "swarm",
+				"title": "Real and simulated agents",
+				"dynamic": true,
+				"refreshOn": [
+					"lane.*",
+					"conflicts.*",
+					"ref.advanced",
+					"review.*"
+				]
+			},
+			{
+				"slot": "hud.metric",
+				"id": "active-lanes",
+				"title": "Active lanes",
+				"dynamic": true,
+				"cache": "role",
+				"order": 1
+			},
+			{
+				"slot": "hud.metric",
+				"id": "predicted-conflicts",
+				"title": "Predicted conflicts",
+				"dynamic": true,
+				"cache": "role",
+				"order": 2
+			},
+			{
+				"slot": "hud.metric",
+				"id": "conflicts-avoided",
+				"title": "Conflicts avoided",
+				"dynamic": true,
+				"cache": "role",
+				"order": 3
+			},
+			{
+				"slot": "hud.metric",
+				"id": "landed-per-hour",
+				"title": "Landed / hour",
+				"dynamic": true,
+				"cache": "role",
+				"order": 4
+			},
+			{
+				"slot": "hud.metric",
+				"id": "needed-a-human",
+				"title": "Needed a human",
+				"dynamic": true,
+				"cache": "role",
+				"order": 5
+			}
+		]
+	}
+}

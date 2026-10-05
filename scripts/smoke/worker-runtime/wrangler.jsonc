@@ -1,0 +1,27 @@
+// tartan-smoke-rt: the runtime smoke Worker (S6: B1–B5, Tails). Throwaway;
+// every resource carries the `tartan-smoke-rt` prefix. The `SMOKE_KEY`
+// secret is put by the driver from `scripts/smoke/.dev.vars` (gitignored).
+{
+	"$schema": "../../../node_modules/wrangler/config-schema.json",
+	"name": "tartan-smoke-rt",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-15",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": true,
+	"preview_urls": false,
+	"observability": { "enabled": true },
+	"worker_loaders": [{ "binding": "LOADER" }],
+	"durable_objects": {
+		"bindings": [
+			{ "name": "SUPERVISOR", "class_name": "Supervisor" },
+			{ "name": "COUNTER", "class_name": "Counter" },
+			{ "name": "TAILSINK", "class_name": "TailSink" }
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": ["Supervisor", "Counter", "TailSink"]
+		}
+	]
+}

@@ -1,0 +1,41 @@
+{
+	// Used by wrangler's esbuild (path aliases when bundling src/index.ts) and by
+	// editors. Type checking runs through `deno task check` (deno.json) and
+	// `deno task check:web` (web/tsconfig.json); keep "paths" in sync with
+	// deno.json "imports" and the vitest.config.ts aliases.
+	"compilerOptions": {
+		"target": "ES2023",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"lib": ["ES2023"],
+		"types": [
+			"@cloudflare/workers-types",
+			"@cloudflare/vitest-pool-workers/types"
+		],
+		"strict": true,
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true,
+		"skipLibCheck": true,
+		"baseUrl": ".",
+		"paths": {
+			"@tartan/contract": ["./packages/contract/src/index.ts"],
+			"@tartan/contract/*": ["./packages/contract/src/*"],
+			"@tartan/testkit": ["./packages/testkit/src/index.ts"],
+			"@tartan/testkit/*": ["./packages/testkit/src/*"],
+			"@tartan/gitproto": ["./packages/gitproto/src/index.ts"],
+			"@tartan/gitproto/*": ["./packages/gitproto/src/*"],
+			"@tartan/ext-api": ["./packages/ext-api/src/index.ts"],
+			"@tartan/ext-api/*": ["./packages/ext-api/src/*"],
+			"@tartan/monorepo": ["./packages/monorepo/src/index.ts"],
+			"@tartan/monorepo/*": ["./packages/monorepo/src/*"],
+			"@tartan/diff": ["./packages/diff/src/index.ts"],
+			"@tartan/diff/*": ["./packages/diff/src/*"],
+			"@tartan/pipeline": ["./packages/pipeline/src/index.ts"],
+			"@tartan/pipeline/*": ["./packages/pipeline/src/*"]
+		}
+	},
+	"include": ["src", "packages", "extensions", "vitest.config.ts"],
+	"exclude": ["node_modules", "dist", "web", ".wrangler", "target"]
+}

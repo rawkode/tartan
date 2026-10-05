@@ -1,0 +1,3213 @@
+{
+	"generator": "src/kernel/probe/test/gen-fixtures.ts",
+	"git": "git version 2.55.0",
+	"trunk": [
+		"cff56671227adf7b6d33b680f6f53611ed4a9172",
+		"c740c1272428e0496bd6ed761abce057cc1b04a5",
+		"2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+		"5fbac34c411da9d041fcf6f36123398b52834109",
+		"cd307ba7fc0326646240cbf90a7ce5c18d9ccc93"
+	],
+	"refs": {
+		"adjacent-a": "64ea253d56e4c4010e0b8f812d625b1942a72e17",
+		"adjacent-b": "3776280d829e8256aba0cef34f978290877487c3",
+		"at-base": "e4a36b0986f26fce6c61360dae803a7b91fdf03d",
+		"binary-a": "4b5c2b266edaac91a90f6fc17b9e782fc5cf4967",
+		"binary-b": "7539b6fc69cd2a5ec6232d07c8beac9f97c7410a",
+		"delete-vs-modify-a": "581423f2501d90f6d4fee18f31fbceb38216a87e",
+		"delete-vs-modify-b": "7e34c3f00a0131bfac9473f2a6176c10923b14e3",
+		"different-bases-a": "38ddb86e97754894da2b395457d55245c13c8672",
+		"different-bases-b": "cb4dfdea080b5297730e9cbe9d78524097cfebc3",
+		"forged-dates": "bb6c6a32148ac454d4175d3b0d12fdfde8aa4e40",
+		"main": "cd307ba7fc0326646240cbf90a7ce5c18d9ccc93",
+		"merged-trunk": "a6222ae252bd3d8b82a6d51aefbe3914201dc846",
+		"orphan": "9fe88f8bc1b6bdc8a5f97797a2a905fe5dc2f1da",
+		"rebased": "146993c4d0fa157ee7acc2d29a514914f8cd9ad8",
+		"rename-a": "468465b58995ba0fb6816c5f7591426a174f0f4d",
+		"rename-b": "c148d3063a347b80170e1a3e1acb9469d24b7b52",
+		"same-file-disjoint-a": "d48b64c6128edfc941b99a13b1e0f14f9c3d8765",
+		"same-file-disjoint-b": "1449de633bd704f6464c34497a9be87ff3538e0c",
+		"same-line-a": "4b6372af286be64e0ceb8e373d2c83fad2e4cf1c",
+		"same-line-b": "2232c01554be84a98d2958e4e4a68c812927b342",
+		"stack-a": "4b8415107703b4706df51030d610881dbe873cc3",
+		"stack-b": "3baa652180fa16b1fd8fd280cda6ea1c6d01fa31"
+	},
+	"lanes": {
+		"adjacent-a": {
+			"head": "64ea253d56e4c4010e0b8f812d625b1942a72e17",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"src/app.ts"
+				]
+			],
+			"hunks": {
+				"src/app.ts": [
+					{
+						"oldStart": 10,
+						"oldLines": 1,
+						"newStart": 10,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"adjacent-b": {
+			"head": "3776280d829e8256aba0cef34f978290877487c3",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"src/app.ts"
+				]
+			],
+			"hunks": {
+				"src/app.ts": [
+					{
+						"oldStart": 12,
+						"oldLines": 1,
+						"newStart": 12,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"at-base": {
+			"head": "e4a36b0986f26fce6c61360dae803a7b91fdf03d",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"services/api/a.ts"
+				],
+				[
+					"A",
+					"services/api/b.ts"
+				]
+			],
+			"hunks": {
+				"services/api/a.ts": [
+					{
+						"oldStart": 5,
+						"oldLines": 0,
+						"newStart": 6,
+						"newLines": 1
+					}
+				],
+				"services/api/b.ts": [
+					{
+						"oldStart": 0,
+						"oldLines": 0,
+						"newStart": 1,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"binary-a": {
+			"head": "4b5c2b266edaac91a90f6fc17b9e782fc5cf4967",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"img/logo.png"
+				]
+			],
+			"hunks": {
+				"img/logo.png": [
+					"binary"
+				]
+			}
+		},
+		"binary-b": {
+			"head": "7539b6fc69cd2a5ec6232d07c8beac9f97c7410a",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"img/logo.png"
+				]
+			],
+			"hunks": {
+				"img/logo.png": [
+					"binary"
+				]
+			}
+		},
+		"delete-vs-modify-a": {
+			"head": "581423f2501d90f6d4fee18f31fbceb38216a87e",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"D",
+					"src/util.ts"
+				]
+			],
+			"hunks": {
+				"src/util.ts": [
+					{
+						"oldStart": 1,
+						"oldLines": 10,
+						"newStart": 0,
+						"newLines": 0
+					}
+				]
+			}
+		},
+		"delete-vs-modify-b": {
+			"head": "7e34c3f00a0131bfac9473f2a6176c10923b14e3",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"src/util.ts"
+				]
+			],
+			"hunks": {
+				"src/util.ts": [
+					{
+						"oldStart": 4,
+						"oldLines": 1,
+						"newStart": 4,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"different-bases-a": {
+			"head": "38ddb86e97754894da2b395457d55245c13c8672",
+			"mergeBase": "c740c1272428e0496bd6ed761abce057cc1b04a5",
+			"nameStatus": [
+				[
+					"M",
+					"src/app.ts"
+				]
+			],
+			"hunks": {
+				"src/app.ts": [
+					{
+						"oldStart": 20,
+						"oldLines": 1,
+						"newStart": 20,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"different-bases-b": {
+			"head": "cb4dfdea080b5297730e9cbe9d78524097cfebc3",
+			"mergeBase": "5fbac34c411da9d041fcf6f36123398b52834109",
+			"nameStatus": [
+				[
+					"M",
+					"src/app.ts"
+				]
+			],
+			"hunks": {
+				"src/app.ts": [
+					{
+						"oldStart": 21,
+						"oldLines": 1,
+						"newStart": 21,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"forged-dates": {
+			"head": "bb6c6a32148ac454d4175d3b0d12fdfde8aa4e40",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"A",
+					"services/api/f.ts"
+				]
+			],
+			"hunks": {
+				"services/api/f.ts": [
+					{
+						"oldStart": 0,
+						"oldLines": 0,
+						"newStart": 1,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"merged-trunk": {
+			"head": "a6222ae252bd3d8b82a6d51aefbe3914201dc846",
+			"mergeBase": "5fbac34c411da9d041fcf6f36123398b52834109",
+			"nameStatus": [
+				[
+					"M",
+					"services/api/a.ts"
+				],
+				[
+					"A",
+					"services/api/c.ts"
+				]
+			],
+			"hunks": {
+				"services/api/a.ts": [
+					{
+						"oldStart": 5,
+						"oldLines": 0,
+						"newStart": 6,
+						"newLines": 2
+					}
+				],
+				"services/api/c.ts": [
+					{
+						"oldStart": 0,
+						"oldLines": 0,
+						"newStart": 1,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"orphan": {
+			"head": "9fe88f8bc1b6bdc8a5f97797a2a905fe5dc2f1da",
+			"mergeBase": null
+		},
+		"rebased": {
+			"head": "146993c4d0fa157ee7acc2d29a514914f8cd9ad8",
+			"mergeBase": "5fbac34c411da9d041fcf6f36123398b52834109",
+			"nameStatus": [
+				[
+					"A",
+					"services/api/r.ts"
+				]
+			],
+			"hunks": {
+				"services/api/r.ts": [
+					{
+						"oldStart": 0,
+						"oldLines": 0,
+						"newStart": 1,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"rename-a": {
+			"head": "468465b58995ba0fb6816c5f7591426a174f0f4d",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"R100",
+					"docs/guide.md",
+					"docs/manual.md"
+				]
+			],
+			"hunks": {
+				"docs/guide.md": [
+					{
+						"oldStart": 1,
+						"oldLines": 6,
+						"newStart": 0,
+						"newLines": 0
+					}
+				],
+				"docs/manual.md": [
+					{
+						"oldStart": 0,
+						"oldLines": 0,
+						"newStart": 1,
+						"newLines": 6
+					}
+				]
+			}
+		},
+		"rename-b": {
+			"head": "c148d3063a347b80170e1a3e1acb9469d24b7b52",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"docs/guide.md"
+				]
+			],
+			"hunks": {
+				"docs/guide.md": [
+					{
+						"oldStart": 6,
+						"oldLines": 0,
+						"newStart": 7,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"same-file-disjoint-a": {
+			"head": "d48b64c6128edfc941b99a13b1e0f14f9c3d8765",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"src/app.ts"
+				]
+			],
+			"hunks": {
+				"src/app.ts": [
+					{
+						"oldStart": 3,
+						"oldLines": 1,
+						"newStart": 3,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"same-file-disjoint-b": {
+			"head": "1449de633bd704f6464c34497a9be87ff3538e0c",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"src/app.ts"
+				]
+			],
+			"hunks": {
+				"src/app.ts": [
+					{
+						"oldStart": 26,
+						"oldLines": 1,
+						"newStart": 26,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"same-line-a": {
+			"head": "4b6372af286be64e0ceb8e373d2c83fad2e4cf1c",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"src/app.ts"
+				]
+			],
+			"hunks": {
+				"src/app.ts": [
+					{
+						"oldStart": 10,
+						"oldLines": 1,
+						"newStart": 10,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"same-line-b": {
+			"head": "2232c01554be84a98d2958e4e4a68c812927b342",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"nameStatus": [
+				[
+					"M",
+					"src/app.ts"
+				]
+			],
+			"hunks": {
+				"src/app.ts": [
+					{
+						"oldStart": 10,
+						"oldLines": 1,
+						"newStart": 10,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"stack-a": {
+			"head": "4b8415107703b4706df51030d610881dbe873cc3",
+			"mergeBase": "c740c1272428e0496bd6ed761abce057cc1b04a5",
+			"nameStatus": [
+				[
+					"A",
+					"services/api/sa.ts"
+				]
+			],
+			"hunks": {
+				"services/api/sa.ts": [
+					{
+						"oldStart": 0,
+						"oldLines": 0,
+						"newStart": 1,
+						"newLines": 1
+					}
+				]
+			}
+		},
+		"stack-b": {
+			"head": "3baa652180fa16b1fd8fd280cda6ea1c6d01fa31",
+			"mergeBase": "c740c1272428e0496bd6ed761abce057cc1b04a5",
+			"nameStatus": [
+				[
+					"A",
+					"services/api/sa.ts"
+				],
+				[
+					"A",
+					"services/api/sb.ts"
+				]
+			],
+			"hunks": {
+				"services/api/sa.ts": [
+					{
+						"oldStart": 0,
+						"oldLines": 0,
+						"newStart": 1,
+						"newLines": 1
+					}
+				],
+				"services/api/sb.ts": [
+					{
+						"oldStart": 0,
+						"oldLines": 0,
+						"newStart": 1,
+						"newLines": 1
+					}
+				]
+			}
+		}
+	},
+	"pairs": [
+		{
+			"name": "same-line",
+			"a": "same-line-a",
+			"b": "same-line-b",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"files": [
+				{
+					"path": "src/app.ts",
+					"base": "43fe2171379038963a8d8e143081929ea68d275e",
+					"ours": "1bd475220dd213fc86e5cff866f2eb9be0feb663",
+					"theirs": "49d533269db9522494f919164fc4aa8266aeb924",
+					"merge": {
+						"exit": 1,
+						"output": "app line 1\napp line 2\napp line 3\napp line 4\napp line 5\napp line 6\napp line 7\napp line 8\napp line 9\n<<<<<<< ours\nA edits ten\n=======\nB edits ten\n>>>>>>> theirs\napp line 11\napp line 12\napp line 13\napp line 14\napp line 15\napp line 16\napp line 17\napp line 18\napp line 19\napp line 20\napp line 21\napp line 22\napp line 23\napp line 24\napp line 25\napp line 26\napp line 27\napp line 28\napp line 29\napp line 30\n"
+					}
+				}
+			]
+		},
+		{
+			"name": "adjacent",
+			"a": "adjacent-a",
+			"b": "adjacent-b",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"files": [
+				{
+					"path": "src/app.ts",
+					"base": "43fe2171379038963a8d8e143081929ea68d275e",
+					"ours": "1bd475220dd213fc86e5cff866f2eb9be0feb663",
+					"theirs": "1682bfa8783154835c0bdff1be707b895c5c8bbe",
+					"merge": {
+						"exit": 0,
+						"output": "app line 1\napp line 2\napp line 3\napp line 4\napp line 5\napp line 6\napp line 7\napp line 8\napp line 9\nA edits ten\napp line 11\nB edits twelve\napp line 13\napp line 14\napp line 15\napp line 16\napp line 17\napp line 18\napp line 19\napp line 20\napp line 21\napp line 22\napp line 23\napp line 24\napp line 25\napp line 26\napp line 27\napp line 28\napp line 29\napp line 30\n"
+					}
+				}
+			]
+		},
+		{
+			"name": "same-file-disjoint",
+			"a": "same-file-disjoint-a",
+			"b": "same-file-disjoint-b",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"files": [
+				{
+					"path": "src/app.ts",
+					"base": "43fe2171379038963a8d8e143081929ea68d275e",
+					"ours": "8fb206e344695e5124734713b7b76d51d221e620",
+					"theirs": "00c20db0731684b2434d4c13539b048aeb4a913c",
+					"merge": {
+						"exit": 0,
+						"output": "app line 1\napp line 2\nA edits three\napp line 4\napp line 5\napp line 6\napp line 7\napp line 8\napp line 9\napp line 10\napp line 11\napp line 12\napp line 13\napp line 14\napp line 15\napp line 16\napp line 17\napp line 18\napp line 19\napp line 20\napp line 21\napp line 22\napp line 23\napp line 24\napp line 25\nB edits 26\napp line 27\napp line 28\napp line 29\napp line 30\n"
+					}
+				}
+			]
+		},
+		{
+			"name": "rename",
+			"a": "rename-a",
+			"b": "rename-b",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"files": [
+				{
+					"path": "docs/guide.md",
+					"base": "a5406bd7abd702d17eea171edea3f86ba54f57c6",
+					"ours": null,
+					"theirs": "c0b0e35f9ead4fc63a99064887d825cd2019dc2a",
+					"merge": null
+				}
+			]
+		},
+		{
+			"name": "delete-vs-modify",
+			"a": "delete-vs-modify-a",
+			"b": "delete-vs-modify-b",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"files": [
+				{
+					"path": "src/util.ts",
+					"base": "b0c8623d5a38641f1e23df0c6d867c08b6d9ff14",
+					"ours": null,
+					"theirs": "9fd627f79a266e403f216b48a35d841b3dabec43",
+					"merge": null
+				}
+			]
+		},
+		{
+			"name": "binary",
+			"a": "binary-a",
+			"b": "binary-b",
+			"mergeBase": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+			"files": [
+				{
+					"path": "img/logo.png",
+					"base": "2559ac28f4c00bdfa97457a6b3c4f8707cc74c5d",
+					"ours": "d5b7780f859d0cae08bc0c6adce5f105178ffb1b",
+					"theirs": "a5d4d9315563485c890faae524f5e1a85913ce75",
+					"merge": {
+						"exit": 255,
+						"output": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "different-bases",
+			"a": "different-bases-a",
+			"b": "different-bases-b",
+			"mergeBase": "c740c1272428e0496bd6ed761abce057cc1b04a5",
+			"files": [
+				{
+					"path": "src/app.ts",
+					"base": "43fe2171379038963a8d8e143081929ea68d275e",
+					"ours": "f5a6ad823d1744db47ee62163e4e326a67bceacb",
+					"theirs": "f79e22c16625428d5d0f5b42b7990d9a322a8213",
+					"merge": {
+						"exit": 1,
+						"output": "app line 1\napp line 2\napp line 3\napp line 4\napp line 5\napp line 6\napp line 7\napp line 8\napp line 9\napp line 10\napp line 11\napp line 12\napp line 13\napp line 14\napp line 15\napp line 16\napp line 17\napp line 18\napp line 19\n<<<<<<< ours\nA on T1\napp line 21\n=======\napp line 20\nB on T3\n>>>>>>> theirs\napp line 22\napp line 23\napp line 24\napp line 25\napp line 26\napp line 27\napp line 28\napp line 29\napp line 30\n"
+					}
+				}
+			]
+		}
+	],
+	"objects": {
+		"commits": {
+			"bb6c6a32148ac454d4175d3b0d12fdfde8aa4e40": {
+				"hash": "bb6c6a32148ac454d4175d3b0d12fdfde8aa4e40",
+				"treeHash": "52f1b12bcb01ab8aec7e8360ecab3131ac1a027a",
+				"message": "dated 2100",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"236ec63f4eec1eb7e21d85184e14349e4c4b2138"
+				],
+				"authoredAt": 4102444800,
+				"committedAt": 4102444800
+			},
+			"cb4dfdea080b5297730e9cbe9d78524097cfebc3": {
+				"hash": "cb4dfdea080b5297730e9cbe9d78524097cfebc3",
+				"treeHash": "aebb900fe0b9d0af9af807ad7657a8290181a8a7",
+				"message": "b",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"5fbac34c411da9d041fcf6f36123398b52834109"
+				],
+				"authoredAt": 1790001920,
+				"committedAt": 1790001920
+			},
+			"38ddb86e97754894da2b395457d55245c13c8672": {
+				"hash": "38ddb86e97754894da2b395457d55245c13c8672",
+				"treeHash": "b4bc719eebf21a328ae1d13aa489892738f9c487",
+				"message": "a",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"c740c1272428e0496bd6ed761abce057cc1b04a5"
+				],
+				"authoredAt": 1790001860,
+				"committedAt": 1790001860
+			},
+			"7539b6fc69cd2a5ec6232d07c8beac9f97c7410a": {
+				"hash": "7539b6fc69cd2a5ec6232d07c8beac9f97c7410a",
+				"treeHash": "41f2000dae290d602e1dd5874b60f51c06e7f9da",
+				"message": "b",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001800,
+				"committedAt": 1790001800
+			},
+			"4b5c2b266edaac91a90f6fc17b9e782fc5cf4967": {
+				"hash": "4b5c2b266edaac91a90f6fc17b9e782fc5cf4967",
+				"treeHash": "e7158a3b7392308a597ba89b27ffe9717ddce158",
+				"message": "a",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001740,
+				"committedAt": 1790001740
+			},
+			"7e34c3f00a0131bfac9473f2a6176c10923b14e3": {
+				"hash": "7e34c3f00a0131bfac9473f2a6176c10923b14e3",
+				"treeHash": "ba57becc8a279952af7173a7264fdfe9f57df9f0",
+				"message": "b",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001680,
+				"committedAt": 1790001680
+			},
+			"581423f2501d90f6d4fee18f31fbceb38216a87e": {
+				"hash": "581423f2501d90f6d4fee18f31fbceb38216a87e",
+				"treeHash": "64a8043131bcb5ef05cbfd986ef9bdb01be089ce",
+				"message": "a: delete util",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001620,
+				"committedAt": 1790001620
+			},
+			"c148d3063a347b80170e1a3e1acb9469d24b7b52": {
+				"hash": "c148d3063a347b80170e1a3e1acb9469d24b7b52",
+				"treeHash": "915897318334a6cdc500fdce3175a7e58e963461",
+				"message": "b: extend guide",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001560,
+				"committedAt": 1790001560
+			},
+			"468465b58995ba0fb6816c5f7591426a174f0f4d": {
+				"hash": "468465b58995ba0fb6816c5f7591426a174f0f4d",
+				"treeHash": "99a2605e887efbee95014fc86de215b1f3cdfc44",
+				"message": "a: rename guide",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001500,
+				"committedAt": 1790001500
+			},
+			"1449de633bd704f6464c34497a9be87ff3538e0c": {
+				"hash": "1449de633bd704f6464c34497a9be87ff3538e0c",
+				"treeHash": "3a98b2324fef466830c8041e32e8d328a4fbca62",
+				"message": "b",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001440,
+				"committedAt": 1790001440
+			},
+			"d48b64c6128edfc941b99a13b1e0f14f9c3d8765": {
+				"hash": "d48b64c6128edfc941b99a13b1e0f14f9c3d8765",
+				"treeHash": "22c39926e8a88062d512751d3fc8a2b3d0ea0802",
+				"message": "a",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001380,
+				"committedAt": 1790001380
+			},
+			"3776280d829e8256aba0cef34f978290877487c3": {
+				"hash": "3776280d829e8256aba0cef34f978290877487c3",
+				"treeHash": "7a26e5734befebaec8e31b549abd129eae5042ed",
+				"message": "b",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001320,
+				"committedAt": 1790001320
+			},
+			"64ea253d56e4c4010e0b8f812d625b1942a72e17": {
+				"hash": "64ea253d56e4c4010e0b8f812d625b1942a72e17",
+				"treeHash": "a2507adf626e467a2f1e84ef102d07ba1e3948f1",
+				"message": "a",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001260,
+				"committedAt": 1790001260
+			},
+			"2232c01554be84a98d2958e4e4a68c812927b342": {
+				"hash": "2232c01554be84a98d2958e4e4a68c812927b342",
+				"treeHash": "7dfc2e418e415169155d5a111a9634a9f320b00f",
+				"message": "b",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001200,
+				"committedAt": 1790001200
+			},
+			"4b6372af286be64e0ceb8e373d2c83fad2e4cf1c": {
+				"hash": "4b6372af286be64e0ceb8e373d2c83fad2e4cf1c",
+				"treeHash": "a2507adf626e467a2f1e84ef102d07ba1e3948f1",
+				"message": "a",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790001140,
+				"committedAt": 1790001140
+			},
+			"9fe88f8bc1b6bdc8a5f97797a2a905fe5dc2f1da": {
+				"hash": "9fe88f8bc1b6bdc8a5f97797a2a905fe5dc2f1da",
+				"treeHash": "94995505c23c63828d85faadd6707f78d0d68adf",
+				"message": "orphan root",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [],
+				"authoredAt": 1790001080,
+				"committedAt": 1790001080
+			},
+			"3baa652180fa16b1fd8fd280cda6ea1c6d01fa31": {
+				"hash": "3baa652180fa16b1fd8fd280cda6ea1c6d01fa31",
+				"treeHash": "c5621fd3b18f59f69e0999579577e70c7b7ed589",
+				"message": "api: stack b",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"4b8415107703b4706df51030d610881dbe873cc3"
+				],
+				"authoredAt": 1790000900,
+				"committedAt": 1790000900
+			},
+			"4b8415107703b4706df51030d610881dbe873cc3": {
+				"hash": "4b8415107703b4706df51030d610881dbe873cc3",
+				"treeHash": "f99964c8e38b39730bb6188a9781b234acceead7",
+				"message": "api: stack a",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"c740c1272428e0496bd6ed761abce057cc1b04a5"
+				],
+				"authoredAt": 1790000840,
+				"committedAt": 1790000840
+			},
+			"146993c4d0fa157ee7acc2d29a514914f8cd9ad8": {
+				"hash": "146993c4d0fa157ee7acc2d29a514914f8cd9ad8",
+				"treeHash": "43a70f7dc67d03f5b8e374994a85dbe7766da37b",
+				"message": "api: r2",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"296260b368c350e8886f834767b06483bc0de364"
+				],
+				"authoredAt": 1790000720,
+				"committedAt": 1790000780
+			},
+			"296260b368c350e8886f834767b06483bc0de364": {
+				"hash": "296260b368c350e8886f834767b06483bc0de364",
+				"treeHash": "932256ab6c582619deb4f2a33a3e7b681c2f5e1a",
+				"message": "api: r1",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"5fbac34c411da9d041fcf6f36123398b52834109"
+				],
+				"authoredAt": 1790000660,
+				"committedAt": 1790000780
+			},
+			"a6222ae252bd3d8b82a6d51aefbe3914201dc846": {
+				"hash": "a6222ae252bd3d8b82a6d51aefbe3914201dc846",
+				"treeHash": "aea018386186b8b5fd559e523c89e0185cac9539",
+				"message": "api: add c",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"85bcab1019027675cf628c92ca14252b38ece2ff"
+				],
+				"authoredAt": 1790000600,
+				"committedAt": 1790000600
+			},
+			"85bcab1019027675cf628c92ca14252b38ece2ff": {
+				"hash": "85bcab1019027675cf628c92ca14252b38ece2ff",
+				"treeHash": "b4ae811819988fb79a7fc291b1414d92b1c77726",
+				"message": "merge trunk",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2bc4a9e7226b63268b1cdbc33ee430933126a40a",
+					"5fbac34c411da9d041fcf6f36123398b52834109"
+				],
+				"authoredAt": 1790000540,
+				"committedAt": 1790000540
+			},
+			"2bc4a9e7226b63268b1cdbc33ee430933126a40a": {
+				"hash": "2bc4a9e7226b63268b1cdbc33ee430933126a40a",
+				"treeHash": "3ea68ed845092511d2d04aff3e9236b179179404",
+				"message": "api: two more",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"c740c1272428e0496bd6ed761abce057cc1b04a5"
+				],
+				"authoredAt": 1790000480,
+				"committedAt": 1790000480
+			},
+			"e4a36b0986f26fce6c61360dae803a7b91fdf03d": {
+				"hash": "e4a36b0986f26fce6c61360dae803a7b91fdf03d",
+				"treeHash": "34df4239e47eeb8ab682ce60fef562435ae88ce8",
+				"message": "api: add b\n\nCo-Authored-By: agent <a@x>",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"0c08475fe0e1436da5e1acfbe9f24d2cdc642ca6"
+				],
+				"authoredAt": 1790000420,
+				"committedAt": 1790000420
+			},
+			"0c08475fe0e1436da5e1acfbe9f24d2cdc642ca6": {
+				"hash": "0c08475fe0e1436da5e1acfbe9f24d2cdc642ca6",
+				"treeHash": "6c77f70c2561f8425c9a3fe519e8c2c52557c008",
+				"message": "api: one more line",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790000360,
+				"committedAt": 1790000360
+			},
+			"cd307ba7fc0326646240cbf90a7ce5c18d9ccc93": {
+				"hash": "cd307ba7fc0326646240cbf90a7ce5c18d9ccc93",
+				"treeHash": "600741d48bc7ee26ddefee56fb400878ea82c165",
+				"message": "trunk 4",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"5fbac34c411da9d041fcf6f36123398b52834109"
+				],
+				"authoredAt": 1790000300,
+				"committedAt": 1790000300
+			},
+			"5fbac34c411da9d041fcf6f36123398b52834109": {
+				"hash": "5fbac34c411da9d041fcf6f36123398b52834109",
+				"treeHash": "bd958370f0fb6bac425cc8295ea8629a214fccc0",
+				"message": "trunk 3 (web)",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 1790000240,
+				"committedAt": 1790000240
+			},
+			"2939048e52eadcdaadd00d410eb7f4fc6c8af833": {
+				"hash": "2939048e52eadcdaadd00d410eb7f4fc6c8af833",
+				"treeHash": "e7a2c4582c968c7e50e8cd83d82fb389696b7be9",
+				"message": "trunk 2",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"c740c1272428e0496bd6ed761abce057cc1b04a5"
+				],
+				"authoredAt": 1790000180,
+				"committedAt": 1790000180
+			},
+			"c740c1272428e0496bd6ed761abce057cc1b04a5": {
+				"hash": "c740c1272428e0496bd6ed761abce057cc1b04a5",
+				"treeHash": "3af79c2798dfef1ae85949bc9c7c90c2b2222cf3",
+				"message": "trunk 1\n\nLanded-By: tartan\nChange-Id: kkkk",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"cff56671227adf7b6d33b680f6f53611ed4a9172"
+				],
+				"authoredAt": 1790000120,
+				"committedAt": 1790000120
+			},
+			"cff56671227adf7b6d33b680f6f53611ed4a9172": {
+				"hash": "cff56671227adf7b6d33b680f6f53611ed4a9172",
+				"treeHash": "5020a2c2ab0fb3809b13a4c9cd163d7613427ccc",
+				"message": "genesis",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [],
+				"authoredAt": 1790000060,
+				"committedAt": 1790000060
+			},
+			"236ec63f4eec1eb7e21d85184e14349e4c4b2138": {
+				"hash": "236ec63f4eec1eb7e21d85184e14349e4c4b2138",
+				"treeHash": "037dbd7324c936ce500a02d3c0e8ee380c20830e",
+				"message": "dated 1990",
+				"author": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"committer": {
+					"name": "Tartan Fixture",
+					"email": "fixture@tartan.test"
+				},
+				"parents": [
+					"2939048e52eadcdaadd00d410eb7f4fc6c8af833"
+				],
+				"authoredAt": 631152000,
+				"committedAt": 631152000
+			}
+		},
+		"trees": {
+			"52f1b12bcb01ab8aec7e8360ecab3131ac1a027a": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "d693a31838948045022bbac829052283a810b806",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"51fc45173a0a6539dfc402e05b95f28cbe90bfdd": [
+				{
+					"name": "web",
+					"mode": "40000",
+					"hash": "a2aaf4587dbe6cc8b08e0898aa6cc219cabb366f",
+					"type": "tree"
+				}
+			],
+			"a2aaf4587dbe6cc8b08e0898aa6cc219cabb366f": [
+				{
+					"name": "main.ts",
+					"mode": "100644",
+					"hash": "11c23517372e7bca6930d7a551829f19aba48a9f",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "200614f7936169104ac790609b1edec029c3f5c3",
+					"type": "blob"
+				}
+			],
+			"ce49c80493b1e8c2262de04dc77a915295856827": [
+				{
+					"name": "guide.md",
+					"mode": "100644",
+					"hash": "a5406bd7abd702d17eea171edea3f86ba54f57c6",
+					"type": "blob"
+				}
+			],
+			"ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0": [
+				{
+					"name": "logo.png",
+					"mode": "100644",
+					"hash": "2559ac28f4c00bdfa97457a6b3c4f8707cc74c5d",
+					"type": "blob"
+				}
+			],
+			"d693a31838948045022bbac829052283a810b806": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "379012393db7a6b04de35c9502e040d940e0c379",
+					"type": "tree"
+				}
+			],
+			"379012393db7a6b04de35c9502e040d940e0c379": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "0ff0b0dda42c6cedb57736ab654d2f6cbd06eb34",
+					"type": "blob"
+				},
+				{
+					"name": "f.ts",
+					"mode": "100644",
+					"hash": "2c6edea8d2e78b31d241281c0d528c2da1709a1c",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				}
+			],
+			"b0be88e8c1961d1cbbe3c180d980834e1aa74b65": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "43fe2171379038963a8d8e143081929ea68d275e",
+					"type": "blob"
+				},
+				{
+					"name": "util.ts",
+					"mode": "100644",
+					"hash": "b0c8623d5a38641f1e23df0c6d867c08b6d9ff14",
+					"type": "blob"
+				}
+			],
+			"5d9b90058a519ddc8bd0ca16323e3612ebea7638": [
+				{
+					"name": "t1.txt",
+					"mode": "100644",
+					"hash": "795ea43143ebd1173b2ff6d1f24e7705306545dd",
+					"type": "blob"
+				},
+				{
+					"name": "t2.txt",
+					"mode": "100644",
+					"hash": "9bc7ad0d42bb3581c31ef220203f8d951552b94f",
+					"type": "blob"
+				}
+			],
+			"aebb900fe0b9d0af9af807ad7657a8290181a8a7": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "eb8b12a98b4273ec499743e3051a39619161c0c0",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "eddadd57c2e742e0858add19c0c0d6cd3dc76612",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"eb8b12a98b4273ec499743e3051a39619161c0c0": [
+				{
+					"name": "web",
+					"mode": "40000",
+					"hash": "6c5462bad29c3ed5115ad9aec70e5a2fa96092f7",
+					"type": "tree"
+				}
+			],
+			"6c5462bad29c3ed5115ad9aec70e5a2fa96092f7": [
+				{
+					"name": "main.ts",
+					"mode": "100644",
+					"hash": "feebf3c77d620fbec34fc4b553da63a30189529c",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "200614f7936169104ac790609b1edec029c3f5c3",
+					"type": "blob"
+				}
+			],
+			"45a2c73fb0d91b8fb3971bf1c380a1be184500c3": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "33b98f2cc1242fe693e38c14ab6f193c0543cb06",
+					"type": "tree"
+				}
+			],
+			"33b98f2cc1242fe693e38c14ab6f193c0543cb06": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "0ff0b0dda42c6cedb57736ab654d2f6cbd06eb34",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				}
+			],
+			"eddadd57c2e742e0858add19c0c0d6cd3dc76612": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "f79e22c16625428d5d0f5b42b7990d9a322a8213",
+					"type": "blob"
+				},
+				{
+					"name": "util.ts",
+					"mode": "100644",
+					"hash": "b0c8623d5a38641f1e23df0c6d867c08b6d9ff14",
+					"type": "blob"
+				}
+			],
+			"b4bc719eebf21a328ae1d13aa489892738f9c487": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "2c12c89ff31480cd5790a6ff6d5575a25e0d94a1",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "91fe0ec70f5e964a71d54364701ebd34cca24ee8",
+					"type": "tree"
+				}
+			],
+			"2c12c89ff31480cd5790a6ff6d5575a25e0d94a1": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "f5a6ad823d1744db47ee62163e4e326a67bceacb",
+					"type": "blob"
+				},
+				{
+					"name": "util.ts",
+					"mode": "100644",
+					"hash": "b0c8623d5a38641f1e23df0c6d867c08b6d9ff14",
+					"type": "blob"
+				}
+			],
+			"91fe0ec70f5e964a71d54364701ebd34cca24ee8": [
+				{
+					"name": "t1.txt",
+					"mode": "100644",
+					"hash": "795ea43143ebd1173b2ff6d1f24e7705306545dd",
+					"type": "blob"
+				}
+			],
+			"41f2000dae290d602e1dd5874b60f51c06e7f9da": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "72b04d9ed323f5aeceb6502f8f16c1cbce157266",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"72b04d9ed323f5aeceb6502f8f16c1cbce157266": [
+				{
+					"name": "logo.png",
+					"mode": "100644",
+					"hash": "a5d4d9315563485c890faae524f5e1a85913ce75",
+					"type": "blob"
+				}
+			],
+			"e7158a3b7392308a597ba89b27ffe9717ddce158": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "29b465b754f97b0085bb155245e682cd7ce96279",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"29b465b754f97b0085bb155245e682cd7ce96279": [
+				{
+					"name": "logo.png",
+					"mode": "100644",
+					"hash": "d5b7780f859d0cae08bc0c6adce5f105178ffb1b",
+					"type": "blob"
+				}
+			],
+			"ba57becc8a279952af7173a7264fdfe9f57df9f0": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "ca4df7b96869a83f9db97475f4d396cccbc4722f",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"ca4df7b96869a83f9db97475f4d396cccbc4722f": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "43fe2171379038963a8d8e143081929ea68d275e",
+					"type": "blob"
+				},
+				{
+					"name": "util.ts",
+					"mode": "100644",
+					"hash": "9fd627f79a266e403f216b48a35d841b3dabec43",
+					"type": "blob"
+				}
+			],
+			"64a8043131bcb5ef05cbfd986ef9bdb01be089ce": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "d9da4cb8a37697d221c843e80926fdecfaa99e36",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"d9da4cb8a37697d221c843e80926fdecfaa99e36": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "43fe2171379038963a8d8e143081929ea68d275e",
+					"type": "blob"
+				}
+			],
+			"915897318334a6cdc500fdce3175a7e58e963461": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "620d0c62886a99bb60a1a3696613f99e400d6975",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"620d0c62886a99bb60a1a3696613f99e400d6975": [
+				{
+					"name": "guide.md",
+					"mode": "100644",
+					"hash": "c0b0e35f9ead4fc63a99064887d825cd2019dc2a",
+					"type": "blob"
+				}
+			],
+			"99a2605e887efbee95014fc86de215b1f3cdfc44": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "9092fa8698b251a4447adff1ef95b05d9d57f0bf",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"9092fa8698b251a4447adff1ef95b05d9d57f0bf": [
+				{
+					"name": "manual.md",
+					"mode": "100644",
+					"hash": "a5406bd7abd702d17eea171edea3f86ba54f57c6",
+					"type": "blob"
+				}
+			],
+			"3a98b2324fef466830c8041e32e8d328a4fbca62": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "66ea44611b4aaf414a5ca06b7accdc9907108a00",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"66ea44611b4aaf414a5ca06b7accdc9907108a00": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "00c20db0731684b2434d4c13539b048aeb4a913c",
+					"type": "blob"
+				},
+				{
+					"name": "util.ts",
+					"mode": "100644",
+					"hash": "b0c8623d5a38641f1e23df0c6d867c08b6d9ff14",
+					"type": "blob"
+				}
+			],
+			"22c39926e8a88062d512751d3fc8a2b3d0ea0802": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "d0d6040334da04b703a73dba3b17608b488c3721",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"d0d6040334da04b703a73dba3b17608b488c3721": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "8fb206e344695e5124734713b7b76d51d221e620",
+					"type": "blob"
+				},
+				{
+					"name": "util.ts",
+					"mode": "100644",
+					"hash": "b0c8623d5a38641f1e23df0c6d867c08b6d9ff14",
+					"type": "blob"
+				}
+			],
+			"7a26e5734befebaec8e31b549abd129eae5042ed": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "4e87c5378c77b0ca4e8bb6ba97a661dd98a2fa03",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"4e87c5378c77b0ca4e8bb6ba97a661dd98a2fa03": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "1682bfa8783154835c0bdff1be707b895c5c8bbe",
+					"type": "blob"
+				},
+				{
+					"name": "util.ts",
+					"mode": "100644",
+					"hash": "b0c8623d5a38641f1e23df0c6d867c08b6d9ff14",
+					"type": "blob"
+				}
+			],
+			"a2507adf626e467a2f1e84ef102d07ba1e3948f1": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "6511977095e0ea1a292aedc77bf1c6928a8c2932",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"6511977095e0ea1a292aedc77bf1c6928a8c2932": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "1bd475220dd213fc86e5cff866f2eb9be0feb663",
+					"type": "blob"
+				},
+				{
+					"name": "util.ts",
+					"mode": "100644",
+					"hash": "b0c8623d5a38641f1e23df0c6d867c08b6d9ff14",
+					"type": "blob"
+				}
+			],
+			"7dfc2e418e415169155d5a111a9634a9f320b00f": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "7769b23156d45c34430d2d68ce84151b79dbb4d6",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"7769b23156d45c34430d2d68ce84151b79dbb4d6": [
+				{
+					"name": "app.ts",
+					"mode": "100644",
+					"hash": "49d533269db9522494f919164fc4aa8266aeb924",
+					"type": "blob"
+				},
+				{
+					"name": "util.ts",
+					"mode": "100644",
+					"hash": "b0c8623d5a38641f1e23df0c6d867c08b6d9ff14",
+					"type": "blob"
+				}
+			],
+			"94995505c23c63828d85faadd6707f78d0d68adf": [
+				{
+					"name": "orphan.txt",
+					"mode": "100644",
+					"hash": "c21c9352f7526e9576892a6631e0e8cf1fccd34d",
+					"type": "blob"
+				}
+			],
+			"c5621fd3b18f59f69e0999579577e70c7b7ed589": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "0faae240f046adc6e799dcc9e28fc2c650085562",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "91fe0ec70f5e964a71d54364701ebd34cca24ee8",
+					"type": "tree"
+				}
+			],
+			"0faae240f046adc6e799dcc9e28fc2c650085562": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "9f4ae446863ca36ce020f32d1cba6748b8d4c23c",
+					"type": "tree"
+				}
+			],
+			"9f4ae446863ca36ce020f32d1cba6748b8d4c23c": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "0ff0b0dda42c6cedb57736ab654d2f6cbd06eb34",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				},
+				{
+					"name": "sa.ts",
+					"mode": "100644",
+					"hash": "e36a3d79556f06c01d7fbca063de35d1a20054c7",
+					"type": "blob"
+				},
+				{
+					"name": "sb.ts",
+					"mode": "100644",
+					"hash": "beff14165d2e5b5b59621eb7bdbd3354d6abe39d",
+					"type": "blob"
+				}
+			],
+			"f99964c8e38b39730bb6188a9781b234acceead7": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "3c8199788205392aa5ead49e0f001d465333f69a",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "91fe0ec70f5e964a71d54364701ebd34cca24ee8",
+					"type": "tree"
+				}
+			],
+			"3c8199788205392aa5ead49e0f001d465333f69a": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "2ae4acc1600d9fc046f8b891896ae43c95514220",
+					"type": "tree"
+				}
+			],
+			"2ae4acc1600d9fc046f8b891896ae43c95514220": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "0ff0b0dda42c6cedb57736ab654d2f6cbd06eb34",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				},
+				{
+					"name": "sa.ts",
+					"mode": "100644",
+					"hash": "e36a3d79556f06c01d7fbca063de35d1a20054c7",
+					"type": "blob"
+				}
+			],
+			"43a70f7dc67d03f5b8e374994a85dbe7766da37b": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "eb8b12a98b4273ec499743e3051a39619161c0c0",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "14afba7d34a79151be5586504e8c29bd5847ab56",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"14afba7d34a79151be5586504e8c29bd5847ab56": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "9c1be51e923309fc1b5e66e753d163496ef648f9",
+					"type": "tree"
+				}
+			],
+			"9c1be51e923309fc1b5e66e753d163496ef648f9": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "0ff0b0dda42c6cedb57736ab654d2f6cbd06eb34",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				},
+				{
+					"name": "r.ts",
+					"mode": "100644",
+					"hash": "9a6c8d12dea8859b821b2ba705f7efd6cc914aa5",
+					"type": "blob"
+				}
+			],
+			"932256ab6c582619deb4f2a33a3e7b681c2f5e1a": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "eb8b12a98b4273ec499743e3051a39619161c0c0",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "4244a9599f7abd1e872622fdf007af75d4b5ce51",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"4244a9599f7abd1e872622fdf007af75d4b5ce51": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "db716449c855ba58d27798f035ac0e5408c613e8",
+					"type": "tree"
+				}
+			],
+			"db716449c855ba58d27798f035ac0e5408c613e8": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "0ff0b0dda42c6cedb57736ab654d2f6cbd06eb34",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				},
+				{
+					"name": "r.ts",
+					"mode": "100644",
+					"hash": "f7d55cf9a84e9ea95e8db2b6264e5a5db85d22ad",
+					"type": "blob"
+				}
+			],
+			"aea018386186b8b5fd559e523c89e0185cac9539": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "eb8b12a98b4273ec499743e3051a39619161c0c0",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "328598a9c9bb040eab1992b98952880ec7da25de",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"328598a9c9bb040eab1992b98952880ec7da25de": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "32d0d87e065872c0dcde685f61f11eaa73e59dde",
+					"type": "tree"
+				}
+			],
+			"32d0d87e065872c0dcde685f61f11eaa73e59dde": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "d8c5a48120e7eadd4c7baa27185a2bb571c659ac",
+					"type": "blob"
+				},
+				{
+					"name": "c.ts",
+					"mode": "100644",
+					"hash": "f2ad6c76f0115a6ba5b00456a849810e7ec0af20",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				}
+			],
+			"b4ae811819988fb79a7fc291b1414d92b1c77726": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "eb8b12a98b4273ec499743e3051a39619161c0c0",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "60aa465c9bc798e231960a45a7de061772bbe19c",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"60aa465c9bc798e231960a45a7de061772bbe19c": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "adb3c3453e1a595f3cb6b2210a396bbad62ead4a",
+					"type": "tree"
+				}
+			],
+			"adb3c3453e1a595f3cb6b2210a396bbad62ead4a": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "d8c5a48120e7eadd4c7baa27185a2bb571c659ac",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				}
+			],
+			"3ea68ed845092511d2d04aff3e9236b179179404": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "60aa465c9bc798e231960a45a7de061772bbe19c",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "91fe0ec70f5e964a71d54364701ebd34cca24ee8",
+					"type": "tree"
+				}
+			],
+			"34df4239e47eeb8ab682ce60fef562435ae88ce8": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "58d0e347df736493b13b05840af23aeb2f205ad6",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"58d0e347df736493b13b05840af23aeb2f205ad6": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "1044ec6fc5b11a9465ded4abf0297ea853420e64",
+					"type": "tree"
+				}
+			],
+			"1044ec6fc5b11a9465ded4abf0297ea853420e64": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "d59b026add6497766dec02f3faafdb648e9fe144",
+					"type": "blob"
+				},
+				{
+					"name": "b.ts",
+					"mode": "100644",
+					"hash": "61780798228d17af2d34fce4cfbdf35556832472",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				}
+			],
+			"6c77f70c2561f8425c9a3fe519e8c2c52557c008": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "08df271e326eca29f14020e67b0bd3f4e9bbe80f",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"08df271e326eca29f14020e67b0bd3f4e9bbe80f": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "2d7329541e318fc0137c7f080563fb8e67b907f0",
+					"type": "tree"
+				}
+			],
+			"2d7329541e318fc0137c7f080563fb8e67b907f0": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "d59b026add6497766dec02f3faafdb648e9fe144",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				}
+			],
+			"600741d48bc7ee26ddefee56fb400878ea82c165": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "eb8b12a98b4273ec499743e3051a39619161c0c0",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "189870de0db70642d1829108160c35119a52f1d8",
+					"type": "tree"
+				}
+			],
+			"189870de0db70642d1829108160c35119a52f1d8": [
+				{
+					"name": "t1.txt",
+					"mode": "100644",
+					"hash": "795ea43143ebd1173b2ff6d1f24e7705306545dd",
+					"type": "blob"
+				},
+				{
+					"name": "t2.txt",
+					"mode": "100644",
+					"hash": "9bc7ad0d42bb3581c31ef220203f8d951552b94f",
+					"type": "blob"
+				},
+				{
+					"name": "t4.txt",
+					"mode": "100644",
+					"hash": "6209d5703a39a7e57fbd2136fa4215ceae2d7dca",
+					"type": "blob"
+				}
+			],
+			"bd958370f0fb6bac425cc8295ea8629a214fccc0": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "eb8b12a98b4273ec499743e3051a39619161c0c0",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"e7a2c4582c968c7e50e8cd83d82fb389696b7be9": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"3af79c2798dfef1ae85949bc9c7c90c2b2222cf3": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "91fe0ec70f5e964a71d54364701ebd34cca24ee8",
+					"type": "tree"
+				}
+			],
+			"5020a2c2ab0fb3809b13a4c9cd163d7613427ccc": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "45a2c73fb0d91b8fb3971bf1c380a1be184500c3",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				}
+			],
+			"037dbd7324c936ce500a02d3c0e8ee380c20830e": [
+				{
+					"name": "apps",
+					"mode": "40000",
+					"hash": "51fc45173a0a6539dfc402e05b95f28cbe90bfdd",
+					"type": "tree"
+				},
+				{
+					"name": "docs",
+					"mode": "40000",
+					"hash": "ce49c80493b1e8c2262de04dc77a915295856827",
+					"type": "tree"
+				},
+				{
+					"name": "img",
+					"mode": "40000",
+					"hash": "ac5762d222f5e8d7cc1a8053d9b1a6d1b0a4f5c0",
+					"type": "tree"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "eaa149d4112419be74c2734187c242d71100439b",
+					"type": "blob"
+				},
+				{
+					"name": "pnpm-workspace.yaml",
+					"mode": "100644",
+					"hash": "56b10d50cef216c02a5ae337722f0426b2323b6a",
+					"type": "blob"
+				},
+				{
+					"name": "services",
+					"mode": "40000",
+					"hash": "9be9c2aba7664a97321c4e4b16bee3ebad7f8dbb",
+					"type": "tree"
+				},
+				{
+					"name": "src",
+					"mode": "40000",
+					"hash": "b0be88e8c1961d1cbbe3c180d980834e1aa74b65",
+					"type": "tree"
+				},
+				{
+					"name": "trunk",
+					"mode": "40000",
+					"hash": "5d9b90058a519ddc8bd0ca16323e3612ebea7638",
+					"type": "tree"
+				}
+			],
+			"9be9c2aba7664a97321c4e4b16bee3ebad7f8dbb": [
+				{
+					"name": "api",
+					"mode": "40000",
+					"hash": "44ed3d9bb57b5849f61a6030cbfd360680aa967b",
+					"type": "tree"
+				}
+			],
+			"44ed3d9bb57b5849f61a6030cbfd360680aa967b": [
+				{
+					"name": "a.ts",
+					"mode": "100644",
+					"hash": "0ff0b0dda42c6cedb57736ab654d2f6cbd06eb34",
+					"type": "blob"
+				},
+				{
+					"name": "f.ts",
+					"mode": "100644",
+					"hash": "3367afdbbf91e638efe983616377c60477cc6612",
+					"type": "blob"
+				},
+				{
+					"name": "package.json",
+					"mode": "100644",
+					"hash": "72e4777eebe32afb37a5bdec4340ecd037dd818f",
+					"type": "blob"
+				}
+			]
+		},
+		"blobs": {
+			"11c23517372e7bca6930d7a551829f19aba48a9f": "d2ViIGxpbmUgMQp3ZWIgbGluZSAyCndlYiBsaW5lIDMKd2ViIGxpbmUgNAp3ZWIgbGluZSA1Cg==",
+			"200614f7936169104ac790609b1edec029c3f5c3": "eyJuYW1lIjoid2ViIn0K",
+			"a5406bd7abd702d17eea171edea3f86ba54f57c6": "Z3VpZGUgbGluZSAxCmd1aWRlIGxpbmUgMgpndWlkZSBsaW5lIDMKZ3VpZGUgbGluZSA0Cmd1aWRlIGxpbmUgNQpndWlkZSBsaW5lIDYK",
+			"2559ac28f4c00bdfa97457a6b3c4f8707cc74c5d": "iVBORwABAgMEBQ==",
+			"eaa149d4112419be74c2734187c242d71100439b": "eyJuYW1lIjoic2FtcGxlIiwicHJpdmF0ZSI6dHJ1ZX0K",
+			"56b10d50cef216c02a5ae337722f0426b2323b6a": "cGFja2FnZXM6CiAgLSBzZXJ2aWNlcy8qCiAgLSBhcHBzLyoK",
+			"0ff0b0dda42c6cedb57736ab654d2f6cbd06eb34": "YXBpLWEgbGluZSAxCmFwaS1hIGxpbmUgMgphcGktYSBsaW5lIDMKYXBpLWEgbGluZSA0CmFwaS1hIGxpbmUgNQo=",
+			"2c6edea8d2e78b31d241281c0d528c2da1709a1c": "ZnV0dXJlCg==",
+			"72e4777eebe32afb37a5bdec4340ecd037dd818f": "eyJuYW1lIjoiYXBpIn0K",
+			"43fe2171379038963a8d8e143081929ea68d275e": "YXBwIGxpbmUgMQphcHAgbGluZSAyCmFwcCBsaW5lIDMKYXBwIGxpbmUgNAphcHAgbGluZSA1CmFwcCBsaW5lIDYKYXBwIGxpbmUgNwphcHAgbGluZSA4CmFwcCBsaW5lIDkKYXBwIGxpbmUgMTAKYXBwIGxpbmUgMTEKYXBwIGxpbmUgMTIKYXBwIGxpbmUgMTMKYXBwIGxpbmUgMTQKYXBwIGxpbmUgMTUKYXBwIGxpbmUgMTYKYXBwIGxpbmUgMTcKYXBwIGxpbmUgMTgKYXBwIGxpbmUgMTkKYXBwIGxpbmUgMjAKYXBwIGxpbmUgMjEKYXBwIGxpbmUgMjIKYXBwIGxpbmUgMjMKYXBwIGxpbmUgMjQKYXBwIGxpbmUgMjUKYXBwIGxpbmUgMjYKYXBwIGxpbmUgMjcKYXBwIGxpbmUgMjgKYXBwIGxpbmUgMjkKYXBwIGxpbmUgMzAK",
+			"b0c8623d5a38641f1e23df0c6d867c08b6d9ff14": "dXRpbCBsaW5lIDEKdXRpbCBsaW5lIDIKdXRpbCBsaW5lIDMKdXRpbCBsaW5lIDQKdXRpbCBsaW5lIDUKdXRpbCBsaW5lIDYKdXRpbCBsaW5lIDcKdXRpbCBsaW5lIDgKdXRpbCBsaW5lIDkKdXRpbCBsaW5lIDEwCg==",
+			"795ea43143ebd1173b2ff6d1f24e7705306545dd": "dDEK",
+			"9bc7ad0d42bb3581c31ef220203f8d951552b94f": "dDIK",
+			"feebf3c77d620fbec34fc4b553da63a30189529c": "d2ViIGxpbmUgMQp3ZWIgbGluZSAyCndlYiBsaW5lIDMKd2ViIGxpbmUgNAp3ZWIgbGluZSA1CndlYiBsaW5lIDYK",
+			"f79e22c16625428d5d0f5b42b7990d9a322a8213": "YXBwIGxpbmUgMQphcHAgbGluZSAyCmFwcCBsaW5lIDMKYXBwIGxpbmUgNAphcHAgbGluZSA1CmFwcCBsaW5lIDYKYXBwIGxpbmUgNwphcHAgbGluZSA4CmFwcCBsaW5lIDkKYXBwIGxpbmUgMTAKYXBwIGxpbmUgMTEKYXBwIGxpbmUgMTIKYXBwIGxpbmUgMTMKYXBwIGxpbmUgMTQKYXBwIGxpbmUgMTUKYXBwIGxpbmUgMTYKYXBwIGxpbmUgMTcKYXBwIGxpbmUgMTgKYXBwIGxpbmUgMTkKYXBwIGxpbmUgMjAKQiBvbiBUMwphcHAgbGluZSAyMgphcHAgbGluZSAyMwphcHAgbGluZSAyNAphcHAgbGluZSAyNQphcHAgbGluZSAyNgphcHAgbGluZSAyNwphcHAgbGluZSAyOAphcHAgbGluZSAyOQphcHAgbGluZSAzMAo=",
+			"f5a6ad823d1744db47ee62163e4e326a67bceacb": "YXBwIGxpbmUgMQphcHAgbGluZSAyCmFwcCBsaW5lIDMKYXBwIGxpbmUgNAphcHAgbGluZSA1CmFwcCBsaW5lIDYKYXBwIGxpbmUgNwphcHAgbGluZSA4CmFwcCBsaW5lIDkKYXBwIGxpbmUgMTAKYXBwIGxpbmUgMTEKYXBwIGxpbmUgMTIKYXBwIGxpbmUgMTMKYXBwIGxpbmUgMTQKYXBwIGxpbmUgMTUKYXBwIGxpbmUgMTYKYXBwIGxpbmUgMTcKYXBwIGxpbmUgMTgKYXBwIGxpbmUgMTkKQSBvbiBUMQphcHAgbGluZSAyMQphcHAgbGluZSAyMgphcHAgbGluZSAyMwphcHAgbGluZSAyNAphcHAgbGluZSAyNQphcHAgbGluZSAyNgphcHAgbGluZSAyNwphcHAgbGluZSAyOAphcHAgbGluZSAyOQphcHAgbGluZSAzMAo=",
+			"a5d4d9315563485c890faae524f5e1a85913ce75": "iVBORwABAgMEBQI=",
+			"d5b7780f859d0cae08bc0c6adce5f105178ffb1b": "iVBORwABAgMEBQE=",
+			"9fd627f79a266e403f216b48a35d841b3dabec43": "dXRpbCBsaW5lIDEKdXRpbCBsaW5lIDIKdXRpbCBsaW5lIDMKQiB1dGlsCnV0aWwgbGluZSA1CnV0aWwgbGluZSA2CnV0aWwgbGluZSA3CnV0aWwgbGluZSA4CnV0aWwgbGluZSA5CnV0aWwgbGluZSAxMAo=",
+			"c0b0e35f9ead4fc63a99064887d825cd2019dc2a": "Z3VpZGUgbGluZSAxCmd1aWRlIGxpbmUgMgpndWlkZSBsaW5lIDMKZ3VpZGUgbGluZSA0Cmd1aWRlIGxpbmUgNQpndWlkZSBsaW5lIDYKZ3VpZGUgbGluZSA3Cg==",
+			"00c20db0731684b2434d4c13539b048aeb4a913c": "YXBwIGxpbmUgMQphcHAgbGluZSAyCmFwcCBsaW5lIDMKYXBwIGxpbmUgNAphcHAgbGluZSA1CmFwcCBsaW5lIDYKYXBwIGxpbmUgNwphcHAgbGluZSA4CmFwcCBsaW5lIDkKYXBwIGxpbmUgMTAKYXBwIGxpbmUgMTEKYXBwIGxpbmUgMTIKYXBwIGxpbmUgMTMKYXBwIGxpbmUgMTQKYXBwIGxpbmUgMTUKYXBwIGxpbmUgMTYKYXBwIGxpbmUgMTcKYXBwIGxpbmUgMTgKYXBwIGxpbmUgMTkKYXBwIGxpbmUgMjAKYXBwIGxpbmUgMjEKYXBwIGxpbmUgMjIKYXBwIGxpbmUgMjMKYXBwIGxpbmUgMjQKYXBwIGxpbmUgMjUKQiBlZGl0cyAyNgphcHAgbGluZSAyNwphcHAgbGluZSAyOAphcHAgbGluZSAyOQphcHAgbGluZSAzMAo=",
+			"8fb206e344695e5124734713b7b76d51d221e620": "YXBwIGxpbmUgMQphcHAgbGluZSAyCkEgZWRpdHMgdGhyZWUKYXBwIGxpbmUgNAphcHAgbGluZSA1CmFwcCBsaW5lIDYKYXBwIGxpbmUgNwphcHAgbGluZSA4CmFwcCBsaW5lIDkKYXBwIGxpbmUgMTAKYXBwIGxpbmUgMTEKYXBwIGxpbmUgMTIKYXBwIGxpbmUgMTMKYXBwIGxpbmUgMTQKYXBwIGxpbmUgMTUKYXBwIGxpbmUgMTYKYXBwIGxpbmUgMTcKYXBwIGxpbmUgMTgKYXBwIGxpbmUgMTkKYXBwIGxpbmUgMjAKYXBwIGxpbmUgMjEKYXBwIGxpbmUgMjIKYXBwIGxpbmUgMjMKYXBwIGxpbmUgMjQKYXBwIGxpbmUgMjUKYXBwIGxpbmUgMjYKYXBwIGxpbmUgMjcKYXBwIGxpbmUgMjgKYXBwIGxpbmUgMjkKYXBwIGxpbmUgMzAK",
+			"1682bfa8783154835c0bdff1be707b895c5c8bbe": "YXBwIGxpbmUgMQphcHAgbGluZSAyCmFwcCBsaW5lIDMKYXBwIGxpbmUgNAphcHAgbGluZSA1CmFwcCBsaW5lIDYKYXBwIGxpbmUgNwphcHAgbGluZSA4CmFwcCBsaW5lIDkKYXBwIGxpbmUgMTAKYXBwIGxpbmUgMTEKQiBlZGl0cyB0d2VsdmUKYXBwIGxpbmUgMTMKYXBwIGxpbmUgMTQKYXBwIGxpbmUgMTUKYXBwIGxpbmUgMTYKYXBwIGxpbmUgMTcKYXBwIGxpbmUgMTgKYXBwIGxpbmUgMTkKYXBwIGxpbmUgMjAKYXBwIGxpbmUgMjEKYXBwIGxpbmUgMjIKYXBwIGxpbmUgMjMKYXBwIGxpbmUgMjQKYXBwIGxpbmUgMjUKYXBwIGxpbmUgMjYKYXBwIGxpbmUgMjcKYXBwIGxpbmUgMjgKYXBwIGxpbmUgMjkKYXBwIGxpbmUgMzAK",
+			"1bd475220dd213fc86e5cff866f2eb9be0feb663": "YXBwIGxpbmUgMQphcHAgbGluZSAyCmFwcCBsaW5lIDMKYXBwIGxpbmUgNAphcHAgbGluZSA1CmFwcCBsaW5lIDYKYXBwIGxpbmUgNwphcHAgbGluZSA4CmFwcCBsaW5lIDkKQSBlZGl0cyB0ZW4KYXBwIGxpbmUgMTEKYXBwIGxpbmUgMTIKYXBwIGxpbmUgMTMKYXBwIGxpbmUgMTQKYXBwIGxpbmUgMTUKYXBwIGxpbmUgMTYKYXBwIGxpbmUgMTcKYXBwIGxpbmUgMTgKYXBwIGxpbmUgMTkKYXBwIGxpbmUgMjAKYXBwIGxpbmUgMjEKYXBwIGxpbmUgMjIKYXBwIGxpbmUgMjMKYXBwIGxpbmUgMjQKYXBwIGxpbmUgMjUKYXBwIGxpbmUgMjYKYXBwIGxpbmUgMjcKYXBwIGxpbmUgMjgKYXBwIGxpbmUgMjkKYXBwIGxpbmUgMzAK",
+			"49d533269db9522494f919164fc4aa8266aeb924": "YXBwIGxpbmUgMQphcHAgbGluZSAyCmFwcCBsaW5lIDMKYXBwIGxpbmUgNAphcHAgbGluZSA1CmFwcCBsaW5lIDYKYXBwIGxpbmUgNwphcHAgbGluZSA4CmFwcCBsaW5lIDkKQiBlZGl0cyB0ZW4KYXBwIGxpbmUgMTEKYXBwIGxpbmUgMTIKYXBwIGxpbmUgMTMKYXBwIGxpbmUgMTQKYXBwIGxpbmUgMTUKYXBwIGxpbmUgMTYKYXBwIGxpbmUgMTcKYXBwIGxpbmUgMTgKYXBwIGxpbmUgMTkKYXBwIGxpbmUgMjAKYXBwIGxpbmUgMjEKYXBwIGxpbmUgMjIKYXBwIGxpbmUgMjMKYXBwIGxpbmUgMjQKYXBwIGxpbmUgMjUKYXBwIGxpbmUgMjYKYXBwIGxpbmUgMjcKYXBwIGxpbmUgMjgKYXBwIGxpbmUgMjkKYXBwIGxpbmUgMzAK",
+			"c21c9352f7526e9576892a6631e0e8cf1fccd34d": "dW5yZWxhdGVkCg==",
+			"e36a3d79556f06c01d7fbca063de35d1a20054c7": "c2EK",
+			"beff14165d2e5b5b59621eb7bdbd3354d6abe39d": "c2IK",
+			"9a6c8d12dea8859b821b2ba705f7efd6cc914aa5": "cjIK",
+			"f7d55cf9a84e9ea95e8db2b6264e5a5db85d22ad": "cjEK",
+			"d8c5a48120e7eadd4c7baa27185a2bb571c659ac": "YXBpLWEgbGluZSAxCmFwaS1hIGxpbmUgMgphcGktYSBsaW5lIDMKYXBpLWEgbGluZSA0CmFwaS1hIGxpbmUgNQphcGktYSBsaW5lIDYKYXBpLWEgbGluZSA3Cg==",
+			"f2ad6c76f0115a6ba5b00456a849810e7ec0af20": "Ywo=",
+			"d59b026add6497766dec02f3faafdb648e9fe144": "YXBpLWEgbGluZSAxCmFwaS1hIGxpbmUgMgphcGktYSBsaW5lIDMKYXBpLWEgbGluZSA0CmFwaS1hIGxpbmUgNQphcGktYSBsaW5lIDYK",
+			"61780798228d17af2d34fce4cfbdf35556832472": "Ygo=",
+			"6209d5703a39a7e57fbd2136fa4215ceae2d7dca": "dDQK",
+			"3367afdbbf91e638efe983616377c60477cc6612": "b2xkCg=="
+		}
+	}
+}
