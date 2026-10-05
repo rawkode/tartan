@@ -43,7 +43,7 @@ export type GenesisDeps = {
 /** WP3's genesis takes an optional title for the README. */
 export type GenesisRequest = Parameters<GenesisPort>[1];
 
-/** The upstream `Authorization` header for an Artifacts remote (`UPSTREAM_AUTH`, [E A1]). */
+/** The upstream `Authorization` header for an Artifacts remote (`UPSTREAM_AUTH`). */
 export const upstreamAuthorization = (token: string): string => {
 	if (UPSTREAM_AUTH === "bearer") return `Bearer ${token}`;
 	const secret = token.replace(/\?expires=\d+$/, "");

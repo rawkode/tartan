@@ -1,6 +1,6 @@
 // The production capability bridge: an `RpcTarget` the ExtensionDO passes
-// into the facet call, so the facet holds a stub valid for that call only
-// [E B3]. RPC exposes prototype members only, so `call` is a method.
+// into the facet call, so the facet holds a stub valid for that call
+// only. RPC exposes prototype members only, so `call` is a method.
 // Imports `cloudflare:workers`: Worker code only (never a Deno test).
 
 import { RpcTarget } from "cloudflare:workers";

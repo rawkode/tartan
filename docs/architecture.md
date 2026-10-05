@@ -9,7 +9,7 @@ the same Worker's static assets, so the UI, the API, Git and MCP share one origi
    ▼                    ▼                                              ▼
 ┌────────────────────────── Worker tartan-<stage>  (your domain) ─────────────────────────────┐
 │ router: /-/health /-/setup /-/auth /-/api /-/live /-/mcp /-/cap /<repo>.git /<repo>/-/lanes  │
-│ identity · authorization · git gateway (lane policy, push limits, remote: messages) · MCP   │
+│ identity · authorization · git gateway (lane policy, push limits, refusal reasons) · MCP    │
 │ entrypoints: KernelCaps (extension capabilities) · RepoProbe (diffs, project graph)          │
 └──────┬───────────────┬────────────────┬──────────────────┬──────────────┬───────────────────┘
        ▼               ▼                ▼                  ▼              ▼
@@ -60,19 +60,19 @@ A lane is one unit of work's place to push, owned by one principal; only the own
 Lanes are per-agent Artifacts repositories created with `import()`, with branch lanes as the fallback; both backends
 sit behind one interface:
 
-- **Lane repositories**: each agent lane is its own Artifacts repository `l-<repo>-<lane>`, created in seconds with
+- **Lane repositories**: each agent lane is its own Artifacts repository `l-<repo>-<lane>`, created with
   `import()` from a short-lived capability URL that the gateway serves for trunk. A lane push then uses an upstream
   token scoped to that one lane repository, so even a policy bug could not move trunk or another lane.
 - **Branch lanes** (the fallback): `refs/heads/lanes/<laneId>` inside the canonical repository; the gateway's ref
-  policy is the boundary. A repository falls back per lane, with the reason recorded (a failed seed, a repository too
-  large to import, the forge's lane-repository ceiling), and the deploy chooses the default mode
-  (`deploy --lane-mode`).
+  policy is the boundary. A lane can fall back to a branch lane on the same lane id, and `lane.opened` records the
+  backend. The deploy chooses the forge's mode (`deploy --lane-mode`; branch lanes unless it says `import`), and an
+  Owner can override it per repository.
 
 ## Requests, in brief
 
 - **Git**: `git clone https://<host>/<path>.git` and `git push` go through the gateway: authentication, the lane
-  policy, the push size limit, then a streamed proxy to Artifacts, with `remote:` lines (radar notices, rejections)
-  added to the response.
+  policy, the push size limit, then a streamed proxy to Artifacts; a refused ref gets a synthesized `ng` with its
+  reason.
 - **MCP**: `/-/mcp[/<path>]` assembles the tools, instructions and context from the installations at the agent's
   scope, and appends pending notices to each tool result.
 - **UI**: the SPA calls `/-/api/*` and subscribes to `/-/live` for the event stream. Extension UI is server-driven

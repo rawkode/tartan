@@ -150,13 +150,13 @@ const main = async () => {
 		]);
 		await record(
 			"ls-remote-lanes-v2",
-			"ls-remote with a lane pattern: ls-refs with ref-prefix (U47)",
+			"ls-remote with a lane pattern: ls-refs with ref-prefix",
 			work,
 			["ls-remote", "origin", "refs/heads/lanes/*"],
 		);
 		await record(
 			"fetch-lane-v2",
-			"fetch one lane ref by name: ls-refs ref-prefix (U47)",
+			"fetch one lane ref by name: ls-refs ref-prefix",
 			work,
 			["fetch", "origin", "refs/heads/lanes/ln_01k6aaaaaaaaaaaaaaaaaaaaaa"],
 		);
@@ -172,7 +172,7 @@ const main = async () => {
 		const head = await run(work, ["rev-parse", "HEAD"], env);
 		await record(
 			"push-ref-only-create",
-			"create a ref at an existing commit (empty pack, U46)",
+			"create a ref at an existing commit (empty pack)",
 			work,
 			[
 				"push",

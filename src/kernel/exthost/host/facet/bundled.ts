@@ -1,7 +1,7 @@
 // The `wasm-bundled` runtime: the schedule fallback for
 // `wasm` when Dynamic Workers are off (`EXT_DYNAMIC_ENABLED`). A component
 // built into the Worker bundle (jco glue as code, core modules as
-// `WebAssembly.Module`s; runtime compilation is forbidden [E B2]) is
+// `WebAssembly.Module`s; runtime compilation is forbidden) is
 // instantiated in-process by its installation's ExtensionDO, one fresh
 // instance per call, through the same core as a facet (core.ts), against
 // the host's guarded `sql` and `kv` (so the host tables stay unreachable).

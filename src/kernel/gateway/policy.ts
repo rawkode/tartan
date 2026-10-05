@@ -73,7 +73,7 @@ export type GatewayPushContext = PushContext & {
 	readonly refNames?: readonly string[];
 };
 
-/** Case folding for the collision rules (Artifacts' handling is U45; repo names fold [E A2]). */
+/** Case folding for the collision rules (repo names fold case too). */
 export const fold = (ref: string): string => ref.toLowerCase();
 
 const utf8Length = (text: string): number =>

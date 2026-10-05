@@ -1,9 +1,9 @@
 // KernelCaps (K12): the capability surface for `js`/`wasm` extensions, minted
 // per call as `loopback(ctx).KernelCaps({ props })` and passed to the facet
 // method as an RPC argument, never placed in a Dynamic Worker's `env` (that env
-// is frozen with the cached isolate, so the first caller's actor would stick
-// [E B1]). A stub passed this way is opaque to the extension and valid only for
-// the call it was passed into [E B3]. The props (`CapsProps`) are invisible to
+// is frozen with the cached isolate, so the first caller's actor would
+// stick). A stub passed this way is opaque to the extension and valid only for
+// the call it was passed into. The props (`CapsProps`) are invisible to
 // the extension; every method re-checks them through `createKernelCaps`
 // (grants, mode, read-only, K12 confinement, the actor).
 //

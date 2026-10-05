@@ -290,7 +290,7 @@ Deno.test("synthesized rejections parse for report-status / -v2 × side-band-64k
 });
 
 // ---------------------------------------------------------------------------
-// Upstream object-size errors and hang-ups ([E A3])
+// Upstream object-size errors and hang-ups
 // ---------------------------------------------------------------------------
 
 const sizeReport = (unpack: string, ngReason?: string) => () =>

@@ -38,14 +38,15 @@ bundle into the Worker). It needs `cargo` with the `wasm32-unknown-unknown` targ
 
 ## Publish, install, shadow, replay, promote
 
-1. **Publish** (forge admin; a token needs the `admin` scope): `PUT /-/api/packages` with `dist/publish.json`. The
-   kernel validates the manifest and its policy, the bundle (≤ 10 MiB, safe paths, every named file present) and, for
-   wasm, the imports: every import of the core modules must be a function of the `tartan:ext@0.1.0` world, `notify`
-   needs the `notify` permission and `contribute-note` the `notes` permission, and `imports.json` must equal what the
-   modules import. The files go to R2 under `ext/<id>/<version>/<sha256>/`; versions are immutable.
-2. **Install** at a node (`POST /-/api/installations`, Maintainer there; Owner for the cases on the install sheet),
-   usually with `"mode": "shadow"` for a gate: a shadow gate is called beside the enforced ones, its decision is
-   recorded, and it never blocks.
+1. **Publish** (forge admin; a token needs the `api` and `admin` scopes): `PUT /-/api/packages` with
+   `dist/publish.json`. The kernel validates the manifest and its policy, the bundle (≤ 10 MiB, safe paths, every named
+   file present) and, for wasm, the imports: every import of the core modules must be a function of the
+   `tartan:ext@0.1.0` world, `notify` needs the `notify` permission and `contribute-note` the `notes` permission, and
+   `imports.json` must equal what the modules import. The files go to R2 under `ext/<id>/<version>/<sha256>/`; versions
+   are immutable.
+2. **Install** at a node (`POST /-/api/installations`, Maintainer there; Owner for the cases on the install sheet; a
+   token needs the `api` and `admin` scopes), usually with `"mode": "shadow"` for a gate: a shadow gate is called
+   beside the enforced ones, its decision is recorded, and it never blocks.
 3. **Replay** the gate over real history: `POST /-/api/installations/<id>/replay` with `{"repo": "<path>", "n": 41}`
    rebuilds the `ref.advance` input of each of the repository's last `n` (≤ 50) advances (changed paths and added
    lines of `expectOld..newSha`, marked `advisory`), calls the gate and answers, for example, `{"summary": {"vetoed":

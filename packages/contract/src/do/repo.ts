@@ -92,7 +92,7 @@ export type RepoMetaKey =
 	| "drifted"
 	/** `none` | `importing`. */
 	| "import_state"
-	/** Default 200 while the repo's lanes use the `repo` backend, 2,000 on `branch` (U54). */
+	/** Default 200 while the repo's lanes use the `repo` backend, 2,000 on `branch`. */
 	| "max_active_lanes"
 	/** Default 20. */
 	| "max_lanes_per_principal"
@@ -510,7 +510,7 @@ export type PushReport = {
 
 /**
  * One `cf.artifacts.repo.pushed` event as IngestWorkflow maps it: one ref per
- * event, no pusher and no timestamp in the payload [E A5]; `repoName`
+ * event, no pusher and no timestamp in the payload; `repoName`
  * lowercased. RepoDO maps a lane only by exact match with a lane's current
  * `lanes.repo_name`; any other `l-*` name of the family takes the orphan path
  * and never feeds K1/K2.
@@ -667,7 +667,7 @@ export type PushContext = {
 		 * (`LANE_RESUME_MS` after `lease_expires_at`).
 		 */
 		readonly resumable: boolean;
-		/** Held by another request's push lease (U48 fallback; always false while it is off). */
+		/** Held by another request's push lease (`PUSH_LEASE_ENABLED`; always false while it is off). */
 		readonly leased: boolean;
 	}[];
 	/** The lane a lane remote names. */
@@ -699,12 +699,12 @@ export type PushContext = {
 };
 
 /**
- * The U48 fallback: with `PUSH_LEASE_ENABLED` on, `pushContext`
+ * The push-lease fallback: with `PUSH_LEASE_ENABLED` on, `pushContext`
  * takes a short per-ref lease for `requestId` on every lane head among
  * `refs`, and reports a head another request holds as `leased: true` (the
  * policies answer `stale-old`). Phase 1 of `recordPush` and `recordRejection`
  * release it for the same request id; otherwise it expires
- * (`PUSH_LEASE_MS`). With the switch off this is ignored, so the U48 outcome
+ * (`PUSH_LEASE_MS`). With the switch off this is ignored, so turning it on
  * stays a constants change.
  */
 export type PushLeaseRequest = {
@@ -747,7 +747,7 @@ export type CapContext = {
 	readonly base: string;
 	/** The canonical default branch whose upstream tip the route compares with `base`. */
 	readonly defaultBranch: string;
-	/** `LANE_CAP_PIN_BASE`: serve `base` when a kernel-explained trunk move happened (U55). */
+	/** `LANE_CAP_PIN_BASE`: serve `base` when a kernel-explained trunk move happened. */
 	readonly pinBase: boolean;
 	/**
 	 * Default-branch tips the kernel explains at `capUse` time (`explainsSync`
@@ -906,7 +906,7 @@ export interface RepoCoreFacade {
 	recordDiff(pushId: string, result: DiffResult): Promise<void>;
 	/** The lane's current range (K17): runs or awaits phase 2 for its head. */
 	laneRange(laneId: string): Promise<LaneRange>;
-	/** ⇒ `push.rejected`. Releases the push lease of `requestId` (U48 fallback). */
+	/** ⇒ `push.rejected`. Releases the push lease of `requestId` (`PUSH_LEASE_ENABLED`). */
 	recordRejection(
 		rejection: {
 			principal: string;
@@ -935,7 +935,7 @@ export interface RepoCoreFacade {
 	/**
 	 * The receive-pack policy inputs in one RPC. `tokenLaneId`
 	 * (the token's lane pin) narrows `ownLanes`; `target` names a lane remote;
-	 * `lease` is the U48 fallback's push lease (`PushLeaseRequest`).
+	 * `lease` is the push-lease fallback's lease (`PushLeaseRequest`).
 	 */
 	pushContext(
 		principal: AuthContext,

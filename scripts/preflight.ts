@@ -437,7 +437,7 @@ export const checkNode = (versionOutput: string | null): Check => {
 			versionOutput === null
 				? "Node.js was not found"
 				: `Node ${versionOutput.trim()} is older than ${MIN_NODE_MAJOR}`,
-			`install Node ${MIN_NODE_MAJOR}+ (manual step M5)`,
+			`install Node ${MIN_NODE_MAJOR}+`,
 		);
 };
 
@@ -448,11 +448,11 @@ export const checkDeno = (version: string): Check => {
 	return ok ? pass("deno", `Deno ${version}`) : failed(
 		"deno",
 		`Deno ${version} is older than ${MIN_DENO.join(".")}`,
-		`run \`deno upgrade\` (manual step M5)`,
+		`run \`deno upgrade\``,
 	);
 };
 
-/** Artifacts entitlement from the namespaces GET status (S13). */
+/** Artifacts entitlement from the namespaces GET status. */
 export const artifactsCheck = (status: number, detail = ""): Check => {
 	if (status === 200) {
 		return pass("artifacts", "Artifacts is enabled on this account");
@@ -496,7 +496,7 @@ export const workersPaidCheck = (response: CfResponse): Check => {
 		return warn(
 			"workers-paid",
 			`could not verify Workers Paid with this token (subscriptions: HTTP ${response.status})`,
-			"Tartan needs Workers Paid: subscribe in the dashboard if this account is on the Free plan (manual step M1)",
+			"Tartan needs Workers Paid: subscribe in the dashboard if this account is on the Free plan",
 		);
 	}
 	const plans = response.body.result.map((s: {
@@ -507,7 +507,7 @@ export const workersPaidCheck = (response: CfResponse): Check => {
 		: warn(
 			"workers-paid",
 			"no Workers Paid subscription was listed",
-			"subscribe to Workers Paid (manual step M1); deploys of Durable Objects with containers and Workflows need it",
+			"subscribe to Workers Paid; deploys of Durable Objects with containers and Workflows need it",
 		);
 };
 
@@ -601,7 +601,7 @@ export const engineCheck = (
 			? "no `docker` command was found"
 			: "the container engine is not running (`docker info` failed)",
 		image === "dockerfile"
-			? "start Docker Desktop, OrbStack or colima (manual step M4), or deploy with --no-containers (no CI) or --image registry with a recorded digest"
+			? "start Docker Desktop, OrbStack or colima, or deploy with --no-containers (no CI) or --image registry with a recorded digest"
 			: "start a container engine to publish the runner image (containers/runner/publish.ts), or deploy with --no-containers",
 	);
 };
@@ -653,7 +653,7 @@ export const domainChecks = (
 		return [failed(
 			"domain-zone",
 			`no zone for ${host} in this account`,
-			`add the zone to this Cloudflare account first (manual step M8), or deploy without --domain`,
+			`add the zone to this Cloudflare account first, or deploy without --domain`,
 		)];
 	}
 	checks.push(pass("domain-zone", `zone ${state.zone.name}`));

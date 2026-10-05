@@ -2,17 +2,19 @@
 // repository.
 //
 // The private history (`main` and the work branches) is never pushed. Each run
-// builds the ref's tree without `UNPUBLISHED_PATHS` (check-public's temporary
-// exceptions), checks every file of that tree with the private term list
+// builds the ref's tree without the unpublished paths (the private term list
+// names them), checks every file of that tree with the private term list
 // (required: a missing list is an error), and commits it on the local `public`
 // branch under a public identity with a noreply address (`--identity`, else
 // `TARTAN_PUBLISH_IDENTITY`, else `git config tartan.publishIdentity`; none is
 // an error, so the local git identity never reaches the public history). The
 // message is neutral; the private source commit is recorded only in the local
-// reflog of `public`. With `--push` it then pushes `public` to `<remote> main`,
-// never forced: a remote `main` that the local `public` does not contain stops
-// the push, and so does a snapshot tree with no recorded leak review
-// (`REVIEWED_DIR`; exit code 2).
+// reflog of `public`. Each snapshot is parented on the remote's `main`, so a
+// run replaces any snapshot that was not pushed: the next push sends one
+// commit, never the trees of earlier runs as history. With `--push` it then
+// pushes `public` to `<remote> main`, never forced: a remote `main` that the
+// local `public` does not contain stops the push, and so does any commit to
+// send whose tree has no recorded leak review (`REVIEWED_DIR`; exit code 2).
 //
 // Usage: deno run -A scripts/publish.ts [--ref main] [--remote origin]
 //   [--identity "Name <user@users.noreply.github.com>"] [--push]
@@ -24,7 +26,7 @@ import {
 	loadPolicy,
 	mainCheckout,
 	TERMS_FILE,
-	UNPUBLISHED_PATHS,
+	unpublishedPaths,
 } from "./check-public.ts";
 
 export const PUBLIC_BRANCH = "refs/heads/public";
@@ -105,6 +107,36 @@ export const snapshotMessage = (initial: boolean): string =>
 		"",
 	].join("\n");
 
+/** A commit and its tree. */
+export type Snapshot = { readonly commit: string; readonly tree: string };
+
+/**
+ * What a run does with the snapshot `tree` of the ref:
+ * - `current`: `public` already is the one snapshot of `tree` on `base`;
+ * - `reset`: `base` already carries `tree`, so `public` moves back to it and
+ *   the unpushed snapshots are dropped;
+ * - `commit`: a new snapshot of `tree` on `base` replaces the unpushed ones.
+ */
+export type SnapshotPlan = "current" | "reset" | "commit";
+
+export const planSnapshot = (state: {
+	/** The remote's `main`, else the local tip (no remote, nothing pushed). */
+	readonly base: Snapshot | null;
+	/** The local `public` branch. */
+	readonly tip: Snapshot | null;
+	/** How many commits `base..tip` holds. */
+	readonly pending: number;
+	readonly tree: string;
+}): SnapshotPlan => {
+	const { base, tip, pending, tree } = state;
+	if (base !== null && base.tree === tree) {
+		return tip?.commit === base.commit ? "current" : "reset";
+	}
+	return tip !== null && tip.tree === tree && pending === 1
+		? "current"
+		: "commit";
+};
+
 const must = async (
 	args: string[],
 	options?: Parameters<typeof git>[1],
@@ -151,20 +183,26 @@ const resolveIdentity = async (
 };
 
 /** The ref's tree without the unpublished paths, as a tree object id. */
-const publicTree = async (source: string): Promise<string> => {
+const publicTree = async (
+	source: string,
+	unpublished: readonly string[],
+): Promise<string> => {
 	const dir = await Deno.makeTempDir({ prefix: "tartan-publish-" });
 	const env = { GIT_INDEX_FILE: `${dir}/index` };
 	try {
 		await must(["read-tree", source], { env });
-		await must([
-			"rm",
-			"-r",
-			"--cached",
-			"--quiet",
-			"--ignore-unmatch",
-			"--",
-			...UNPUBLISHED_PATHS,
-		], { env });
+		// `git rm` with no pathspec is an error, not a no-op.
+		if (unpublished.length > 0) {
+			await must([
+				"rm",
+				"-r",
+				"--cached",
+				"--quiet",
+				"--ignore-unmatch",
+				"--",
+				...unpublished,
+			], { env });
+		}
 		return await must(["write-tree"], { env });
 	} finally {
 		await Deno.remove(dir, { recursive: true });
@@ -188,10 +226,11 @@ const main = async (): Promise<number> => {
 
 	// Adopt or check the remote's main first, so a push never forces.
 	let tip = await revParse(PUBLIC_BRANCH);
+	let remoteMain: string | null = null;
 	const hasRemote = (await git(["remote", "get-url", args.remote])).code === 0;
 	if (hasRemote) {
 		const fetched = await git(["fetch", "--quiet", args.remote, "main"]);
-		const remoteMain = fetched.code === 0
+		remoteMain = fetched.code === 0
 			? await revParse(`refs/remotes/${args.remote}/main`)
 			: null;
 		if (remoteMain !== null) {
@@ -210,7 +249,8 @@ const main = async (): Promise<number> => {
 		return 1;
 	}
 
-	const tree = await publicTree(source);
+	const unpublished = unpublishedPaths(policy);
+	const tree = await publicTree(source, unpublished);
 	const hits = await grepRevisions(policy, [tree]);
 	if (hits.length > 0) {
 		for (const hit of hits) {
@@ -222,15 +262,46 @@ const main = async (): Promise<number> => {
 		return 1;
 	}
 
-	const tipTree = tip === null
-		? null
-		: await must(["rev-parse", `${tip}^{tree}`]);
-	if (tipTree === tree) {
+	const snapshotOf = async (commit: string | null) =>
+		commit === null
+			? null
+			: { commit, tree: await must(["rev-parse", `${commit}^{tree}`]) };
+	// Without a remote `main` nothing is pushed yet: build on the local tip.
+	const base = await snapshotOf(remoteMain ?? tip);
+	const pending = base === null || tip === null ? 0 : Number(
+		await must(["rev-list", "--count", `${base.commit}..${tip}`]),
+	);
+	const plan = planSnapshot({
+		base,
+		tip: await snapshotOf(tip),
+		pending,
+		tree,
+	});
+	if (plan === "current") {
 		console.log(`publish: the public tree already matches ${args.ref}`);
+	} else if (plan === "reset" && base !== null) {
+		await must([
+			"update-ref",
+			"-m",
+			`publish: ${args.ref} ${source}`,
+			PUBLIC_BRANCH,
+			base.commit,
+			tip ?? "",
+		]);
+		console.log(
+			`publish: ${args.remote} main already matches ${args.ref}; dropped ${pending} unpushed snapshot(s)`,
+		);
+		tip = base.commit;
 	} else {
 		const commit = await must(
-			["commit-tree", tree, ...(tip === null ? [] : ["-p", tip]), "-F", "-"],
-			{ stdin: snapshotMessage(tip === null), env: identityEnv(identity) },
+			[
+				"commit-tree",
+				tree,
+				...(base === null ? [] : ["-p", base.commit]),
+				"-F",
+				"-",
+			],
+			{ stdin: snapshotMessage(base === null), env: identityEnv(identity) },
 		);
 		// The source commit stays local: only this reflog entry names it.
 		await must([
@@ -244,23 +315,45 @@ const main = async (): Promise<number> => {
 		console.log(
 			`publish: ${PUBLIC_BRANCH} ${commit.slice(0, 12)} = ${args.ref} ${
 				source.slice(0, 12)
-			} without ${UNPUBLISHED_PATHS.length} unpublished path(s)`,
+			} without ${unpublished.length} unpublished path(s)${
+				pending > 0 ? `, replacing ${pending} unpushed snapshot(s)` : ""
+			}`,
 		);
 		tip = commit;
 	}
 
 	if (!args.push) return 0;
 	if (tip === null) return 0;
-	// The review covers content: the marker is named after the snapshot's tree.
-	const tipTreeNow = await must(["rev-parse", `${tip}^{tree}`]);
-	const marker = `${await mainCheckout()}/${REVIEWED_DIR}/${tipTreeNow}`;
-	if (!(await exists(marker))) {
-		const base = (await revParse(`refs/remotes/${args.remote}/main`)) ?? null;
+	// Every commit the push sends is published with its tree, so each tree
+	// needs a review; the marker is named after the tree.
+	const range = remoteMain === null ? [tip] : [`${remoteMain}..${tip}`];
+	const toSend = (await must(["log", "--format=%H %T", ...range]))
+		.split("\n").filter(Boolean).map((line) => {
+			const [commit, tree] = line.split(" ");
+			return { commit, tree };
+		});
+	if (toSend.length === 0) {
+		console.log(`publish: ${args.remote} main is already ${tip.slice(0, 12)}`);
+		return 0;
+	}
+	const checkout = await mainCheckout();
+	const unreviewed = [];
+	for (const snapshot of toSend) {
+		if (!(await exists(`${checkout}/${REVIEWED_DIR}/${snapshot.tree}`))) {
+			unreviewed.push(snapshot);
+		}
+	}
+	if (unreviewed.length > 0) {
+		for (const snapshot of unreviewed) {
+			console.error(
+				`publish: snapshot ${snapshot.commit.slice(0, 12)} (tree ${
+					snapshot.tree.slice(0, 12)
+				}) has no leak review (${REVIEWED_DIR}/<tree>)`,
+			);
+		}
 		console.error(
-			`publish: snapshot tree ${
-				tipTreeNow.slice(0, 12)
-			} has no leak review (${REVIEWED_DIR}/<tree>); committed locally, not pushed. Review: git diff ${
-				base ? base.slice(0, 12) : "--root"
+			`publish: ${toSend.length} commit(s) to send, ${unreviewed.length} unreviewed; committed locally, not pushed. Review: git diff ${
+				remoteMain ? remoteMain.slice(0, 12) : "--root"
 			} ${tip.slice(0, 12)}`,
 		);
 		return 2;

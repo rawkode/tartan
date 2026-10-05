@@ -5,8 +5,8 @@
 // Reporter's push is refused by the role ceiling even though its PAT has
 // `repo:write`, and an agent pushes only to its lanes (`agents-lanes-only`).
 // The band-2 `remote:` guidance on a refusal is pending: it is sent only
-// with `ECHO_ENABLED` (src/constants.ts, U4), which stays off until smoke S3
-// has run. Tokens reach git through the environment only; all output is
+// with `ECHO_ENABLED` (src/constants.ts), which is off by default. Tokens
+// reach git through the environment only; all output is
 // scrubbed before it is asserted.
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -213,7 +213,7 @@ test("a refused push to main carries remote: guidance", {
 	session: "developer",
 	tags: ["git", "regression", "pending"],
 	skip:
-		"pending U4: band-2 guidance needs ECHO_ENABLED (src/constants.ts), off until smoke S3",
+		"pending: band-2 guidance needs ECHO_ENABLED (src/constants.ts), off by default",
 }, async ({ stage, workdir }) => {
 	const { ownerPat } = tokensOf(stage);
 	const repo = await fixtureRepo(stage, "classic", "push-guidance");

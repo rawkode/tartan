@@ -260,7 +260,7 @@ Deno.test("comments and layout survive rendering", () => {
 	);
 	assert.ok(
 		after.includes(
-			"\t}, // one IngestWorkflow instance per ref update, r-* and l-* repos [E A5]",
+			"\t}, // one IngestWorkflow instance per ref update, r-* and l-* repos",
 		),
 	);
 });
@@ -398,7 +398,7 @@ Deno.test("--domain adds a custom-domain route, replacing an existing routes val
 	);
 
 	const triggersEnd =
-		"\t} // one IngestWorkflow instance per ref update, r-* and l-* repos [E A5]";
+		"\t} // one IngestWorkflow instance per ref update, r-* and l-* repos";
 	const withRoutes = source.replace(
 		triggersEnd,
 		`\t},${

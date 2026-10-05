@@ -1,5 +1,5 @@
-// Mapping one `cf.artifacts.repo.pushed` event to a RepoDO observation
-// ([E A5]): the payload is `{id, type, source:{namespace, repoName},
+// Mapping one `cf.artifacts.repo.pushed` event to a RepoDO
+// observation: the payload is `{id, type, source:{namespace, repoName},
 // payload:{ref, before, after, commits[], commitsTruncated,
 // totalCommitsCount}}`, one ref per event, no pusher and no timestamp. The repo
 // name is lowercased and parsed: it names its family (`r-<repoUlid>` or
@@ -38,7 +38,7 @@ const record = (value: unknown): Record<string, unknown> | null =>
 export const mapTriggerEvent = (
 	params: unknown,
 	meta: {
-		/** The Workflow instance id (= the event id [E A5]). */
+		/** The Workflow instance id (= the event id). */
 		readonly instanceId: string;
 		/** When the instance was created (the event carries no timestamp). */
 		readonly at: number;

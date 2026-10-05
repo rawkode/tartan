@@ -309,10 +309,10 @@ export type PushLimits = {
 const MIB = 1024 * 1024;
 /** `tartan hooks install --git` refuses objects of this size or more before pushing. */
 export const MAX_OBJECT_BYTES = 31 * MIB;
-/** Artifacts rejects a git object of this size or more, after the whole upload [E A3]. */
+/** Artifacts rejects a git object of this size or more. */
 export const ARTIFACTS_OBJECT_LIMIT_BYTES = 33_554_432;
 /**
- * Upstream receive-pack messages that mean "object too large" [E A3]; the
+ * Upstream receive-pack messages that mean "object too large"; the
  * gateway translates them (and a hang-up after a body above 32 MiB) to
  * `ng <ref> object-too-large`.
  */

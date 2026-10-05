@@ -1,4 +1,4 @@
-// M1-exit probe S3: the gateway's synthesized rejection, shown
+// The synthesized-`ng` suite: the gateway's synthesized rejection, shown
 // by stock git. A push to `main` is answered by the gateway itself, without
 // reaching upstream, as a 200 report-status `ng refs/heads/main
 // woven-by-tartan`, and git prints it as a remote rejection in every way
@@ -8,8 +8,8 @@
 // -q and -v outputs. No output ever carries a control character.
 //
 // Band 2 (`remote: tartan ▸ …` guidance on a refusal, echo lines on an
-// accepted lane push) is sent only with `ECHO_ENABLED` (src/constants.ts,
-// U4): while it is off, the matrix checks that no Tartan band-2 line is
+// accepted lane push) is sent only with `ECHO_ENABLED` (src/constants.ts):
+// while it is off, the matrix checks that no Tartan band-2 line is
 // sent, and the echo tests are pending skips that run once it is on.
 //
 // Untrusted text (a work item title with ESC, OSC and BEL sequences) is
@@ -40,7 +40,7 @@ import { type Stage, tokensOf } from "../../support/stage.ts";
 const WOVEN: RefPolicyReason = "woven-by-tartan";
 const ECHO = echoEnabled();
 const ECHO_OFF =
-	"pending U4: band-2 lines need ECHO_ENABLED (src/constants.ts), which stays off until S3 has run live";
+	"pending: band-2 lines need ECHO_ENABLED (src/constants.ts), which is off by default";
 
 /** How stock git can ask for the refusal: capabilities, protocol, output. */
 const MATRIX: readonly {
@@ -95,7 +95,7 @@ const ownerClone = async (
 	return { clone, env, token };
 };
 
-test.describe("S3: the synthesized ng through the product gateway", {
+test.describe("The synthesized ng through the product gateway", {
 	tags: ["gateway", "s3", "git", "regression", "owner"],
 	session: "owner",
 }, () => {

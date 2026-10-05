@@ -693,7 +693,7 @@ export interface TreeFacade {
 	): Promise<{ repos: { id: string; path: string }[]; cursor?: string }>;
 	/** An upsert; enforces the forge-wide lane-repo ceiling. */
 	indexArtifacts(input: IndexArtifactsInput): Promise<IndexArtifactsResult>;
-	/** Lowercases `name` first (names fold case [E A2]). */
+	/** Lowercases `name` first (names fold case). */
 	lookupArtifacts(name: string): Promise<ArtifactsIndexRow | null>;
 	/** Feeds the reconciler and the orphan sweep. */
 	listArtifactsIndex(

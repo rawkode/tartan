@@ -112,7 +112,7 @@ export const runBoxSuite = async (
 			title: `a silent ${secs} s job survives with a log pump (keepAlive)`,
 			pass: (check.fs.stdout ?? "").startsWith("done"),
 			numbers: { secs, pumpExit: check.jobState?.exit !== null },
-			decides: "U17 (job liveness)",
+			decides: "job liveness",
 		});
 		const destroy = await call<
 			{ destroyMs: number; destroyErr: string | null }
@@ -146,7 +146,7 @@ export const runBoxSuite = async (
 				/CAS wrong-old http=200 [^\n]*ng /.test(out) &&
 				/CAS right-old http=200 [^\n]*ok /.test(out),
 			numbers: { landMs: s8.land.ms, c1: Boolean(s8.C1), c2: Boolean(s8.C2) },
-			decides: "U7, U8 (kernel git jobs)",
+			decides: "kernel git jobs",
 		});
 		await call(
 			t,
@@ -162,7 +162,7 @@ export const runBoxSuite = async (
 			title: "Workers AI judge returns schema-valid JSON",
 			pass: s11.valid >= s11.n - 1,
 			numbers: { valid: s11.valid, n: s11.n, p50: s11.p50, p95: s11.p95 },
-			decides: "U26 (judge model)",
+			decides: "judge model",
 		});
 	}
 };

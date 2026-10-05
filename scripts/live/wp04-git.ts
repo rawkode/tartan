@@ -394,7 +394,7 @@ const scenario = async (base: string, key: string): Promise<void> => {
 			},
 		);
 		await step(
-			"U47 live: a member fetches another lane by explicit refspec (ref-prefix)",
+			"a member fetches another lane by explicit refspec (ref-prefix)",
 			async () => {
 				const out = await as(agentB, [
 					"fetch",

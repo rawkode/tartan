@@ -32,8 +32,7 @@
 //     `TARTAN_K2_TOKEN`). Without a stream the forge has no global log and
 //     every run dispatches inline (WP26);
 //   - `--lane-mode <import|branch>` sets `vars.TARTAN_LANE_MODE`, the stage's
-//     override of the compiled `LANE_MODE` (set once the stage's live lane
-//     acceptance passed);
+//     override of the compiled `LANE_MODE`;
 //   - `--workload-transport <local|k2>` sets `vars.TARTAN_WORKLOAD_TRANSPORT`,
 //     the stage's override of `WORKLOAD_TRANSPORT` (`k2` needs `--k2-stream`
 //     with the consume token);

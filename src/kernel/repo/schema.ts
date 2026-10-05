@@ -12,7 +12,7 @@
 //   knows which observed values to adopt.
 // - `trigger_seen`: trigger event ids already handled (`observePush` is
 //   idempotent per event id even when the event merged into another row).
-// - `push_leases`: the U48 fallback's per-ref push leases
+// - `push_leases`: the push-lease fallback's per-ref leases
 //   (`PUSH_LEASE_ENABLED`; unused while the switch is off).
 
 import type { Migration } from "@tartan/contract/kernel.ts";

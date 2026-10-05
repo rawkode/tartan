@@ -1,4 +1,4 @@
-// M1-exit probe S2-rem, the rows for BRANCH lanes: the canonical
+// The gateway's ref-policy suite, the rows for BRANCH lanes: the canonical
 // repo's receive-pack table with stock git and the run's
 // real tokens, hidden-namespace filtering, and the fail-closed parser.
 // Each row is its own test over one shared setup (support/shared.ts): a
@@ -183,7 +183,7 @@ const T = {
 	landing: "row 4: a push while the own lane is landing is lane-landing",
 } as const;
 
-test.describe("S2-rem: the canonical receive-pack table (branch lanes)", {
+test.describe("Ref policy: the canonical receive-pack table (branch lanes)", {
 	tags: ["gateway", "s2", "git", "regression"],
 	session: "developer",
 }, () => {
@@ -586,7 +586,7 @@ test.describe("S2-rem: the canonical receive-pack table (branch lanes)", {
 	});
 });
 
-test.describe("S2-rem: rows that are not on this stage", {
+test.describe("Ref policy: rows that are not on this stage", {
 	tags: ["gateway", "s2", "pending"],
 }, () => {
 	for (

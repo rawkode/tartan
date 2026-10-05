@@ -23,7 +23,7 @@ export type SeededMonorepo = {
 
 /**
  * Creates `name` holding the fixture monorepo on its default branch
- * (`master` for the U59 variant); `tartanConfig` adds the demo's
+ * (`master` for the master-branch variant); `tartanConfig` adds the demo's
  * root package `tartan` (`MONOREPO_TARTAN_FILES`).
  */
 export const seedMonorepo = async (

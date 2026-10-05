@@ -1,4 +1,4 @@
-// Upload-pack on the canonical repo and both ref advertisements (WP4; U47):
+// Upload-pack on the canonical repo and both ref advertisements (WP4):
 //
 // - `info/refs`: the upstream advertisement, filtered to the caller's view
 //   and rewritten to the capability allowlists for every caller (v0/v1 for

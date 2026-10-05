@@ -1,6 +1,6 @@
 // IngestWorkflow: target of the `cf.artifacts.repo.pushed` event trigger, one
-// instance per ref update of an `r-*` or `l-*` repo, instance id = event id
-// [E A5]. It maps the event (`map.ts`: lowercased name, family parsed from it)
+// instance per ref update of an `r-*` or `l-*` repo, instance id =
+// event id. It maps the event (`map.ts`: lowercased name, family parsed from it)
 // and calls `RepoDO.core().observePush` in one step, which is idempotent per
 // event id. An event that names no Tartan repo, or a repo in another namespace,
 // is logged and dropped.

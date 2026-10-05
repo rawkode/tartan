@@ -1,4 +1,4 @@
-// MCP routes and transports (WP11; U24): the SDK transport
+// MCP routes and transports (WP11): the SDK transport
 // (`createMcpHandler` + `McpServer`) and the raw JSON-RPC fallback answer the
 // same host; auth errors, the Origin rule, `/-/agents.md` and
 // `/.well-known/tartan.json`.

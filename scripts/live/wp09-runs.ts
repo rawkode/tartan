@@ -1,4 +1,4 @@
-// WP9 live acceptance (S7-rem): against a deployed dev stage
+// WP9 live acceptance: against a deployed dev stage
 // with containers and dev tools (`TARTAN_STAGE ^dev`, `TARTAN_DEV_TOOLS=1`),
 // on a repo whose canonical Artifacts repo holds the pnpm workspace fixture.
 //
@@ -270,7 +270,7 @@ if (only.has("timeout")) {
 	console.log("timeout", JSON.stringify(evidence.timeout));
 }
 
-// U50: a silent keepAlive job of N minutes completes with its log and
+// A silent keepAlive job of N minutes completes with its log and
 // completion event (`--only silent --silent-minutes 5`).
 if (only.has("silent")) {
 	const minutes = Number(arg("silent-minutes") ?? "5");

@@ -406,7 +406,7 @@ export const createLanesApp = (deps: LanesAppDeps): LanesApp => {
 	const ttlS = deps.ttlS ?? DEFAULT_CAP_TTL_S;
 	const waitUntil = deps.waitUntil ?? ((p) => void p.catch(() => {}));
 	const logs: CapLog[] = [];
-	// The spy for S16-style checks: state calls made by the route.
+	// The spy for the capability route's checks: state calls made by the route.
 	let stateCalls = 0;
 	const useState = (...args: Parameters<CapStore["use"]>) => {
 		stateCalls++;

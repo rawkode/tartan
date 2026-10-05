@@ -51,7 +51,7 @@
 	// and every run dispatches inline (WP26).
 	// classic (default) scheduling policy; no "images" map (images entries must be digest-pinned registry.cloudflare.com refs).
 	// IMAGE_VARIANT "dockerfile" (default, and the only variant for third-party self-deploys today); "registry"
-	// renders a DIGEST-pinned "ttl.sh/tartan-runner-<gitsha>@sha256:<digest>" for dev/demo stages (S7d)
+	// renders a DIGEST-pinned "ttl.sh/tartan-runner-<gitsha>@sha256:<digest>" for dev/demo stages
 	"containers": [
 		{
 			"class_name": "TartanSandbox",
@@ -79,10 +79,10 @@
 	"ai": { "binding": "AI" },
 	"vars": {
 		"TARTAN_STAGE": "default",
-		"TARTAN_FEATURES": "echo,oauth", // never "swarm"; echo also needs ECHO_ENABLED (S3)
+		"TARTAN_FEATURES": "echo,oauth", // never "swarm"; echo also needs ECHO_ENABLED
 		"TARTAN_DEV_TOOLS": "0", // swarm, bulk tokens, reset, seedHistory need "1" AND TARTAN_STAGE ^dev
 		"TARTAN_MAX_PUSH_MB": "95", // push body cap, ≤ the zone plan's body limit
-		"TARTAN_JUDGE_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast", // [E S11]
+		"TARTAN_JUDGE_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
 		"OIDC_ISSUER": "",
 		"OIDC_CLIENT_ID": ""
 	},
@@ -97,7 +97,7 @@
 				"targets": [{ "type": "workflow", "workflow_name": "tartan-ingest" }]
 			}
 		]
-	} // one IngestWorkflow instance per ref update, r-* and l-* repos [E A5]
+	} // one IngestWorkflow instance per ref update, r-* and l-* repos
 	// "routes": [{ "pattern": "git.example.com", "custom_domain": true }]   ← rendered by `deno task deploy -- --domain`
 	//                                                                          (demo: code.rawkode.academy)
 }

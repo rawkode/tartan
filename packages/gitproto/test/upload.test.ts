@@ -90,7 +90,7 @@ Deno.test("goldens: v2 ls-refs and fetch requests from stock git are accepted", 
 	const refspec = accepted(await fromGolden("upload-pack-v2-fetch-refspec"));
 	ok(
 		refspec.refPrefixes.includes("refs/heads/lanes/ln_x"),
-		"U47: fetch sends ref-prefix",
+		"fetch sends ref-prefix",
 	);
 
 	const pattern = accepted(
@@ -99,7 +99,7 @@ Deno.test("goldens: v2 ls-refs and fetch requests from stock git are accepted", 
 	deepStrictEqual(
 		pattern.refPrefixes,
 		[],
-		"U47: ls-remote <pattern> sends none",
+		"ls-remote <pattern> sends none",
 	);
 });
 

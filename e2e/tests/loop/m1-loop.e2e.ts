@@ -1,4 +1,4 @@
-// The M1 exit, end to end and deterministic (claim → lane →
+// The M1 loop, end to end and deterministic (claim → lane →
 // push → radar → submit → CI → review → Weave → Advance → why-notes): one
 // test per step, each checking its step on the UI (the Owner's browser) and
 // on the API (Node, with the run's tokens), over one shared loop instance

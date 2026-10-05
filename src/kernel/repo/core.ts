@@ -66,7 +66,7 @@ export type CorePorts = {
 	readonly lsRefs: LsRefsPort;
 	/** The forge default `LANE_MODE` (a repo overrides it in `meta.lane_mode`). */
 	readonly laneMode: LaneMode;
-	/** `PUSH_LEASE_ENABLED` (U48 fallback). */
+	/** `PUSH_LEASE_ENABLED` (the push-lease fallback). */
 	readonly pushLeases: boolean;
 	/** `ctx.waitUntil` (detached work after a facade call returns). */
 	waitUntil(promise: Promise<unknown>): void;

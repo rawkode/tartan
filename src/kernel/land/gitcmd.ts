@@ -1,4 +1,4 @@
-// The git command lines of the Advance (S8) and the
+// The git command lines of the Advance and the
 // parsers of their output. Pure: argv arrays only (never a shell string,
 // contract `GitExec`), so they run unchanged in the runner image
 // (`git:<repoId>`, git ≥ 2.38) and against a local git in tests.

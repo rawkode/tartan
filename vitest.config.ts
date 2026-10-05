@@ -6,7 +6,7 @@
 //   here in the same integrator commit.
 // - Never add `durable_object_io_tasks_prevent_eviction` or a compatibility
 //   date after 2026-08-22 here: the pool's workerd rejects both. The flag lives
-//   in the deployed config only; live S7 covers that divergence.
+//   in the deployed config only; a deployed stage covers that divergence.
 //
 // Tests are `*.workers.test.ts` (Deno unit tests are `*.test.ts`, see
 // scripts/test.ts). Run all with `deno task test:workers`, or one project with

@@ -105,7 +105,7 @@ export const createGitContexts = (deps: {
 		return role >= ROLE.developer;
 	};
 
-	/** The U48 fallback: per-ref leases on lane heads (only with `PUSH_LEASE_ENABLED`). */
+	/** The push-lease fallback: per-ref leases on lane heads (only with `PUSH_LEASE_ENABLED`). */
 	const takeLeases = (
 		lanes: readonly LaneRow[],
 		lease: PushLeaseRequest | undefined,

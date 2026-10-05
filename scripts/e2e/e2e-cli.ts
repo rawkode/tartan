@@ -110,7 +110,7 @@ export const REQUIRED_REPORTERS = ["list", "junit", "markdown"] as const;
 
 /**
  * When a run stops early. A shared setup that fails fails every test waiting
- * on it at once (support/shared.ts): the S2-rem rows (35), the changes
+ * on it at once (support/shared.ts): the ref-policy rows (35), the changes
  * suite (10) and the M1 loop (9). A low stop would let one transient error in
  * a shared setup end a run with most tests never started, so the stop leaves
  * room for the largest suite's whole group plus a few more and

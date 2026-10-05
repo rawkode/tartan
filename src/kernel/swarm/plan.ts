@@ -3,7 +3,7 @@
 // - Agents default to 300 and are capped at 300 unless the caller raises the
 //   cap (up to the contract's 1,000): the HUD's honest default.
 // - The swarm is sharded over k sim repos `<namespace>/sim/router-<nn>`, at
-//   most 50 agents each (S4c's single-repo sizing); one cohort drives one
+//   most 50 agents each; one cohort drives one
 //   shard, so a cohort's agents share hot files and the overlap knob works
 //   within a repo.
 // - Each agent creates its own work items from templates (`workItems` in

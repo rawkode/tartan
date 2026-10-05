@@ -23,7 +23,7 @@ export const generationLoaderId = (loaderId: string, generation: number) =>
 	generation > 0 ? `${loaderId}:g${generation}` : loaderId;
 
 /**
- * The installation's facet: synthetic id `ext:<instId>` [E B4]. `reset`
+ * The installation's facet: synthetic id `ext:<instId>`. `reset`
  * moves the installation to a fresh Dynamic Worker (the generation lives in
  * the ExtensionDO's own kv, so a restart keeps it).
  */

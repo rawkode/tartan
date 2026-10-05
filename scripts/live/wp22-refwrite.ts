@@ -1,7 +1,7 @@
-// WP22 live acceptance (U46, U48): the ref-only receive-pack client creates
-// `refs/tartan/attic/…` at an existing commit with an empty pack (U46), is
+// WP22 live acceptance: the ref-only receive-pack client creates
+// `refs/tartan/attic/…` at an existing commit with an empty pack, is
 // refused for a create of an existing ref and for an update or delete with a
-// wrong old id (U48), moves and deletes the ref with the right old id, and
+// wrong old id, moves and deletes the ref with the right old id, and
 // reads it back with v2 ls-refs.
 //
 // Usage:
@@ -60,7 +60,7 @@ export const runRefWrite = async (remote: GitRemote): Promise<Step[]> => {
 		new: base,
 	}]);
 	step(
-		"U46: create a ref at an existing commit with an empty pack",
+		"create a ref at an existing commit with an empty pack",
 		created.ok,
 		created.ok ? "" : created.reason,
 	);
@@ -75,7 +75,7 @@ export const runRefWrite = async (remote: GitRemote): Promise<Step[]> => {
 		new: base,
 	}]);
 	step(
-		"U48: create of an existing ref gets ng",
+		"create of an existing ref gets ng",
 		!again.ok,
 		again.ok ? "accepted" : again.reason,
 	);
@@ -86,7 +86,7 @@ export const runRefWrite = async (remote: GitRemote): Promise<Step[]> => {
 		new: base,
 	}]);
 	step(
-		"U48: update with a wrong old id gets ng",
+		"update with a wrong old id gets ng",
 		!stale.ok,
 		stale.ok ? "accepted" : stale.reason,
 	);

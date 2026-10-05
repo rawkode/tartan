@@ -1,4 +1,4 @@
-// WP11 live acceptance (S10 promoted): real MCP clients
+// WP11 live acceptance: real MCP clients
 // against the MCP host.
 //
 //   Local (no Cloudflare): the host and WP2's security middleware served by
@@ -16,7 +16,7 @@
 //   2. a seeded notice appears in a tool result's `content` (fenced) and in
 //      `structuredContent._tartan`, and is not shown again (delivered);
 //   3. each real agent (`claude -p`, `codex exec`) calls `whoami` over MCP
-//      and quotes the seeded notice back (U24, U37);
+//      and quotes the seeded notice back;
 //   4. (stage only) lanes_open → the handle's `git.start` → commit → its
 //      `git.push`; a push to `main` is rejected; Codex's push to Claude's
 //      lane is rejected `not-your-lane`.

@@ -39,7 +39,7 @@ Deno.test("captures exist for every recorded command", () => {
 	}
 });
 
-Deno.test("stock git's ref-prefix use (U47 client side)", () => {
+Deno.test("stock git's ref-prefix use (client side)", () => {
 	const lsRemote = lines(
 		stockGitCapture("ls-remote-lanes-v2").exchanges[1].request,
 	);

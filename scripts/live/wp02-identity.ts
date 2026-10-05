@@ -1,10 +1,10 @@
-// WP2 live acceptance against a deployed stage (S15).
+// WP2 live acceptance against a deployed stage.
 //
 // Automated, read-only checks: health and setup gating, the security
 // headers, the canonical-host rules (when `--alt-url` names the stage's
 // workers.dev origin), and, with a PAT in `TARTAN_TOKEN` (scopes `api` +
 // `repo:read`), the token path, the scope check and a refused cookie on git.
-// The IdP side of S15 is user-assisted: `--guide` prints the steps (paste
+// The IdP side is user-assisted: `--guide` prints the steps (paste
 // `https://id.rawkode.academy` in the wizard so Tartan registers itself by
 // DCR, sign in as owner with the public PKCE client, invite a second user,
 // recover with a rotated token, then repeat from `code.rawkode.academy`).
@@ -26,7 +26,7 @@ const arg = (name: string): string | undefined => {
 	return i >= 0 ? Deno.args[i + 1] : undefined;
 };
 
-const GUIDE = `S15 (user-assisted), on the stage named by --url:
+const GUIDE = `The IdP side (user-assisted), on the stage named by --url:
  1. Open the setup URL the deploy printed (#t=… is the single-use token) or read the claim code from Workers Logs.
  2. Name the forge; keep the canonical origin.
  3. Paste https://id.rawkode.academy as the issuer: Tartan registers itself by RFC 7591 when the IdP allows it. Record
@@ -89,7 +89,7 @@ const main = async (): Promise<number> => {
 		);
 		await api.body?.cancel();
 		console.log(
-			`setup state is ${body.setupState}; run with --guide for the user-assisted S15 steps`,
+			`setup state is ${body.setupState}; run with --guide for the user-assisted IdP steps`,
 		);
 	} else {
 		check(

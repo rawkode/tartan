@@ -145,7 +145,7 @@
 	},
 	{
 		"name": "upload-pack-v2-ls-remote-pattern",
-		"description": "ls-remote with a pattern: git 2.55 sends no ref-prefix for it (U47)",
+		"description": "ls-remote with a pattern: git 2.55 sends no ref-prefix for it",
 		"method": "POST",
 		"op": "git-upload-pack",
 		"gitProtocol": "version=2",
@@ -157,7 +157,7 @@
 	},
 	{
 		"name": "upload-pack-v2-fetch-refspec",
-		"description": "fetch of an explicit refspec: git sends its ref-prefix (U47)",
+		"description": "fetch of an explicit refspec: git sends its ref-prefix",
 		"method": "POST",
 		"op": "git-upload-pack",
 		"gitProtocol": "version=2",

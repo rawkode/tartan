@@ -1,7 +1,7 @@
 // Who may do what on a canonical git URL (WP4): the repo the path names, the
 // caller's credential-bounded role on it, and the upload-pack view (member or
 // public) or the receive-pack gate. 401 comes first for anonymous callers that
-// need credentials, so stock git asks for them before it sends a pack [E A3].
+// need credentials, so stock git asks for them before it sends a pack.
 //
 // The role is computed here, not by `authorize`, because the public view
 // must tell a granted Reporter from a reader that only public

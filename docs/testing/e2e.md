@@ -20,7 +20,7 @@ for them: no localhost or plain-HTTP flag, no test hook in the kernel.
 | `e2e/support/`          | Stage reader and guards, fixtures, API, MCP and git helpers, the scripted agent, the fixture repos, the M1 loop's stages, the cross-worker store, slot and tab tables, labels and gateway checks |
 | `e2e/tests/**/*.e2e.ts` | The suites; `auth.setup.e2e.ts` is the only setup test, `claim/claim.e2e.ts` runs only on a fresh forge                                                                                          |
 | `e2e/tests/loop/`       | The M1 loop, end to end                                                                                                                                                                          |
-| `e2e/tests/gateway/`    | The M1-exit gateway probes S2-rem (the gateway's ref-policy table, branch lanes) and S3 (the synthesized `ng`)                                                                                   |
+| `e2e/tests/gateway/`    | The gateway suites: `s2-policy` (the gateway's ref-policy table, branch lanes) and `s3-ng` (the synthesized `ng`)                                                                                |
 | `scripts/e2e/`          | The Deno launcher behind `deno task e2e`: stage lifecycle, provisioning, teardown, trace sweep, leak scan                                                                                        |
 | `scripts/e2e/*.test.ts` | Unit tests of the launcher and of the suites' support code (part of `deno task test`)                                                                                                            |
 | `tools/mock-idp/`       | The mock OIDC IdP Worker (`tartan-e2e--idp`), its own `wrangler.jsonc` and unit tests                                                                                                            |
@@ -47,8 +47,7 @@ deno task e2e -- <command>          scripts/e2e/main.ts (Deno)
   containers and repository config on: `--image dockerfile` (wrangler builds the runner image with Docker and pushes it
   to the account's own `registry.cloudflare.com`) and `--repo-config` (each repo's root CUE package `tartan` is
   evaluated). `stage up --image registry` renders the ttl.sh digest that `containers/runner/publish.ts` records
-  instead; Containers pull it only on an account where that registry is configured, and elsewhere the deploy fails
-  after the Worker upload with `IMAGE_REGISTRY_NOT_CONFIGURED`. `stage up --no-containers` turns containers and
+  instead ([`deploy.md`](../deploy.md#the-runner-image)). `stage up --no-containers` turns containers and
   repository config off, and the suites that need them skip with the reason (the run's summary lists them).
 - **The mock IdP** is one Worker with one SQLite Durable Object: OIDC discovery, JWKS, open dynamic client registration
   (RFC 7591/7592), the authorization code flow with PKCE S256 and the RFC 9207 `iss` parameter, for four synthetic users
@@ -124,9 +123,8 @@ load, and even then it turns telemetry off before anything else.
    checkout's working tree under `extensions/`, `packages/contract/src/`, `src/`, `web/src/` and `wrangler.jsonc`,
    because the suites derive tab tests, pack versions, labels and names from them; the forge's `/-/health`
    (`product: "Tartan"`, `stage: "dev-e2e"`, claimed; retried after 1, 3 and 10 s); the IdP's health; the Playwright
-   browser present (the engine must never download one). A run that starts within 90 s of a deploy waits until then:
-   right after a new version goes live, calls into Durable Objects still running the old code fail with "Durable Object
-   reset because its code was updated".
+   browser present (the engine must never download one). A run that starts within 90 s of a deploy waits until 90 s
+   have passed.
 2. **Provisioning** (idempotent), signed in headless as `e2e-owner` through the real flow with `redirect: "manual"`,
    refusing any redirect that is not the forge or the mock IdP's `/authorize` before a password is sent: the private
    groups `e2e`, `e2e/swarm` (Swarm pack) and `e2e/classic` (Classic pack), the personas `e2e-developer` (Developer on
@@ -151,29 +149,29 @@ the run id is `r<yyyymmddhhmm><4 hex>`. Fixture repos start from deterministic h
 
 ## Suites
 
-| File                       | Personas                         | Checks                                                                                                                                                                                                                                                                                                       | Guards                                    |
-| -------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| `auth.setup.e2e.ts`        | owner, developer, reporter       | Sign-in through the forge and the mock IdP; `/-/api/me` names the persona; only the owner is an admin                                                                                                                                                                                                        | sign-in, PKCE, `iss`                      |
-| `claim/claim.e2e.ts`       | anonymous, then owner            | Phase A only: the wizard's steps, unlock with the deploy's token (pasted, never in a URL), environment checks, name and origin, the IdP through DCR, the claim; setup ends `done`                                                                                                                            | setup claim                               |
-| `setup.e2e.ts`             | anonymous, owner                 | A claimed forge says it is set up; a fresh random token cannot unlock it (403 `setup`); the owner's forge has dev tools                                                                                                                                                                                      | setup claim; wizard (pending part)        |
-| `groups-repos.e2e.ts`      | owner, reporter, anonymous       | Group and repo forms; crumbs; the repo tab bar (kernel tabs, the pack's tabs from the manifests, Settings for Owners only); a Reporter's read-only settings; anonymous visitors see nothing                                                                                                                  | role matrix                               |
-| `git-push.e2e.ts`          | owner PAT, reporter PAT, agent   | Push-mode import and `import-complete`; clone; `woven-by-tartan`; a Reporter's push refused by its role (403 and the gateway's reason); `agents-lanes-only`; History in order                                                                                                                                | trunk protection, roles                   |
-| `browse-code.e2e.ts`       | developer                        | Tree, blob, commit, compare; settled slots; the sidebar only when the view lists one; file A to file B re-renders the banner for B; the diffs' lines (`known-bug`)                                                                                                                                           | browse regressions                        |
-| `issues.e2e.ts`            | developer, reporter              | Create a work item with the form (title, why and acceptance all arrive, no "is required"), list, comment, the header's New work action, item 1 to item 2 in place                                                                                                                                            | work item regressions                     |
-| `changes.e2e.ts`           | agent (MCP, git), developer      | One shared setup (two lanes, two changes, an MCP comment on each), then independent tests: Changes tab; overview and the manifest's tabs; the diff's lines (`known-bug`); Revisions; a typed comment; A to B in place; Lanes view and lane pages; the CI run's job log                                       | change page regressions                   |
-| `loop/m1-loop.e2e.ts`      | owner, agents A and B            | The M1 exit, one test per step (below)                                                                                                                                                                                                                                                                       | M1                                        |
-| `gateway/s2-policy.e2e.ts` | agents A and B, owner, read PAT  | S2-rem for branch lanes: the gateway's ref-policy rows with stock git, each refusal by its `ng` reason and the ref it did not move; hidden refs; the advertisement allowlist; the parser probes; the landing freeze; lane-repo and public-view rows pending                                                  | gateway ref policy; public view (pending) |
-| `gateway/s3-ng.e2e.ts`     | owner, agents A and B            | S3: the synthesized `ng` on `main` in every way stock git can ask (report-status-v2 with side-band-64k, `-q`, `--atomic`, protocol v0 and v1, plain, `--porcelain`, `-v`); no control character in any output; band-2 tests pending while echo is off; ESC/OSC/BEL in a work title never reach another agent | push messages (`ng`, echo)                |
-| `repo-config.e2e.ts`       | owner                            | A root package `tartan` that does not evaluate: the failure with its file and line, on the API and the settings page; the `package cuenv` file beside it is not what failed                                                                                                                                  | repository config (the ADR)               |
-| `extension-tabs.e2e.ts`    | developer                        | One generated test per pack tab (`repo.tab` on a repo, `node.tab` on the group): reached from its link, current, exactly its contribution, settled, no failing request                                                                                                                                       | extension tabs (one case pending)         |
-| `admin.e2e.ts`             | owner, reporter                  | Extensions, an installation and its compare page, forge settings, a repo's lane settings (branch only), console and dead letters (owner 200, reporter 403), an agent created (its POST, by method) and disabled; a Reporter's first view of Extensions without a not-found (`known-bug`)                     | admin regressions                         |
-| `api-routes.e2e.ts`        | owner, developer, reporter, anon | Every read route the SPA's client calls is served (no 405, 501, route 404 or 5xx); `/-/health`; `/-/agents.md`; `/-/api/me` per persona; a repo view's slots and tabs equal the manifests'; pending wizard routes                                                                                            | route coverage                            |
-| `negative-auth.e2e.ts`     | outsider, anonymous              | No account for a user never invited; a wrong password stays on the IdP; a forged callback state is refused                                                                                                                                                                                                   | identity                                  |
-| `placeholders.e2e.ts`      | -                                | Skipped, tagged `pending`: monorepo project pages, the setup pack step at a reserved handle                                                                                                                                                                                                                  | -                                         |
+| File                       | Personas                         | Checks                                                                                                                                                                                                                                                                                                   | Guards                                    |
+| -------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `auth.setup.e2e.ts`        | owner, developer, reporter       | Sign-in through the forge and the mock IdP; `/-/api/me` names the persona; only the owner is an admin                                                                                                                                                                                                    | sign-in, PKCE, `iss`                      |
+| `claim/claim.e2e.ts`       | anonymous, then owner            | Phase A only: the wizard's steps, unlock with the deploy's token (pasted, never in a URL), environment checks, name and origin, the IdP through DCR, the claim; setup ends `done`                                                                                                                        | setup claim                               |
+| `setup.e2e.ts`             | anonymous, owner                 | A claimed forge says it is set up; a fresh random token cannot unlock it (403 `setup`); the owner's forge has dev tools                                                                                                                                                                                  | setup claim; wizard (pending part)        |
+| `groups-repos.e2e.ts`      | owner, reporter, anonymous       | Group and repo forms; crumbs; the repo tab bar (kernel tabs, the pack's tabs from the manifests, Settings for Owners only); a Reporter's read-only settings; anonymous visitors see nothing                                                                                                              | role matrix                               |
+| `git-push.e2e.ts`          | owner PAT, reporter PAT, agent   | Push-mode import and `import-complete`; clone; `woven-by-tartan`; a Reporter's push refused by its role (403 and the gateway's reason); `agents-lanes-only`; History in order                                                                                                                            | trunk protection, roles                   |
+| `browse-code.e2e.ts`       | developer                        | Tree, blob, commit, compare; settled slots; the sidebar only when the view lists one; file A to file B re-renders the banner for B; the diffs' lines (`known-bug`)                                                                                                                                       | browse regressions                        |
+| `issues.e2e.ts`            | developer, reporter              | Create a work item with the form (title, why and acceptance all arrive, no "is required"), list, comment, the header's New work action, item 1 to item 2 in place                                                                                                                                        | work item regressions                     |
+| `changes.e2e.ts`           | agent (MCP, git), developer      | One shared setup (two lanes, two changes, an MCP comment on each), then independent tests: Changes tab; overview and the manifest's tabs; the diff's lines (`known-bug`); Revisions; a typed comment; A to B in place; Lanes view and lane pages; the CI run's job log                                   | change page regressions                   |
+| `loop/m1-loop.e2e.ts`      | owner, agents A and B            | The M1 loop, one test per step (below)                                                                                                                                                                                                                                                                   | M1                                        |
+| `gateway/s2-policy.e2e.ts` | agents A and B, owner, read PAT  | The gateway's ref-policy rows for branch lanes with stock git, each refusal by its `ng` reason and the ref it did not move; hidden refs; the advertisement allowlist; the parser probes; the landing freeze; lane-repo and public-view rows pending                                                      | gateway ref policy; public view (pending) |
+| `gateway/s3-ng.e2e.ts`     | owner, agents A and B            | The synthesized `ng` on `main` in every way stock git can ask (report-status-v2 with side-band-64k, `-q`, `--atomic`, protocol v0 and v1, plain, `--porcelain`, `-v`); no control character in any output; band-2 tests pending while echo is off; ESC/OSC/BEL in a work title never reach another agent | push messages (`ng`, echo)                |
+| `repo-config.e2e.ts`       | owner                            | A root package `tartan` that does not evaluate: the failure with its file and line, on the API and the settings page; the `package cuenv` file beside it is not what failed                                                                                                                              | repository config (the ADR)               |
+| `extension-tabs.e2e.ts`    | developer                        | One generated test per pack tab (`repo.tab` on a repo, `node.tab` on the group): reached from its link, current, exactly its contribution, settled, no failing request                                                                                                                                   | extension tabs (one case pending)         |
+| `admin.e2e.ts`             | owner, reporter                  | Extensions, an installation and its compare page, forge settings, a repo's lane settings (branch only), console and dead letters (owner 200, reporter 403), an agent created (its POST, by method) and disabled; a Reporter's first view of Extensions without a not-found (`known-bug`)                 | admin regressions                         |
+| `api-routes.e2e.ts`        | owner, developer, reporter, anon | Every read route the SPA's client calls is served (no 405, 501, route 404 or 5xx); `/-/health`; `/-/agents.md`; `/-/api/me` per persona; a repo view's slots and tabs equal the manifests'; pending wizard routes                                                                                        | route coverage                            |
+| `negative-auth.e2e.ts`     | outsider, anonymous              | No account for a user never invited; a wrong password stays on the IdP; a forged callback state is refused                                                                                                                                                                                               | identity                                  |
+| `placeholders.e2e.ts`      | -                                | Skipped, tagged `pending`: monorepo project pages, the setup pack step at a reserved handle                                                                                                                                                                                                              | -                                         |
 
 ### The M1 loop
 
-`loop/m1-loop.e2e.ts` runs the M1 exit (claim → lane → push → radar → submit → CI → review → Weave → Advance →
+`loop/m1-loop.e2e.ts` runs the M1 loop (claim → lane → push → radar → submit → CI → review → Weave → Advance →
 why-notes) on a Swarm repo imported from `LOOP_FIXTURE`, whose root package `tartan` is split across `tartan.cue` (one
 project, `app` at `src/`), `ci.cue` (a job that prints a marker for changes and lands) and `review.cue` (an owners rule of
 sensitivity 3 on `src/**`, so review routes every change there to a person), with a `package cuenv` `env.cue` beside
@@ -243,10 +241,12 @@ The loop needs containers and repository config; without them every step skips w
 
 ## Flakes
 
-Retries are 0. A new suite must pass `--repeat-each 5` before it joins the default run; the M1 loop, S2-rem, S3 and the
-repo-config suite have not met that gate yet. A test that fails intermittently is tagged `quarantine` (excluded by
-default) and is tracked until it is fixed. `--max-failures 50` stops a broken deploy early while one failed shared setup (it fails every test waiting on it: S2-rem's 35 rows, the changes suite's 10, the loop's 9) never stops a run. Each attempt gets a fresh
-browser context restored from its session; personas never share one.
+Retries are 0. A new suite must pass `--repeat-each 5` before it joins the default run; the M1 loop, the ref-policy
+suite, the synthesized-`ng` suite and the repo-config suite have not met that gate yet. A test that fails intermittently
+is tagged `quarantine` (excluded by default) and is tracked until it is fixed. `--max-failures 50` stops a broken deploy
+early while one failed shared setup (it fails every test waiting on it: the ref-policy suite's 35 rows, the changes
+suite's 10, the loop's 9) never stops a run. Each attempt gets a fresh browser context restored from its session;
+personas never share one.
 
 Quarantined now:
 
@@ -261,7 +261,7 @@ Quarantined now:
 - **Browser sessions stay valid after a run.** The forge session cookies the setup test mints for owner, developer and
   reporter exist only in e2e's encrypted per-run session store, whose key is in memory and whose directory is deleted
   at the end of the run; the launcher never sees them. On the forge they stay valid until they expire (12 hours idle, 7
-  days absolute), because Tartan has no API to end all sessions of a principal yet (requested below).
+  days absolute), because Tartan has no API to end all sessions of a principal yet.
 - **Traces hold request headers**, so a retained `trace.zip` contains the session cookie of the persona it ran as
   (e2e rewrites only registered secrets in traces). After every run the launcher opens every retained trace, ends each
   session cookie in it (`POST /-/auth/logout`, logging only the count), and deletes all traces when one could not be
@@ -278,14 +278,6 @@ Quarantined now:
 - **Evidence.** `deno task e2e -- evidence <runId>` copies `summary.md`, `skipped.md`, `junit.xml` and `failures/*.md`,
   after a strict leak scan, to `.private/e2e/evidence/<runId>/` (0600 files in 0700 directories). Cite a run only by
   its run id, counts and commit.
-
-## Requests
-
-```
-REQUEST (WP2, non-blocking): an admin "end all sessions of a principal" endpoint, so teardown can end the browser
-         personas' sessions too
-REQUEST (WP18, non-blocking): SlotHost's error chip gets role="alert" and the host data-slot-state="loading|ready|error"
-```
 
 ## Not covered yet
 

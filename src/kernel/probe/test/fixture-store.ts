@@ -126,7 +126,7 @@ export const createFakeStore = (fixture: Fixture): FakeStore => {
 			log: (opts = {}) => {
 				const ref = opts.ref ?? "HEAD";
 				record("log", ref);
-				// The binding resolves no full refname [E A4]; tests pass SHAs.
+				// The binding resolves no full refname; tests pass SHAs.
 				if (!SHA.test(ref) || !holds(ref)) return Promise.resolve([]);
 				const out: RepoStoreCommit[] = [];
 				let cur: string | undefined = ref;

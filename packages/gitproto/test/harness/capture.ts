@@ -241,7 +241,7 @@ export const captureAll = async (): Promise<Capture[]> =>
 		);
 		add(
 			"upload-pack-v2-ls-remote-pattern",
-			"ls-remote with a pattern: git 2.55 sends no ref-prefix for it (U47)",
+			"ls-remote with a pattern: git 2.55 sends no ref-prefix for it",
 			pick(reqs, isPost("git-upload-pack"), "ls-remote pattern"),
 		);
 		reqs = await during(server, () =>
@@ -252,7 +252,7 @@ export const captureAll = async (): Promise<Capture[]> =>
 			], { cwd: clone2, allowFail: true }));
 		add(
 			"upload-pack-v2-fetch-refspec",
-			"fetch of an explicit refspec: git sends its ref-prefix (U47)",
+			"fetch of an explicit refspec: git sends its ref-prefix",
 			pick(reqs, isPost("git-upload-pack"), "fetch refspec"),
 		);
 

@@ -1,5 +1,5 @@
 /// <reference types="@cloudflare/vitest-pool-workers/types" />
-// U34: `node:crypto` `createHash('sha256')` is
+// `node:crypto` `createHash('sha256')` is
 // synchronous inside `transactionSync` under `nodejs_compat` in workerd, so the
 // event hash chain (K3) can be computed in the same transaction as the append.
 // Pass ⇒ WP6 uses node:crypto and drops `packages/sha256`.

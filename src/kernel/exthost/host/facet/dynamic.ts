@@ -4,14 +4,14 @@
 // Activation: the package files are read from R2
 // (`ext/<extId>/<version>/<sha256>/`), the Worker code is the host's shim
 // (shim.ts) plus the package's js module, or its jco glue and core modules
-// passed as bytes (runtime compilation is forbidden in parent and child
-// [E B2]); one loader id per installation and package
+// passed as bytes (runtime compilation is forbidden in parent and
+// child); one loader id per installation and package
 // (`x:<extId>@<ver>#<sha16>:<instId>`), `globalOutbound: null` (no
 // network), an empty `env` (capabilities are per call), the tail sink
 // named for the installation, and the manifest's largest CPU budget as
 // the facet limit (defence in depth only). The facet `main`
 // starts with the synthetic id `ext:<instId>`, so the extension never learns
-// the host's DO name [E B4]. The package's migrations run in the facet's
+// the host's DO name. The package's migrations run in the facet's
 // own SQLite.
 //
 // A call: the host's `ExtCtx` for the call is reduced to its data (the

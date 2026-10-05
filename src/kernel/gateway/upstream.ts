@@ -1,6 +1,6 @@
 // Requests to the Artifacts git remote (WP4): the
 // upstream is `Upstream.remote` + the op, with the kernel's token injected
-// server-side (`Authorization: Bearer <full token>`, U3). Only the
+// server-side (`Authorization: Bearer <full token>`). Only the
 // smart-HTTP headers are forwarded; the client's `Authorization` and cookies
 // never are.
 

@@ -1,4 +1,4 @@
-// The capability route (`repo` backend: S16 locally, against WP22's parser and
+// The capability route (`repo` backend, locally, against WP22's parser and
 // FakeArtifacts' `import()`):
 //
 // - FakeArtifacts' importer seeds a lane repo through the route: exactly
@@ -237,7 +237,7 @@ Deno.test("capability route: an unavailable MAC key is a 404 counted in the buck
 const flipHex = (hex: string): string =>
 	`${hex[0] === "a" ? "b" : "a"}${hex.slice(1)}`;
 
-Deno.test("capability route: every negative case of S16 answers 404 without an upstream call", async () => {
+Deno.test("capability route: every negative case answers 404 without an upstream call", async () => {
 	const world = await capWorld();
 	const { lane, url } = await world.lane();
 	const path = new URL(url).pathname;

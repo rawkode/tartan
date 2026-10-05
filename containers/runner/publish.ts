@@ -7,7 +7,7 @@
 // `{"ref": "ttl.sh/…@sha256:<digest>", …}`. A tag reference is never
 // recorded: anyone can push any name to ttl.sh, so only a digest pins what
 // was built. The image holds no secrets; ttl.sh images expire within 24 h and
-// Cloudflare copies the image at deploy time (U43, S7d).
+// Cloudflare copies the image at deploy time.
 //
 // Usage: deno run -A containers/runner/publish.ts [--record <path>] [--dry-run]
 // `--dry-run` builds and prints what it would push and record, without

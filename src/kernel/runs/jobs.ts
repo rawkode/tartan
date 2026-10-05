@@ -9,8 +9,8 @@
 //   `laneFetchSpecs`), minted inside the call, passed in that one exec's
 //   environment and revoked afterwards.
 // - `runJob` starts one process and returns at once. It is idempotent: a
-//   retried Workflow step finds the job's row in `job_state` and re-attaches
-//   (U18). CI jobs run as `tartan-git` with no token at all; jobs of a
+//   retried Workflow step finds the job's row in `job_state` and re-attaches.
+//   CI jobs run as `tartan-git` with no token at all; jobs of a
 //   kernel `git` run (`requestedBy: "kernel"`) get a write token for the
 //   canonical repo and run as `tartan-push` after `pkill -u tartan-git`
 //   (K11).

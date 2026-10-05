@@ -41,9 +41,9 @@ type JobState = {
 };
 
 /**
- * U18: a Sandbox subclass with custom RPC. `runJob` starts a process and
+ * A Sandbox subclass with custom RPC. `runJob` starts a process and
  * pumps its logs into DO storage from `ctx.waitUntil` (kept alive by
- * `durable_object_io_tasks_prevent_eviction`, U17).
+ * `durable_object_io_tasks_prevent_eviction`).
  */
 export class BoxSandbox extends Sandbox<Env> {
 	ping(tag: string) {

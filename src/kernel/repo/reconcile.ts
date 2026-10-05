@@ -5,7 +5,7 @@
 // the repo has active `branch` lanes, `refs/heads/lanes/` (plus each active
 // adopted branch exactly); a CAS miss reconciles exactly its refs. Every
 // mismatch goes through the observation path (K1 for protected and kernel
-// refs, K2 for lane heads), so detection survives a dropped trigger (U9).
+// refs, K2 for lane heads), so detection survives a dropped trigger.
 // The `ls-refs` answer can be older than the index by the time it arrives
 // (a push recorded meanwhile), so a ref whose index entry changed during the
 // call is left for the next run instead of being compared.

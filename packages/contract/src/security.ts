@@ -246,7 +246,7 @@ export type CanonicalWritePrecheck = (
  * precise routes and the `cap.not-found` catch-all), so syntax failures are
  * counted too.
  *
- * Zero DO calls before the MAC verifies (S16's spy): the spy
+ * Zero DO calls before the MAC verifies (the route's spy): the spy
  * counts RepoDO calls, which must be zero. WP2's setup gating for
  * `POLICY.capability` reads ForgeDO's setup state from its per-isolate cache
  * (≤ one ForgeDO call per isolate per 10 s), never once per request, so

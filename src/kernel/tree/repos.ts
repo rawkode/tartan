@@ -1,4 +1,4 @@
-// Repo create and import (WP3; K11, [E A2]): the node and
+// Repo create and import (WP3; K11): the node and
 // `artifacts_index(pending)` first (one transaction, so `UNIQUE(path)` and slug
 // validation refuse a duplicate or a case variant before any Artifacts call),
 // then `ARTIFACTS.create` or `.import` of `r-<repoUlid>` (lowercase), RepoDO
@@ -17,7 +17,7 @@
 // between leaves the `pending` row and its `tree` timer, which rolls it back
 // after `CREATE_GRACE_MS` unless that create is still running here.
 //
-// The token `create`/`import` return is discarded unread (K11, U53).
+// The token `create`/`import` return is discarded unread (K11).
 
 import {
 	denied,
@@ -343,7 +343,7 @@ export const createRepoCreation = (c: TreeContext): RepoCreation => {
 		const node = begin(by, { ...input, defaultBranch: branch ?? "main" });
 		return await run(node, async () => {
 			const name = node.artifacts_name as string;
-			// The returned 24 h token is discarded unread (K11, U53).
+			// The returned token is discarded unread (K11).
 			const imported = await c.ports.artifacts.import({
 				source: { url: redactedSource(url), ...(branch ? { branch } : {}) },
 				target: { name },

@@ -244,8 +244,8 @@ export const isSha = (value: unknown): value is string =>
 const ULID_SRC = "[0-7][0-9a-hjkmnp-tv-z]{25}";
 
 /**
- * Artifacts repo names Tartan creates, all lowercase (names fold case
- * [E A2]): the canonical `r-<repoUlid>` (28 chars) or a lane repo
+ * Artifacts repo names Tartan creates, all lowercase (names fold
+ * case): the canonical `r-<repoUlid>` (28 chars) or a lane repo
  * `l-<repoUlid>-<laneUlid>` (seed attempt 1, 55 chars) /
  * `l-<repoUlid>-<laneUlid>-<n>` (attempt n = 2–9, 57 chars). Every seed
  * attempt uses a fresh name, and the name carries the repo family, so
@@ -410,7 +410,7 @@ export const dynamicWorkerId = (
 export const facetId = (installation: string): string => `ext:${installation}`;
 
 // ---------------------------------------------------------------------------
-// Workflow instance ids, waitForEvent types and step names (U39)
+// Workflow instance ids, waitForEvent types and step names
 // ---------------------------------------------------------------------------
 
 export const WORKFLOW_ID_RE = /^[a-zA-Z0-9_][a-zA-Z0-9-_]*$/;
@@ -587,8 +587,8 @@ export const LANE_BRANCH_PREFIX = "refs/heads/lanes/" as const;
 /** Agent notes of `branch`-backend lanes (stretch): `refs/notes/lanes/<laneId>/{agent-trace,ai}`. */
 export const LANE_NOTES_PREFIX = "refs/notes/lanes/" as const;
 /**
- * Reserved, kernel-only: nobody pushes below it. Artifacts
- * accepts `refs/tartan/*` [E S8, A4], so it is no longer a fallback namespace.
+ * Reserved, kernel-only: nobody pushes below it. Kernel refs live under
+ * `refs/tartan/*`.
  */
 export const RESERVED_TARTAN_HEADS_PREFIX = "refs/heads/tartan/" as const;
 /** Agent-pushed notes copied onto landed commits (stretch). */

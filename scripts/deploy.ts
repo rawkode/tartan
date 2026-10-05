@@ -1,7 +1,8 @@
 // One-command deploy.
 //
-//   deno task deploy -- --stage <stage> [--domain <host>] [--no-containers]
-//                       [--repo-config] [--projects]
+//   deno task deploy -- --stage <stage> [--domain <host>] [options]
+//
+// Every option is listed in `DEPLOY_USAGE` below and in docs/deploy.md.
 //
 // Idempotent. In order:
 //   0. `npm ci` when `node_modules` is missing or does not match the exact
@@ -111,7 +112,7 @@ export type DeployOptions = PreflightPlan & {
 	readonly build: boolean;
 	/** `--build-ext`: build the WASM extension packages (`EXT_PACKAGES`) too. */
 	readonly buildExt: boolean;
-	/** `--lane-mode`: the stage's override of `LANE_MODE` (after its live lane acceptance). */
+	/** `--lane-mode`: the stage's override of `LANE_MODE` (opt-in). */
 	readonly laneMode?: LaneModeOverride;
 	/** `--workload-transport`: the stage's override of `WORKLOAD_TRANSPORT` (needs `--k2` with the token). */
 	readonly workloadTransport?: WorkloadTransportOverride;
@@ -172,9 +173,8 @@ export const DEPLOY_USAGE =
   --delete-setup-token    after the claim, delete TARTAN_SETUP_TOKEN without asking
   --skip-build            reuse web/dist instead of building the SPA
   --lane-mode <mode>      TARTAN_LANE_MODE: this stage's lane mode (import | branch;
-                          default the compiled LANE_MODE), after its live lane acceptance
-  --workload-transport <t> TARTAN_WORKLOAD_TRANSPORT: local | k2 (k2 needs --k2 and the token),
-                          after the stage's live K2 acceptance
+                          default the compiled LANE_MODE)
+  --workload-transport <t> TARTAN_WORKLOAD_TRANSPORT: local | k2 (k2 needs --k2 and the token)
   --build-ext             also build the Rust → WASM extension packages
                           (needs cargo, the wasm32-unknown-unknown target,
                           wasm-tools and jco; never committed, built here)
@@ -481,7 +481,7 @@ export const planSecrets = (input: {
 const DIGEST = /sha256:[0-9a-f]{64}/g;
 
 /**
- * The deployed image digest check for `--image registry` (U43): the
+ * The deployed image digest check for `--image registry`: the
  * container application's description must name the recorded digest.
  */
 export const checkDeployedDigest = (
@@ -1196,7 +1196,7 @@ export const runDeploy = async (
 		};
 		if (options.k2.token === undefined) {
 			log(
-				"no --k2-token-store/--k2-token-secret: the forge relays every event to the global log and dispatches every run inline (manual step M10 adds the K2 Consume token)",
+				"no --k2-token-store/--k2-token-secret: the forge relays every event to the global log and dispatches every run inline (pass both to add the K2 consume token; see docs/deploy.md)",
 			);
 		}
 	}

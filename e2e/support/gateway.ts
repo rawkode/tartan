@@ -35,7 +35,7 @@ export const receivePackAllowlist = (root: string = ROOT): string[] =>
 		"RECEIVE_PACK_CAPABILITIES",
 	);
 
-/** `ECHO_ENABLED` in src/constants.ts (U4): band-2 guidance and echo lines. */
+/** `ECHO_ENABLED` in src/constants.ts: band-2 guidance and echo lines. */
 export const echoEnabled = (root: string = ROOT): boolean => {
 	const m = /export const ECHO_ENABLED = (true|false)\b/.exec(
 		readFileSync(path.join(root, "src", "constants.ts"), "utf8"),

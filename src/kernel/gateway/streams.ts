@@ -1,6 +1,6 @@
 // Stream helpers of the gateway (WP4): bodies are streamed, never buffered
 // whole (`arrayBuffer()` on a push body would hold up to `MAX_PUSH_BYTES` in
-// isolate memory; the edge already buffers it [E A3]). Only small things are
+// isolate memory; the edge already buffers it). Only small things are
 // read into memory: ref advertisements, upload-pack requests of the public
 // view, and the first packet of a receive-pack command section.
 
@@ -188,7 +188,7 @@ export const consume = async (
 };
 
 // ---------------------------------------------------------------------------
-// Upstream size errors ([E A3])
+// Upstream size errors
 // ---------------------------------------------------------------------------
 
 /** Whether an upstream message is one of Artifacts' "object too large" forms. */

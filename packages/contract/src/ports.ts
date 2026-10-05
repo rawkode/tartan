@@ -11,7 +11,7 @@ import { SHA1_RE } from "./ids.ts";
 /**
  * The `ArtifactsRepo` methods Tartan uses. `revokeToken` ends each
  * capability-route request's trunk read token (on finish and on cancel), and
- * `listTokens` checks that none is left live (S16). No other repo method is
+ * `listTokens` checks that none is left live. No other repo method is
  * called.
  */
 export type RepoStoreRepoMethod =
@@ -39,7 +39,7 @@ export type RepoStoreRepo =
  * it.
  * - `create`: canonical repos;
  * - `import`: public repo imports, and lane repos seeded from the capability
- *   URL with `branch: "main"` (its returned token is discarded unread, U53);
+ *   URL with `branch: "main"` (its returned token is discarded unread);
  * - `list`, `delete`: lane GC, the orphan sweep of `l-*` repos and purge;
  * - a 429 or rate-limit error from any call is a backoff (`rate-limited`),
  *   never a lane-seed breaker strike.
@@ -73,7 +73,7 @@ export const isRepoStoreError = (
 
 /** Token TTLs: Worker/RepoDO cache 600 s, refreshed 60 s early; sandbox read 10 min / write 5 min. */
 export const ARTIFACTS_TOKEN_TTL_S = 600;
-/** The shortest TTL `createToken` accepts [E A1]. */
+/** The shortest TTL `createToken` accepts. */
 export const ARTIFACTS_TOKEN_MIN_TTL_S = 60;
 export const ARTIFACTS_TOKEN_REFRESH_MARGIN_S = 60;
 export const SANDBOX_READ_TOKEN_TTL_S = 600;
@@ -139,8 +139,8 @@ export const toResolvedSha = (value: string): ResolvedSha => {
 
 /**
  * Binding read limits every `RepoReader` (and its fakes) honours: `log` pages
- * are capped by the binding; sustained reads stayed free of 429s at 250/s
- * [E S4b], with at most 16 in flight per request.
+ * are capped by the binding; reads are paced at `readsPerSecond`, with at
+ * most `concurrentPerRequest` in flight per request.
  */
 export const REPO_READER_LIMITS = {
 	logMax: 1000,

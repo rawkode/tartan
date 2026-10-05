@@ -1,7 +1,5 @@
-// Kernel constants and the fallback switches. WP0 alone sets a switch, from
-// smoke evidence, and notes that evidence next to the value: `[E <id>]` names
-// a check in `docs/SMOKE.md`; lane values are revisited after the smoke
-// checks U51–U60.
+// Kernel constants and the fallback switches. WP0 alone changes a switch,
+// and the note next to each value says what its default means.
 // Contract-owned values are not repeated here: `LANE_OPEN_WAIT_MS`,
 // `LANE_REPO_HEAD_REF`, `LANE_FALLBACK_ORDER`, `ATTIC_RETENTION_*_MS`
 // (lanes.ts), `LANE_SEED_MAX_ATTEMPTS` (ids.ts), `MAX_OBJECT_BYTES` (git.ts),
@@ -23,26 +21,27 @@ const MB = 1_000_000;
 // ---------------------------------------------------------------------------
 
 /**
- * U3. Upstream Artifacts git auth: `bearer` sends `Authorization: Bearer
+ * Upstream Artifacts git auth: `bearer` sends `Authorization: Bearer
  * <full token incl. ?expires>`; `basic` sends Basic with the stripped secret.
- * Evidence: [E A1] both push; bearer chosen, basic is the one-line fallback.
+ * Default: `bearer`; `basic` is the one-line fallback.
  */
 export const UPSTREAM_AUTH: "bearer" | "basic" = "bearer";
 
 /**
- * U4. `true`: band-2 echo lines and synthesized `ng` with side-band. `false`:
+ * `true`: band-2 echo lines and synthesized `ng` with side-band. `false`:
  * plain report-status only; notices carry the text.
- * Evidence: S3 has not run.
+ * Default: off.
  */
 export const ECHO_ENABLED = false as boolean;
 
 /**
- * U5. Where new lanes live: `import` (a per-lane repo created with
+ * Where new lanes live: `import` (a per-lane repo created with
  * `import()` through the capability URL) or `branch` (branch lanes
  * `refs/heads/lanes/<laneId>` on the canonical repo, the fallback). A repo
- * may override it in `meta.lane_mode`; sim repos use `branch`.
- * Evidence: per-lane repos created with `import()` are the design default;
- * `branch` until the `repo` backend has passed its live lane acceptance.
+ * may override it in `meta.lane_mode`, and a stage in `TARTAN_LANE_MODE`
+ * (`laneModeOf`); sim repos use `branch`.
+ * Default: `branch`; a stage opts in to `import` with
+ * `render-config.ts --lane-mode import`.
  */
 export const LANE_MODE: LaneMode = "branch";
 
@@ -50,106 +49,99 @@ export const LANE_MODE: LaneMode = "branch";
  * The fallback order behind `LANE_MODE`: `import`, then branch lanes.
  * `TARTAN_LANE_FALLBACK` (read with `laneFallback`) may shorten it to
  * `branch`.
- * Evidence: the design's fallback order.
+ * Default: the design's fallback order.
  */
 export const LANE_FALLBACK = "import>branch" as const;
 
 /**
  * Above this trunk pack estimate (`meta.trunk_pack_bytes`) a repo skips
  * `import` and opens new lanes as branch lanes.
- * Evidence: Tartan's default; U51 round-trips imports around it.
  */
 export const LANE_IMPORT_MAX_BYTES = 36 * MiB;
 
 /**
- * Capability URL lifetime, and the TTL of each trunk read token behind it.
- * Evidence: a margin over the import time of the largest seed; ≥ the 60 s
- * token minimum [E A1].
+ * Capability URL lifetime, and the TTL of each trunk read token behind it:
+ * a margin over the import time of the largest seed, and at least
+ * `ARTIFACTS_TOKEN_MIN_TTL_S`.
  */
 export const LANE_CAP_TTL_S = 120;
 
 /**
- * U55. `true`: when trunk moved during an import and the kernel explains the
+ * `true`: when trunk moved during an import and the kernel explains the
  * move, the capability route still serves the attempt's base. `false`: it
  * answers 503 and the seeder retries at once at the new base (`trunk-moved`,
  * no breaker strike).
- * Evidence: none yet (U55).
+ * Default: off.
  */
 export const LANE_CAP_PIN_BASE = false as boolean;
 
 /**
  * Optional defence in depth on the capability route: accept only requests from
  * ASN 13335 with `User-Agent: artifacts/1.0`. Never an authenticator.
- * Evidence: off by default.
+ * Default: off.
  */
 export const LANE_CAP_CLIENT_CHECK = false as boolean;
 
 /**
- * U13–U15. `true`: `js`/`wasm` extensions run as Dynamic Workers (Worker
+ * `true`: `js`/`wasm` extensions run as Dynamic Workers (Worker
  * Loader, facets), each installation in its own ExtensionDO behind the
  * breaker. `false`: builtins only, third-party upload disabled with an
  * explicit message; `wasm-bundled` remains the last resort.
- * Evidence: [E B1–B5, B8, TAILS] pass; the breaker is mandatory.
+ * Default: on; the breaker is mandatory.
  */
 export const EXT_DYNAMIC_ENABLED = true as boolean;
 
 /**
- * U19/U35/U43. `dockerfile`: `containers/runner/Dockerfile` with a pinned git
- * ≥ 2.38. `registry`: the same image pushed to ttl.sh and rendered by digest
- * only (dev/demo stages once S7d passes). `none`: the
- * `--no-containers` render (CI and land report "unavailable").
- * Evidence: [E S7a] the plain image's git is too old; the Dockerfile builds git
- * 2.55.0.
+ * `dockerfile`: `containers/runner/Dockerfile`, which builds a pinned git
+ * (≥ 2.38). `registry`: the same image pushed to ttl.sh and rendered by
+ * digest only (dev and demo stages). `none`: the `--no-containers` render
+ * (CI and land report "unavailable").
  */
 export const IMAGE_VARIANT: "dockerfile" | "registry" | "none" = "dockerfile";
 
 /**
- * U9. `true`: `cf.artifacts.repo.pushed` (one event per ref update, `r-*` and
+ * `true`: `cf.artifacts.repo.pushed` (one event per ref update, `r-*` and
  * `l-*` repos) drives IngestWorkflow as the push backstop. `false`: the
  * trigger is dropped; gateway + kernel record every push and the 5-minute
  * cron reconciles refs.
- * Evidence: [E A5] 24/24 ref updates, once each, gateway record first, no pusher.
+ * Default: on.
  */
 export const TRIGGER_ENABLED = true as boolean;
 
 /**
- * U11. `event`: Workflows `waitForEvent` with a poll-step fallback. `poll`:
+ * `event`: Workflows `waitForEvent` with a poll-step fallback. `poll`:
  * poll steps on DO state every 15 s only. Correctness never depends on event
- * buffering either way (K14).
- * Evidence: Tartan's default; the poll step covers an event that arrives
- * before its wait.
+ * buffering either way: the poll step covers an event that arrives before its
+ * wait.
  */
 export const WAIT_MODE: "event" | "poll" = "event";
 
 /**
- * U48. `false`: the gateway checks each lane command's `old` against the index,
+ * `false`: the gateway checks each lane command's `old` against the index,
  * and Artifacts' own old-SHA CAS stops a concurrent update. `true`:
  * `pushContext` also takes a short per-ref push lease on every lane head in the
  * push, released by phase 1 of `recordPush` or by `recordRejection` (contract
  * `PushLeaseRequest`).
- * Evidence: the delete CAS is shown [E S8]; update and create CAS are U48, not
- * run yet. Flip only if U48 shows them missing.
+ * Default: off.
  */
 export const PUSH_LEASE_ENABLED = false as boolean;
 
 /**
- * U24. `sdk`: `createMcpHandler` (`agents/mcp/server`) with a per-request
+ * `sdk`: `createMcpHandler` (`agents/mcp/server`) with a per-request
  * `McpServer` (`@modelcontextprotocol/server`). `raw`: the plain JSON-RPC
  * 2.0 handler (`initialize`, `ping`, `tools/list`, `tools/call`) with JSON
  * responses.
- * Evidence: local-agents only (WP11): Claude Code 2.1.284 and Codex CLI
- * 0.159.3 pass on both transports against the host served by Deno; S10 on
- * the edge not run.
+ * Default: `sdk`; `raw` is the fallback.
  */
 export const MCP_TRANSPORT = "sdk" as "sdk" | "raw";
 
 /**
- * The most a CI run may use (WP26): `k2` lets a run go through
+ * The most a CI run may use: `k2` lets a run go through
  * the global log's `workloads` consumer when the binding, stream, token, the
  * RepoDO's relay and the consumer are all healthy (chosen per run at
  * runtime); `local` dispatches every run inline. The outbox timer backs both.
- * Evidence: the K2 conformance suite (`src/kernel/bus/conformance.ts`);
- * stays `local` until `scripts/live/wp26-k2.ts` passes on `dev`.
+ * Default: `local`; a stage opts in with `render-config.ts
+ * --workload-transport k2` (`workloadTransportOf`).
  */
 export const WORKLOAD_TRANSPORT = "local" as "local" | "k2";
 
@@ -178,9 +170,8 @@ export const FALLBACK_SWITCHES = {
 
 /**
  * The forge's lane mode: the rendered `TARTAN_LANE_MODE` when it names a
- * mode (`render-config.ts --lane-mode`, set on a stage once that stage's
- * live lane acceptance passed), else `LANE_MODE`. The button path renders
- * nothing, so it keeps the compiled default.
+ * mode (`render-config.ts --lane-mode`), else `LANE_MODE`. The button path
+ * renders nothing, so it keeps the compiled default.
  */
 export const laneModeOf = (
 	env: { readonly TARTAN_LANE_MODE?: string } | undefined,
@@ -238,7 +229,7 @@ export const laneFallback = (
 
 /**
  * `TARTAN_MAX_PUSH_MB` when unset or invalid.
- * Evidence: a margin under the smallest zone plan's request body limit.
+ * Default: a margin under the smallest zone plan's request body limit.
  */
 export const DEFAULT_MAX_PUSH_MB = 95;
 
@@ -259,14 +250,12 @@ export const maxPushBytes = (mb: string | undefined): number => {
 
 /**
  * Distinct Dynamic Workers per request and per DO (the host semaphore).
- * Evidence: [E B5] the runtime refuses a fifth per request, an eleventh per DO.
  */
 export const DYN_CONCURRENCY = { request: 4, do: 10 } as const;
 
 /**
  * Artifacts binding reads: a token bucket per isolate, and at most this many
  * concurrent reads per request.
- * Evidence: [E S4b] 300 reads/s for 30 s on one repo saw no 429.
  */
 export const BINDING_READS_PER_S = 250;
 export const BINDING_READS_CONCURRENCY = 16;
@@ -298,9 +287,9 @@ export const DIFF_BACKSTOP_MS = 30_000;
 // Lane repo constants
 // ---------------------------------------------------------------------------
 
-/** Active lanes per repo on the `repo` backend, until U54 measures namespace scale. */
+/** Active lanes per repo on the `repo` backend (provisional). */
 export const MAX_ACTIVE_LANES_REPO_BACKEND = 200;
-/** Retained lane repos per forge (`artifacts_index` `pending` + `live`), until U54. */
+/** Retained lane repos per forge (`artifacts_index` `pending` + `live`; provisional). */
 export const MAX_LANE_REPOS_FORGE = 1_000;
 /** JS-side bound on one `import()`: 8 s + 0.4 s per MiB of trunk pack, at most 30 s. */
 export const LANE_IMPORT_TIMEOUT = {
@@ -337,7 +326,7 @@ export const LANE_ORPHAN_AGE_MS = 900_000;
 export const LANE_GC_DEFER_ALERT_MS = 86_400_000;
 /**
  * A push lease's lifetime when nothing releases it (`PUSH_LEASE_ENABLED`):
- * provisional, no evidence yet; U48 and S4c set it.
+ * provisional.
  */
 export const PUSH_LEASE_MS = 120_000;
 

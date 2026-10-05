@@ -444,13 +444,16 @@ Deno.test("the e2e child gets run values only; every token is a secret", () => {
 });
 
 Deno.test("one failed shared setup never stops a run: the stop is above the largest suite's group", async () => {
-	// S2-rem's rows all wait on one setup; count its tests from the source.
+	// The ref-policy rows all wait on one setup; count them from the source.
 	const s2 = await Deno.readTextFile(
 		new URL("../../e2e/tests/gateway/s2-policy.e2e.ts", import.meta.url),
 	);
 	const rows = (s2.match(/^\t\t\t\[T\./gm) ?? []).length;
-	ok(rows > 5, "the S2 row table is found");
-	ok(MAX_FAILURES > 35, `MAX_FAILURES ${MAX_FAILURES} leaves room for S2`);
+	ok(rows > 5, "the ref-policy row table is found");
+	ok(
+		MAX_FAILURES > 35,
+		`MAX_FAILURES ${MAX_FAILURES} leaves room for the ref-policy rows`,
+	);
 });
 
 Deno.test("run arguments keep the defaults and merge the caller's tags and reporters", () => {

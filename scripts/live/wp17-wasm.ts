@@ -1,4 +1,4 @@
-// WP17 + WP7b live acceptance on the edge (S6 promoted): the js
+// WP17 + WP7b live acceptance on the edge: the js
 // and wasm runtimes as Dynamic Worker facets of a real ExtensionDO, through the
 // live harness Worker `tartan-dev-wp17` (scripts/live/wp17-harness.worker.ts:
 // the product's ExtensionDO, package loader, publish check and gate replay;

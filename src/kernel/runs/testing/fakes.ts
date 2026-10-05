@@ -14,7 +14,7 @@ import type {
 } from "../jobs.ts";
 import { createFakeStorage } from "./sqlite.ts";
 
-/** A token in the live format [E A1]: `art_v2_x_<40 hex>?expires=<unix>`. */
+/** A token in the binding's format: `art_v2_x_<40 hex>?expires=<unix>`. */
 export const LIVE_TOKEN = `art_v2_x_${
 	"0123456789abcdef".repeat(2)
 }01234567?expires=1791234567`;

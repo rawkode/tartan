@@ -1,4 +1,4 @@
-// IngestWorkflow's event mapping (WP5a; [E A5]): one ref per event,
+// IngestWorkflow's event mapping (WP5a): one ref per event,
 // the lowercased repo name parsed to its family, commit lists ignored, anything
 // else dropped.
 

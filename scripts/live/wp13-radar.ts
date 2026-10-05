@@ -1,6 +1,6 @@
 // WP13 live acceptance: two agents edit the same file in
 // their own lanes; the second push yields a radar conflict notice in both
-// owners' inboxes within 3 s of the push (and, once S3 and the M2 echo pass,
+// owners' inboxes within 3 s of the push (and, once the M2 echo is on,
 // `remote: [radar]` lines, which this script prints but does not require).
 //
 //   TARTAN_TOKEN_A=… TARTAN_TOKEN_B=… deno task live -- --stage dev wp13 \
@@ -197,7 +197,7 @@ try {
 	console.log(
 		echoed.length > 0
 			? `info: push printed ${echoed.length} radar line(s)`
-			: "info: no remote: radar lines (echo is M2 / needs S3)",
+			: "info: no remote: radar lines (echo is M2)",
 	);
 	const [na, nb] = await Promise.all([
 		waitNotice("a", headA, b.id),

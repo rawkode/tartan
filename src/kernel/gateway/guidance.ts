@@ -1,6 +1,6 @@
 // Band-2 guidance for synthesized rejections (WP4): the `remote:` lines git
 // prints under `! [remote rejected] …`. They are only sent when side-band was
-// negotiated and `ECHO_ENABLED` is on (S3 pending); without them the `ng`
+// negotiated and `ECHO_ENABLED` is on; without them the `ng`
 // reason alone reaches the client. Every line is plain text: the synthesizer
 // strips control characters again.
 

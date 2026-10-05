@@ -77,7 +77,7 @@
 		},
 		{
 			"id": "ls-remote-lanes-v2",
-			"title": "ls-remote with a lane pattern: ls-refs with ref-prefix (U47)",
+			"title": "ls-remote with a lane pattern: ls-refs with ref-prefix",
 			"command": "git ls-remote origin refs/heads/lanes/*",
 			"exchanges": [
 				{
@@ -108,7 +108,7 @@
 		},
 		{
 			"id": "fetch-lane-v2",
-			"title": "fetch one lane ref by name: ls-refs ref-prefix (U47)",
+			"title": "fetch one lane ref by name: ls-refs ref-prefix",
 			"command": "git fetch origin refs/heads/lanes/ln_01k6aaaaaaaaaaaaaaaaaaaaaa",
 			"exchanges": [
 				{
@@ -168,7 +168,7 @@
 		},
 		{
 			"id": "push-ref-only-create",
-			"title": "create a ref at an existing commit (empty pack, U46)",
+			"title": "create a ref at an existing commit (empty pack)",
 			"command": "git push origin b128e5fcad01ac0fa36ee4f793ab8bf5ca8b3960:refs/heads/lanes/ln_01k6bbbbbbbbbbbbbbbbbbbbbb",
 			"exchanges": [
 				{

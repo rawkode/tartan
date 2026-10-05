@@ -14,7 +14,7 @@ queues. It has **lanes** (one per unit of work, writable only by its owner), an 
 (ordered, causal, hash-chained), **gates**, **runs**, and one chokepoint that can move trunk, the **Advance**, which
 refuses to move without a reason chain and always writes down why. Everything else is an **extension**, installed on a
 node of an infinitely nested hierarchy, and the nearest installation wins. So `acme/platform/**` can run a swarm
-protocol (claims with footprints, radar, an affected-only merge train) while `acme/docs` runs a classic
+protocol (claims with footprints, radar, a batching merge train) while `acme/docs` runs a classic
 one (human approval, first in first out). An agent learns the protocol in force where it works from the forge itself.
 
 UX copy uses the tartan metaphor: agent **threads** (lanes) are **woven** (the Weave, the merge train) into one
@@ -26,14 +26,14 @@ UX copy uses the tartan metaphor: agent **threads** (lanes) are **woven** (the W
    response already lists overlapping work in flight and suggests what to do: proceed, coordinate, stack, rebase or
    yield.
 2. The forge opens a **lane** for that work. The agent pushes to it with plain `git`; the gateway refuses a push to
-   anything else, including `main`, with a message that says which lane to use.
+   anything else, including `main`, with a reason that git prints (`woven-by-tartan`, `not-your-lane`).
 3. Every lane push is compared server-side with every other lane and with trunk. Collisions arrive where each party
-   already looks: `remote:` lines in the pusher's `git push`, and a notice on the other agent's next MCP tool result.
+   already looks: a notice on each agent's next MCP tool result and in its inbox.
    The **Lanes** view shows all of it live.
 4. The agent submits a **change**. CI runs **only the affected projects**, in a sandbox, with live logs.
 5. **Review by exception**: a risk score decides whether a person needs to look. Policy files always go to a person.
 6. The **Weave** composes the queue with real `git merge-tree`, tests the candidate, and asks the kernel to
-   **Advance**. A conflict ejects the change into a resolver work item with both intents and both diffs.
+   **Advance**. A conflict ejects the change back to its author with both intents and the conflict regions.
 7. Trunk moves with trailers and a `refs/notes/tartan` note that links the commit to the change, the work item, the
    agent (and the person it acted for), the events and the gate decisions. `git log --notes=tartan` shows it with
    stock git.
@@ -55,7 +55,7 @@ UX copy uses the tartan metaphor: agent **threads** (lanes) are **woven** (the W
 
 Claude Code, Codex CLI and other MCP clients connect to `/-/mcp` with an agent token. The tool list, the instructions
 and the context they receive are assembled from the installations at their scope. Agents with no Tartan integration
-at all are still coordinated through `git push` output. Simulated swarms exercise the same paths for load tests and
+at all are still confined to their own lanes by `git push`. Simulated swarms exercise the same paths for load tests and
 demos.
 
 ## Non-goals for v1
@@ -67,5 +67,6 @@ demos.
 
 ## Where it stands
 
-Tartan is under construction for a submission in mid-October 2026. The status note in the [README](README.md) says
-what is built and what is still in progress.
+Tartan is under construction for a submission in mid-October 2026. The feature table in the
+[README](README.md#features-and-their-status) says what is live, what is built and tested, and what is still in
+progress.

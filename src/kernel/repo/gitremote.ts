@@ -1,5 +1,5 @@
 // The upstream `Authorization` header for an Artifacts git remote
-// (`UPSTREAM_AUTH` [E A1]): `Bearer <full token>`, or Basic with the secret
+// (`UPSTREAM_AUTH`): `Bearer <full token>`, or Basic with the secret
 // stripped of its `?expires=…` suffix.
 
 import { UPSTREAM_AUTH } from "../../constants.ts";

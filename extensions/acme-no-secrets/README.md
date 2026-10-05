@@ -7,7 +7,7 @@ runs as a Dynamic Worker facet of its installation's own Durable Object, with it
 | Contribution                | What it does                                                                                                 |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `ref.advance` gate          | vetoes an advance that adds AWS access or secret keys, PEM private keys, or a `.env` file; `default: "veto"` |
-| `push.accepted` echo        | `remote: [no-secrets] …` lines for the credentials a push adds                                               |
+| `push.accepted` echo        | `remote: [no-secrets] …` lines for the credentials a push adds (the gateway does not deliver echo lines yet) |
 | `change.sidebar` `findings` | the change's findings and its last gate decision                                                             |
 | `change.gate` `no-secrets`  | the gate chip (pending, clean, n credentials)                                                                |
 | `repo.tab` `secrets`        | the repository's recent findings and the gate's record                                                       |

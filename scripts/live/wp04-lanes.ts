@@ -1,4 +1,4 @@
-// WP4 live acceptance for the `repo` lane backend (U59, the lane-remote table).
+// WP4 live acceptance for the `repo` lane backend (the lane-remote table).
 //
 //   deno run -A scripts/live/wp04-lanes.ts [--keep]
 //       deploys `scripts/live/wp04-lanes.worker.ts` as the Worker
@@ -30,7 +30,7 @@ const ROOT = new URL("../../", import.meta.url);
 const WORKER = "tartan-dev-wp04";
 const NAMESPACE = "tartan-dev-wp04";
 const CONFIG = new URL(".wrangler/deploy/wrangler.wp04-lanes.jsonc", ROOT);
-/** A small public repo whose default branch is `master` (U59's shape). */
+/** A small public repo whose default branch is `master`. */
 const SOURCE = "https://github.com/octocat/Hello-World.git";
 
 type Step = { name: string; ok: boolean; detail: string; ms: number };
@@ -245,7 +245,7 @@ const scenario = async (base: string, key: string): Promise<void> => {
 		// deno-lint-ignore no-explicit-any
 		let laneB: any = null;
 		const seeded = await step(
-			"S16/U59: Artifacts' importer seeds a lane repo through the capability route; it holds exactly HEAD -> refs/heads/main at the base of a master repo",
+			"Artifacts' importer seeds a lane repo through the capability route; it holds exactly HEAD -> refs/heads/main at the base of a master repo",
 			async () => {
 				laneA = await adminCall("open-lane", { owner: agentA.principal });
 				say(

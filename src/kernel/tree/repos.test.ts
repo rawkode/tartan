@@ -1,4 +1,4 @@
-// Repo create and import (WP3; K11, [E A2]): the index row before `A.create`, a
+// Repo create and import (WP3; K11): the index row before `A.create`, a
 // cloneable repo with one genesis commit on its default branch, the K1 genesis
 // intent, case folding refused before any Artifacts call, public URL imports
 // ended through WP5a's `importComplete`, the Owner-only import mode, rollbacks
@@ -283,7 +283,7 @@ Deno.test("importRepo (URL): A.import, import mode ended by importComplete as th
 		source: publicUrl("upstream-src"),
 	});
 	equal((await h.facade.lookupArtifacts(name))?.state, "live");
-	// The import token is never kept (K11, U53): only issued, never reused.
+	// The import token is never kept (K11): only issued, never reused.
 	ok(h.fake.inspect.issuedTokens().some((t) => t.origin === "import"));
 });
 

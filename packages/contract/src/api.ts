@@ -234,7 +234,7 @@ export type IdpConfigRequest = z.output<typeof IdpConfigRequestSchema>;
  */
 export const IdpRegisterRequestSchema = z.strictObject({
 	issuer: HttpsUrl,
-	/** For IdPs whose registration endpoint requires an initial access token (RFC 7591 §3, U44). Used once, never stored. */
+	/** For IdPs whose registration endpoint requires an initial access token (RFC 7591 §3). Used once, never stored. */
 	initialAccessToken: z.string().min(1).max(4096).optional(),
 	...IdpOptions,
 });

@@ -15,13 +15,13 @@ export type TokenState = {
 	readonly createdAtMs: number;
 	readonly expiresAtMs: number;
 	revoked: boolean;
-	/** Where the token came from (tests assert on import tokens, U53). */
+	/** Where the token came from (tests assert on import tokens). */
 	readonly origin: "create" | "import" | "createToken";
 };
 
 export type RepoState = {
 	readonly id: string;
-	/** The name as created (lookups fold case, [E A2]). */
+	/** The name as created (lookups fold case). */
 	readonly name: string;
 	readonly description: string | null;
 	readonly defaultBranch: string;
@@ -62,7 +62,7 @@ export type FakeState = {
 	readonly calls: FakeCall[];
 };
 
-/** Names: `[A-Za-z0-9._-]`; `/` is `INVALID_REPO_NAME` [E A2]. */
+/** Names: `[A-Za-z0-9._-]`; `/` is `INVALID_REPO_NAME`. */
 const NAME_RE = /^[A-Za-z0-9._-]+$/;
 /** The fake refuses longer names with `INTERNAL_ERROR`. */
 export const MAX_NAME_LENGTH = 512;
@@ -89,7 +89,7 @@ export const randomId = (): string =>
 export const randomSecret = (): string =>
 	`art_v2_x_${toHex(crypto.getRandomValues(new Uint8Array(20)))}`;
 
-/** `art_v2_x_<hex>?expires=<unix s>` as the binding returns it [E A1]. */
+/** `art_v2_x_<hex>?expires=<unix s>` as the binding returns it. */
 export const tokenPlaintext = (t: TokenState): string =>
 	`${t.secret}?expires=${Math.floor(t.expiresAtMs / 1000)}`;
 

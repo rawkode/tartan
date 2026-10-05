@@ -4,6 +4,8 @@
 // private themselves, so no tracked file names them: they live in the main
 // checkout's `.private/public-terms.json` (gitignored), found through git's
 // common directory, so every worktree of the checkout reads the same list.
+// The same file lists the unpublished paths, each with a reason: no snapshot
+// carries them (`scripts/publish.ts`).
 // Without that file (any clone of the public repository) the check has nothing
 // to look for, says so and passes; `--require` makes a missing list an error.
 // Matching is case-insensitive.
@@ -11,15 +13,32 @@
 // Modes:
 //   (default)  every publishable file of the working tree (git's tracked and
 //              untracked, non-ignored files) plus the generated contract JSON,
-//              except the reviewed `ALLOWED_PATHS`.
-//   --history  every commit of the published lineage: the local `public`
-//              branch that `scripts/publish.ts` writes, and `origin/main`.
-//              No path is excepted there, messages are scanned too, and
-//              every author and committer email must be a noreply address.
-//              The private history (`main` and the work branches) is never
-//              published, so it is not scanned.
+//              except the unpublished paths.
+//   --history  every commit of the public lineage: `origin/main` and the
+//              local `public` branch that `scripts/publish.ts` writes. The
+//              commits not on `origin/main` yet (what the next push sends)
+//              get the full policy, snapshot rules included; the commits on
+//              `origin/main` get the policy without them. No path is excepted
+//              there, messages are scanned too, and every author and
+//              committer email must be a noreply address. The private history
+//              (`main` and the work branches) is never published, so it is not
+//              scanned.
 //
 // Usage: deno run -A scripts/check-public.ts [--history] [--require]
+
+/**
+ * A pattern for new content: the working tree, every new snapshot
+ * (`scripts/publish.ts`) and, under `--history`, every commit the next push
+ * sends.
+ */
+export type SnapshotRule = {
+	/** A regular expression source, like the scoped patterns. */
+	readonly pattern: string;
+	/** Path prefixes it applies under; `""` is every file. */
+	readonly paths: readonly string[];
+	/** Path prefixes left out, even under `paths`. */
+	readonly except: readonly string[];
+};
 
 /** The private term list: plain terms, per-prefix patterns, allowed words. */
 export type TermPolicy = {
@@ -30,9 +49,25 @@ export type TermPolicy = {
 	 * POSIX ERE (`git grep -E` finds the candidates) and JavaScript accept.
 	 */
 	readonly scoped: Readonly<Record<string, readonly string[]>>;
+	/** Patterns that new content may not add (`SnapshotRule`). */
+	readonly snapshot: readonly SnapshotRule[];
 	/** Unrelated words that contain a term (regular expression sources). */
 	readonly allowed: readonly string[];
+	/**
+	 * Paths (a trailing `/` covers a directory) that no snapshot carries and the
+	 * working-tree check skips, each with its reason.
+	 */
+	readonly unpublished: Readonly<Record<string, string>>;
 };
+
+/**
+ * The policy `--history` applies to the commits on `origin/main`: no snapshot
+ * rules.
+ */
+export const historyPolicy = (policy: TermPolicy): TermPolicy => ({
+	...policy,
+	snapshot: [],
+});
 
 /**
  * The only emails a published commit may carry (author and committer): a
@@ -45,52 +80,20 @@ export const isPublicEmail = (email: string): boolean =>
 /** Where the private term list lives, relative to the main checkout. */
 export const TERMS_FILE = ".private/public-terms.json";
 
-type AllowedPath = { readonly reason: string; readonly temporary: boolean };
-
-/**
- * Files (or, with a trailing `/`, directories) of the working tree that are
- * not scanned, each reviewed. The `temporary` ones are reported on every run
- * and are never published: `scripts/publish.ts` leaves them out of every
- * snapshot.
- */
-export const ALLOWED_PATHS: Readonly<Record<string, AllowedPath>> = {
-	"docs/design/ARCHITECTURE.md": {
-		reason: "not published; docs/design/README.md is the public summary",
-		temporary: true,
-	},
-	"docs/design/PLAN.md": {
-		reason: "not published",
-		temporary: true,
-	},
-	"docs/GOALS.md": {
-		reason: "not published",
-		temporary: true,
-	},
-	"docs/STATUS.md": {
-		reason: "not published",
-		temporary: true,
-	},
-	"docs/status/": {
-		reason: "not published",
-		temporary: true,
-	},
-	"packages/contract/CHANGELOG.md": {
-		reason: "not published",
-		temporary: true,
-	},
-};
-
-/** The reviewed entry that covers `file`, if any. */
-export const allowedEntry = (file: string): AllowedPath | undefined =>
-	ALLOWED_PATHS[file] ??
-		Object.entries(ALLOWED_PATHS).find(([path]) =>
+/** The unpublished entry (its path) that covers `file`, if any. */
+export const unpublishedEntry = (
+	policy: TermPolicy,
+	file: string,
+): string | undefined =>
+	Object.hasOwn(policy.unpublished, file)
+		? file
+		: Object.keys(policy.unpublished).find((path) =>
 			path.endsWith("/") && file.startsWith(path)
-		)?.[1];
+		);
 
-/** Paths that no snapshot carries until they are rewritten for the public. */
-export const UNPUBLISHED_PATHS: readonly string[] = Object.entries(
-	ALLOWED_PATHS,
-).filter(([, entry]) => entry.temporary).map(([path]) => path).sort();
+/** The paths no snapshot carries, sorted. */
+export const unpublishedPaths = (policy: TermPolicy): string[] =>
+	Object.keys(policy.unpublished).sort();
 
 /** Generated (gitignored) outputs that are published, so scanned too. */
 const GENERATED_DIRS = [
@@ -120,7 +123,8 @@ export const parsePolicy = (json: unknown): TermPolicy => {
 	if (typeof json !== "object" || json === null) {
 		throw new Error(`${TERMS_FILE}: expected an object`);
 	}
-	const { terms, scoped = {}, allowed = [] } = json as Record<string, unknown>;
+	const { terms, scoped = {}, snapshot = [], allowed = [], unpublished } =
+		json as Record<string, unknown>;
 	if (!isStringList(terms) || terms.length === 0) {
 		throw new Error(`${TERMS_FILE}: "terms" must be a non-empty string list`);
 	}
@@ -137,10 +141,13 @@ export const parsePolicy = (json: unknown): TermPolicy => {
 	if (!isStringList(allowed)) {
 		throw new Error(`${TERMS_FILE}: "allowed" must be a string list`);
 	}
+	const rules = parseSnapshot(snapshot);
+	const paths = parseUnpublished(unpublished);
 	// Every pattern must compile now, not on the first matching line.
 	for (
 		const source of [
 			...scopedEntries.flatMap(([, l]) => l as string[]),
+			...rules.map((rule) => rule.pattern),
 			...allowed,
 		]
 	) {
@@ -151,9 +158,51 @@ export const parsePolicy = (json: unknown): TermPolicy => {
 		scoped: Object.fromEntries(
 			scopedEntries.map(([prefix, list]) => [prefix, [...(list as string[])]]),
 		),
+		snapshot: rules,
 		allowed: [...allowed],
+		unpublished: paths,
 	};
 };
+
+/** Every entry a non-empty path to a non-empty reason; required, may be empty. */
+const parseUnpublished = (json: unknown): Record<string, string> => {
+	const shape = `${TERMS_FILE}: "unpublished" must map paths to reasons`;
+	if (typeof json !== "object" || json === null || Array.isArray(json)) {
+		throw new Error(shape);
+	}
+	const entries = Object.entries(json as Record<string, unknown>);
+	if (
+		!entries.every(([path, reason]) =>
+			path.length > 0 && !path.startsWith("/") &&
+			typeof reason === "string" && reason.length > 0
+		)
+	) {
+		throw new Error(shape);
+	}
+	return Object.fromEntries(entries) as Record<string, string>;
+};
+
+const parseSnapshot = (json: unknown): SnapshotRule[] => {
+	const shape = `${TERMS_FILE}: "snapshot" must be a list of ` +
+		`{pattern, paths, except?}`;
+	if (!Array.isArray(json)) throw new Error(shape);
+	return json.map((item: unknown) => {
+		if (typeof item !== "object" || item === null) throw new Error(shape);
+		const { pattern, paths, except = [] } = item as Record<string, unknown>;
+		if (
+			typeof pattern !== "string" || pattern.length === 0 ||
+			!isStringList(paths) || paths.length === 0 || !isStringList(except)
+		) {
+			throw new Error(shape);
+		}
+		return { pattern, paths: [...paths], except: [...except] };
+	});
+};
+
+/** Whether `rule` applies to `file`. */
+const snapshotApplies = (rule: SnapshotRule, file: string): boolean =>
+	rule.paths.some((prefix) => file.startsWith(prefix)) &&
+	!rule.except.some((prefix) => file.startsWith(prefix));
 
 const escapeRegExp = (text: string): string =>
 	text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -177,12 +226,18 @@ export const createScanner = (policy: TermPolicy): Scanner => {
 			re: new RegExp(source, "i"),
 		})),
 	}));
+	const snapshot = policy.snapshot.map((rule, index) => ({
+		rule,
+		term: `snapshot#${index + 1}`,
+		re: new RegExp(rule.pattern, "i"),
+	}));
 	const allowed = policy.allowed.map((source) => new RegExp(source, "gi"));
 	const lineTerms = (file: string, raw: string): string[] => {
 		const line = allowed.reduce((acc, re) => acc.replace(re, ""), raw);
 		const rules = [
 			...base,
 			...scoped.flatMap((s) => file.startsWith(s.prefix) ? s.rules : []),
+			...snapshot.filter((s) => snapshotApplies(s.rule, file)),
 		];
 		return rules.filter(({ re }) => re.test(line)).map(({ term }) => term);
 	};
@@ -306,6 +361,12 @@ export const grepRevisions = async (
 				prefix,
 			]);
 		}
+		// Snapshot rules: every path is a candidate; the scanner applies
+		// each rule's paths and exceptions.
+		if (policy.snapshot.length > 0) {
+			const patterns = policy.snapshot.flatMap((rule) => ["-e", rule.pattern]);
+			await run(["grep", "-I", "-i", "-n", "-z", "-E", ...patterns, ...batch]);
+		}
 	}
 	const seen = new Set<string>();
 	return revisionHits(scanner, lines).filter((hit) => {
@@ -316,8 +377,10 @@ export const grepRevisions = async (
 	});
 };
 
-/** The published lineage: the local `public` branch and `origin/main`. */
-export const PUBLISHED_REFS = ["refs/heads/public", "refs/remotes/origin/main"];
+/** The local branch `scripts/publish.ts` writes: the next push sends it. */
+export const PENDING_REF = "refs/heads/public";
+/** The public repository's `main`, as last fetched. */
+export const PUSHED_REF = "refs/remotes/origin/main";
 
 const listPublishable = async (): Promise<string[]> => {
 	const { code, out, err } = await git([
@@ -358,25 +421,43 @@ const readText = async (file: string): Promise<string | null> => {
 	}
 };
 
-const scanHistory = async (policy: TermPolicy): Promise<number> => {
-	const refs: string[] = [];
-	for (const ref of PUBLISHED_REFS) {
-		const { code } = await git(["rev-parse", "--verify", "--quiet", ref]);
-		if (code === 0) refs.push(ref);
-	}
-	if (refs.length === 0) {
+const verified = async (ref: string): Promise<boolean> =>
+	(await git(["rev-parse", "--verify", "--quiet", ref])).code === 0;
+
+const revList = async (args: string[]): Promise<string[]> => {
+	const { code, out, err } = await git(["rev-list", ...args]);
+	if (code !== 0) throw new Error(`git rev-list failed: ${err.trim()}`);
+	return out.split("\n").filter(Boolean);
+};
+
+const scanHistory = async (full: TermPolicy): Promise<number> => {
+	const hasPending = await verified(PENDING_REF);
+	const hasPushed = await verified(PUSHED_REF);
+	if (!hasPending && !hasPushed) {
 		console.log("check-public --history: nothing published yet");
 		return 0;
 	}
-	const revs = (await git(["rev-list", ...refs])).out.split("\n").filter(
-		Boolean,
-	);
-	const hits = await grepRevisions(policy, revs);
+	// The commits on origin/main, and the ones the next push adds to them.
+	const pushed = hasPushed ? await revList([PUSHED_REF]) : [];
+	const pending = hasPending
+		? await revList([PENDING_REF, ...(hasPushed ? ["--not", PUSHED_REF] : [])])
+		: [];
+	const revs = [...pushed, ...pending];
+	const pushedPolicy = historyPolicy(full);
+	const hits = [
+		...(await grepRevisions(pushedPolicy, pushed)),
+		...(await grepRevisions(full, pending)),
+	];
 	// Commit messages are published too.
-	const scanner = createScanner(policy);
+	const scanners = {
+		pushed: createScanner(pushedPolicy),
+		pending: createScanner(full),
+	};
+	const pendingSet = new Set(pending);
 	const messageHits = [];
 	for (const rev of revs) {
 		const message = (await git(["log", "-1", "--format=%B", rev])).out;
+		const scanner = pendingSet.has(rev) ? scanners.pending : scanners.pushed;
 		messageHits.push(
 			...scanner.scanText("<message>", message).map((hit) => ({ ...hit, rev })),
 		);
@@ -397,6 +478,10 @@ const scanHistory = async (policy: TermPolicy): Promise<number> => {
 			}
 		}
 	}
+	const refs = [
+		...(hasPending ? [PENDING_REF] : []),
+		...(hasPushed ? [PUSHED_REF] : []),
+	].join(", ");
 	const all = [...hits, ...messageHits];
 	if (all.length > 0 || identityHits.length > 0) {
 		for (const hit of all) {
@@ -410,14 +495,12 @@ const scanHistory = async (policy: TermPolicy): Promise<number> => {
 		console.error(
 			`check-public --history: ${
 				all.length + identityHits.length
-			} hit(s) in the published lineage (${refs.join(", ")})`,
+			} hit(s) in the public lineage (${refs})`,
 		);
 		return 1;
 	}
 	console.log(
-		`check-public --history: ${revs.length} published commit(s) clean (${
-			refs.join(", ")
-		})`,
+		`check-public --history: ${pushed.length} pushed and ${pending.length} pending commit(s) clean (${refs})`,
 	);
 	return 0;
 };
@@ -430,24 +513,24 @@ const scanTree = async (policy: TermPolicy): Promise<number> => {
 		.sort();
 	const hits: Hit[] = [];
 	let scanned = 0;
+	const skipped = new Set<string>();
 	for (const file of files) {
-		if (allowedEntry(file)) continue;
+		const entry = unpublishedEntry(policy, file);
+		if (entry !== undefined) {
+			skipped.add(entry);
+			continue;
+		}
 		const text = await readText(file);
 		if (text === null) continue;
 		scanned++;
 		hits.push(...scanner.scanText(file, text));
 	}
-	for (const [path, { reason, temporary }] of Object.entries(ALLOWED_PATHS)) {
-		if (
-			temporary && files.some((file) =>
-				allowedEntry(file) &&
-				(file === path || (path.endsWith("/") && file.startsWith(path)))
-			)
-		) {
-			console.warn(
-				`check-public: not scanned (temporary, never published): ${path} — ${reason}`,
-			);
-		}
+	for (const path of [...skipped].sort()) {
+		console.warn(
+			`check-public: not scanned (never published): ${path} — ${
+				policy.unpublished[path]
+			}`,
+		);
 	}
 	if (hits.length > 0) {
 		// The term itself stays private: name the place only.

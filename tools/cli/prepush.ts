@@ -1,5 +1,5 @@
 // The git pre-push check (`tartan hooks install --git`; WP11). The edge uploads
-// a whole push before the gateway can reject it [E A3], so this fails fast,
+// a whole push before the gateway can reject it, so this fails fast,
 // before any upload:
 //
 // - the target: an agent writes only `main` of one of its lane remotes or

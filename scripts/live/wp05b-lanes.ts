@@ -1,4 +1,4 @@
-// WP5b live acceptance: the `repo` lane backend against REAL Artifacts, with
+// WP5b live acceptance: the `repo` lane backend against real Artifacts, with
 // lanes seeded by the real importer through a capability URL.
 //
 //   deno task live -- wp05b [--keep] [--evidence <file>]

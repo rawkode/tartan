@@ -1,8 +1,7 @@
 // The kernel's clients against stock `git http-backend`: v2 ls-refs with
-// prefixes, peel and
-// symrefs; ref-only receive-pack create, update and CAS delete with an empty
-// pack (U46 locally), `ng` for a wrong old id (U48 locally), atomic pushes,
-// and new objects from the pack writer (genesis) that fsck accepts.
+// prefixes, peel and symrefs; ref-only receive-pack create, update and CAS
+// delete with an empty pack, `ng` for a wrong old id, atomic pushes, and new
+// objects from the pack writer (genesis) that fsck accepts.
 
 import { deepStrictEqual, equal, ok, rejects } from "node:assert/strict";
 import { fromRpcError } from "@tartan/contract";
@@ -111,7 +110,7 @@ Deno.test({
 			const { bare, head, parent } = await seeded(sandbox, server);
 			const remote = remoteOf(server, "repo");
 			const attic = "refs/tartan/attic/ln_01k6aaaaaaaaaaaaaaaaaaaaaa";
-			// Create at an existing object with an empty pack (U46).
+			// Create at an existing object with an empty pack.
 			deepStrictEqual(
 				await pushRefs(remote, [{ ref: attic, old: ZERO, new: parent }]),
 				[
@@ -119,7 +118,7 @@ Deno.test({
 				],
 			);
 			equal((await refsOf(sandbox, bare))[attic], parent);
-			// A create of a ref that exists is refused (U48, create CAS).
+			// A create of a ref that exists is refused (create CAS).
 			const again = await pushRefs(remote, [{
 				ref: attic,
 				old: ZERO,
@@ -127,7 +126,7 @@ Deno.test({
 			}]);
 			equal(again[0].ok, false);
 			equal((await refsOf(sandbox, bare))[attic], parent);
-			// An update with a wrong old id is refused (U48, update CAS).
+			// An update with a wrong old id is refused (update CAS).
 			const stale = await pushRefs(remote, [{
 				ref: attic,
 				old: head,

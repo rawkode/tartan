@@ -618,7 +618,7 @@ Deno.test("IdP public client (none) by default; DCR request", () => {
 			.success,
 		false,
 	);
-	// U44: an initial access token for IdPs that require one.
+	// An initial access token for IdPs that require one.
 	ok(
 		IdpRegisterRequestSchema.safeParse({
 			issuer: "https://id.rawkode.academy",

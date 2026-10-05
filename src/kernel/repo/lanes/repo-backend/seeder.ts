@@ -748,7 +748,7 @@ export const createSeeder = (
 			// The bucket may have held this attempt back: its import bound starts
 			// now, and so does its watchdog's.
 			rearm(row.id, attempt);
-			// The 24 h token import() returns is dropped unread (U53): only the
+			// The token import() returns is dropped unread: only the
 			// remote URL is kept.
 			const remote = await within(
 				ctx.deps.artifacts.import({

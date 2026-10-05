@@ -1,4 +1,4 @@
-// The `repo` LaneBackend (K11, U53): `upstream({laneId})` names the lane's
+// The `repo` LaneBackend (K11): `upstream({laneId})` names the lane's
 // CURRENT lane repo with a token scoped to it alone, pushes through the lane
 // remote are recorded against the lane, `fetchSpec` points at the lane repo,
 // and the 24 h token `import()` returns never reaches storage, events or logs.

@@ -365,7 +365,7 @@ Deno.test("row 4: the owner's own active, non-landing branch lane with the index
 		),
 		"no-write-credential",
 	);
-	// Held by another request's push lease (U48 fallback).
+	// Held by another request's push lease (`PUSH_LEASE_ENABLED`).
 	equal(
 		verdict(
 			update(laneRef(LANE_A)),

@@ -5,14 +5,16 @@ deployment is one forge. License: **MIT** (`LICENSE`).
 
 Sources of truth, in order:
 
-1. [`docs/design/README.md`](docs/design/README.md): the design summary, the kernel invariants (K1–K17) and lanes
-   (per-agent Artifacts repos created with `import()`, branch lanes as the fallback).
-2. `packages/contract`: names, types and signatures.
-3. The guides under [`docs/`](docs/README.md), starting with [`docs/architecture.md`](docs/architecture.md).
+1. [`docs/design/OVERVIEW.md`](docs/design/OVERVIEW.md): the design overview. Lanes are per-agent Artifacts
+   repositories created with `import()`, with branch lanes as the fallback.
+   [`docs/design/README.md`](docs/design/README.md) is the short summary, with the kernel invariant ids (K1–K17) that
+   source comments cite.
+2. `packages/contract`: names, types and signatures. Where prose and the contract disagree, the contract wins.
+3. The guides under [`docs/`](docs/README.md), starting with [`docs/concepts.md`](docs/concepts.md) and
+   [`docs/architecture.md`](docs/architecture.md).
 
-Work is split into work packages (WPs). In a maintainer checkout, the unpublished paths that `scripts/check-public.ts`
-lists hold the full design notes and the WP plan; read what your WP lists before you write code. If code and design
-disagree, raise it with the integrator (WP0). Do not quietly diverge.
+If the code and [`docs/design/OVERVIEW.md`](docs/design/OVERVIEW.md) disagree, open an issue instead of quietly
+diverging.
 
 ## House style
 
@@ -32,6 +34,9 @@ disagree, raise it with the integrator (WP0). Do not quietly diverge.
 
 ## Ownership and anti-conflict rules
 
+Maintainers split the work into work packages (WPs); if code and design disagree, a WP raises it with the integrator
+(WP0) instead of quietly diverging.
+
 Each WP works in its own git worktree. It writes only inside the paths it owns and reads anything. WPs consume each
 other only through `packages/contract` types, facades and fakes.
 
@@ -44,8 +49,8 @@ other only through `packages/contract` types, facades and fakes.
    window.
 2. **M0 pre-declares every cross-boundary item:** routes, DO facade getters, builtin ids, exported classes and SPA coord
    routes all exist as stubs. After M0, each stub file belongs to its owning WP.
-3. **Migration number ranges** are fixed per module ("Data model" in `docs/design/README.md`). A migration outside your
-   WP's range fails review.
+3. **Migration number ranges** are fixed per module ("Migration ranges" in `docs/design/OVERVIEW.md`;
+   `MIGRATION_RANGES` in `packages/contract`). A migration outside your WP's range fails review.
 4. **Thin DO classes.** Modules never call `setAlarm` and never implement `alarm()` or `webSocket*` themselves. They
    register with the WP0 `timers` API and the WebSocket dispatch table. In-DO cross-module calls use each module's
    synchronous `internal` API.
@@ -60,7 +65,8 @@ other only through `packages/contract` types, facades and fakes.
    placeholders. Smoke evidence is leak-scanned before it is shared.
 8. **Public content.** Private notes and evidence never enter the repo, and the unpublished paths never enter a public
    snapshot. `scripts/check-public.ts` (part of `deno task lint`) fails on terms reserved for private notes. The term
-   list is private too (`.private/public-terms.json` in the main checkout); hits name a term only by its number.
+   list and the unpublished paths are private too (`.private/public-terms.json` in the main checkout); hits name a term
+   only by its number.
 9. **Publishing.** The private history (`main` and the work branches) is never pushed. `deno task publish -- --push`
    commits a checked snapshot of `main` (without the unpublished paths) on the local `public` branch and pushes it to
    `origin main` (the public repository), never forced. Snapshots carry a public noreply identity (`--identity`,
@@ -110,8 +116,8 @@ Prerequisites: Deno 2.9 and Node 22. Run `npm ci` once.
 | `deno task e2e`                               | `scripts/e2e/main.ts`: tester-army/e2e on stage `dev-e2e` with the mock IdP, no model, telemetry off (`docs/testing/e2e.md`)                                | the deployed forge end to end (live)              |
 | `deno task license:check`                     | `scripts/license-check.ts`                                                                                                                                  | no GPL/AGPL/LGPL-only dependencies                |
 | `deno task verify`                            | gen, fmt:check, lint, check, test, license:check                                                                                                            | the fast local subset                             |
-| `deno task check:public:history`              | `scripts/check-public.ts --history`: the terms over every commit of the published lineage (`public`, `origin/main`), messages and identities included       | the published history is clean                    |
-| `deno task publish [-- --push]`               | `scripts/publish.ts`: snapshot of `main` without the unpublished paths, checked, committed on `public`, pushed to `origin main`                             | what the public repository receives               |
+| `deno task check:public:history`              | `scripts/check-public.ts --history`: the terms over every commit of `origin/main` and `public`, snapshot rules too on unpushed ones, messages, identities   | the public history and the next push are clean    |
+| `deno task publish [-- --push]`               | `scripts/publish.ts`: `main` without the unpublished paths, checked, as the one `public` commit on `origin/main`, pushed once every tree is reviewed        | what the public repository receives               |
 
 Test file conventions:
 

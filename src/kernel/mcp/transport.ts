@@ -8,7 +8,7 @@
 //   2025-era `initialize` / `tools/list` / `tools/call` exchanges that
 //   Claude Code and Codex CLI send. Host and Origin are validated by the
 //   handler as well (`allowedHostnames`: the canonical host).
-// - `raw` (the U24 fallback): a plain JSON-RPC 2.0 handler for
+// - `raw` (the fallback): a plain JSON-RPC 2.0 handler for
 //   `initialize`, `ping`, `tools/list` and `tools/call` with JSON responses,
 //   since no tool needs a session.
 
@@ -23,7 +23,7 @@ import { MCP_TRANSPORT, TARTAN_VERSION } from "../../constants.ts";
 import { type McpHost, UnknownToolError } from "./host.ts";
 import type { McpSession } from "./session.ts";
 
-/** U24: chosen by the `MCP_TRANSPORT` switch in `src/constants.ts`. */
+/** Chosen by the `MCP_TRANSPORT` switch in `src/constants.ts`. */
 export type McpTransport = typeof MCP_TRANSPORT;
 
 /** The server name every scope reports (`initialize.serverInfo.name`). */
@@ -89,7 +89,7 @@ export const serveSdk = async (
 };
 
 // ---------------------------------------------------------------------------
-// Raw JSON-RPC 2.0 (U24 fallback)
+// Raw JSON-RPC 2.0 (the fallback)
 // ---------------------------------------------------------------------------
 
 /** 2025-era revisions the raw handler answers (newest first). */

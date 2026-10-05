@@ -1,4 +1,4 @@
-// WP10 live acceptance (S8 promoted): the real Advance on
+// WP10 live acceptance: the real Advance on
 // a deployed dev stage with containers and dev tools (`TARTAN_STAGE ^dev`,
 // `TARTAN_DEV_TOOLS=1`), against real Artifacts and the runner image.
 //

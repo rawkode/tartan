@@ -197,7 +197,7 @@ Deno.test("L3: refs/heads/main for the owner and delegates, at the recorded head
 		verdict(update(), caller(OWNER), context({}, false)),
 		"no-write-credential",
 	);
-	// Stale old, forced update from the right old, the U48 lease.
+	// Stale old, forced update from the right old, the push lease.
 	equal(verdict(update(MAIN, sha(7))), "stale-old");
 	equal(verdict(update(MAIN, HEAD, sha(8))), "allow");
 	equal(

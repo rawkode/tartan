@@ -62,8 +62,8 @@ export const defuseFences = (text: string): string =>
 // ---------------------------------------------------------------------------
 
 /**
- * An Artifacts token as it appears live (`art_v2_x_<hex>?expires=<unix>`
- * [E A1]); an `art_v1_`-only pattern would miss it.
+ * An Artifacts token as the binding returns it
+ * (`art_v2_x_<hex>?expires=<unix>`); an `art_v1_`-only pattern would miss it.
  */
 export const ARTIFACTS_TOKEN_RE =
 	/art_v([0-9]+)_[A-Za-z0-9_]+(\?expires=[0-9]+)?/;

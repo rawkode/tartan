@@ -9,7 +9,7 @@
 // that carries a write token, always after `pkill -KILL -u tartan-git` so no
 // earlier process can read the token from `/proc/<pid>/environ`.
 // Credentials reach git only as `GIT_CONFIG_COUNT/KEY/VALUE`
-// `http.<remote>.extraHeader` entries in that one exec's environment [E S8].
+// `http.<remote>.extraHeader` entries in that one exec's environment.
 
 import { UPSTREAM_AUTH } from "../../constants.ts";
 
@@ -70,7 +70,7 @@ export type RemoteCredential = {
 	readonly token: string;
 };
 
-/** The `Authorization` value git sends for an Artifacts token (U3, [E A1]). */
+/** The `Authorization` value git sends for an Artifacts token (`UPSTREAM_AUTH`). */
 export const authHeader = (token: string): string =>
 	UPSTREAM_AUTH === "bearer"
 		? `Authorization: Bearer ${token}`

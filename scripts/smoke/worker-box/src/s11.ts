@@ -1,4 +1,4 @@
-// S11: a Workers AI judge returning schema-valid JSON (U26). Each call
+// S11: a Workers AI judge returning schema-valid JSON. Each call
 // judges one of five small diffs; validity is checked against the schema
 // by hand (no extra keys, bounded score and risks).
 

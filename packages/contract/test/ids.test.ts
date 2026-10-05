@@ -176,7 +176,7 @@ Deno.test("names: canonical and lane repo names", () => {
 		laneUlid: lane,
 		attempt: 1,
 	});
-	// Names fold case [E A2]: an uppercase name from an event parses the same.
+	// Names fold case: an uppercase name from an event parses the same.
 	deepStrictEqual(
 		parseArtifactsName(l1.toUpperCase()),
 		parseArtifactsName(l1),

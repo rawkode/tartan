@@ -70,34 +70,44 @@ Deno.test("AGENTS.md names the vitest projects vitest.config.ts defines, and no 
 	}
 });
 
-Deno.test("the design notes list every migration range the contract declares", async () => {
-	const design = await read("docs/design/ARCHITECTURE.md").catch(() => null);
-	if (design === null) return; // the public snapshot carries no design copy
+Deno.test("the design overview lists every migration range the contract declares", async () => {
+	const overview = await read("docs/design/OVERVIEW.md");
 	const { MIGRATION_RANGES } = await import(
 		"../packages/contract/src/do/common.ts"
 	);
-	const table = /\| DO \| Module \(owner WP\) \| Range \|([\s\S]*?)\n\n/.exec(
-		design,
+	const table = /\| Durable Object \| Module ranges +\|([\s\S]*?)\n\n/.exec(
+		overview,
 	)?.[1] ?? "";
-	const rowOf = (dob: string) =>
-		table.split("\n").find((line) => line.startsWith(`| ${dob} |`)) ?? "";
-	const rows: Record<string, string> = {
-		forge: rowOf("ForgeDO"),
-		repo: rowOf("RepoDO"),
-		bus: rowOf("BusDO"),
+	const rowOf = (label: string) =>
+		table.split("\n").find((line) => line.startsWith(`| ${label} `)) ?? "";
+	const labels: Record<string, string> = {
+		forge: "`ForgeDO`",
+		repo: "`RepoDO`",
+		inbox: "`InboxDO`",
+		bus: "`BusDO`",
+		ext: "`ExtensionDO`",
 	};
-	for (const [dob, row] of Object.entries(rows)) {
+	const [lo, hi] = MIGRATION_RANGES.common;
+	ok(rowOf("every object").includes(`${lo}–${hi}`), `common ${lo}–${hi}`);
+	for (const [dob, label] of Object.entries(labels)) {
+		const row = rowOf(label);
+		ok(row, `${label} has a row in the design overview`);
 		const modules =
 			MIGRATION_RANGES[dob as keyof typeof MIGRATION_RANGES] as Record<
 				string,
 				readonly [number, number]
 			>;
 		for (const [module, [lo, hi]] of Object.entries(modules)) {
-			// RepoDO core is split between WP5a and WP5b in the table.
-			const shown = module === "core" && dob === "repo"
-				? row.includes(`${lo}–`) && row.includes(`–${hi}`)
-				: row.includes(`${lo}–${hi}`);
-			ok(shown, `${dob}.${module} ${lo}–${hi} in the design notes`);
+			ok(
+				row.includes(`${lo}–${hi}`),
+				`${dob}.${module} ${lo}–${hi} in the design overview`,
+			);
 		}
 	}
+	ok(
+		Object.keys(MIGRATION_RANGES).every((dob) =>
+			dob === "common" || dob in labels
+		),
+		"every Durable Object of MIGRATION_RANGES is checked",
+	);
 });

@@ -7,7 +7,7 @@
 // actually import, so editing the record cannot widen a package.
 //
 // The modules are read, never compiled (runtime compilation is forbidden in
-// a Worker [E B2]): the import section of the WebAssembly binary format.
+// a Worker): the import section of the WebAssembly binary format.
 
 import type { ManifestPermissions } from "@tartan/contract";
 
