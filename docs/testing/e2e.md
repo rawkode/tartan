@@ -164,7 +164,7 @@ baseline it read, never against zero), and the global log's parked records are f
 record parked during the run). Two timing windows are bounded by the product: the compose test needs both approvals
 within the Weave's debounce (its maximum, 60 s), and an agent's lane push must land inside the landing window it
 probes. The harness retries what a person or agent would retry, and says so: a sign-in that answers `unavailable, try
-again` (a busy ForgeDO), and a git clone, fetch or push whose upstream answered a transient 5xx. Each retry prints an
+again` (a busy ForgeDO), and a git clone, fetch or push the forge answered with a transient 5xx. Each retry prints an
 `e2e-retry:` line in the run's log, so a run that passed only after retries is visible as such.
 
 ## Suites

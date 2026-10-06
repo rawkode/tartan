@@ -149,9 +149,9 @@ const pushAndSubmit = async (
 	const pushes: string[] = [];
 	for (let attempt = 0; attempt < Math.max(1, echoTries); attempt += 1) {
 		if (attempt > 0) {
-			// The echo is best-effort within ECHO_LIMITS.totalBudgetMs, its
-			// lane-range prefetch included: a cold lane's first diff can use it
-			// up. Push one more commit; the lane's range still adds the key.
+			// The echo is best-effort within ECHO_LIMITS.totalBudgetMs (the
+			// lane-range prefetch included): when a push carries none, push one
+			// more commit; the lane's range still adds the key.
 			await writeFile(
 				path.join(clone, `echo-retry-${attempt}.md`),
 				`retry ${attempt}\n`,

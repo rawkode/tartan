@@ -1,4 +1,4 @@
-// The gateway resends a replayable read when the Artifacts upstream answers a
+// The gateway resends a replayable read when the upstream answers a
 // transient 5xx or the request fails (an agent's stock git does not retry);
 // a push or a streamed body is sent once.
 

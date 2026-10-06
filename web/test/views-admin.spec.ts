@@ -482,7 +482,8 @@ describe("repo lane settings (Owner)", () => {
 			"0 here · forge ceiling 5000",
 		);
 		// Every mode the kernel lets an Owner pick is offered: the forge
-		// default, the two lane-repo modes and branch lanes; none disabled.
+		// default, lane repos created with import(), and branch lanes; none
+		// disabled.
 		const options = findAll(
 			field(app.root, "laneMode"),
 			(el) => el.tag === "option",

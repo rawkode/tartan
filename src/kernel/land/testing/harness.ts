@@ -559,7 +559,7 @@ export const createLandHarness = async (
 			roleOf: (principal) => Promise.resolve(roles.get(principal) ?? 0),
 			laneRange: async (laneId) => {
 				if (harnessRef.failLaneRange) {
-					throw new Error("Artifacts answered 500 (fault injected)");
+					throw new Error("lane range unavailable (fault injected)");
 				}
 				await (coreFacade as RepoCoreFacade).laneRange(laneId);
 			},

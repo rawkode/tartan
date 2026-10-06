@@ -60,9 +60,8 @@ export const AGENT_COMMIT_DATE = gitDate(1_767_398_400);
 
 const LANE_OPEN_WAIT_MS = 60_000;
 /**
- * git's words for a transient answer. The gateway relays its upstream's
- * failure (the lane's Artifacts repo can answer 500 or 503 under load) as a
- * 5xx and nothing is written; an agent tries again. A
+ * git's words for a transient answer. The gateway relays a transient
+ * upstream failure as a 5xx and nothing is written; an agent tries again. A
  * read (fetch) is retried on 500 and 502–504; a push only on 502–504, the
  * gateway's "the git backend refused the push; try again".
  */

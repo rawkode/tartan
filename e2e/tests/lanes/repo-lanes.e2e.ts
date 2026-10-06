@@ -726,7 +726,7 @@ test.describe("repo lanes: the capability route and the Owner's switches", {
 	test("the seeder falls back to branch lanes when import() is refused", {
 		tags: ["pending"],
 		skip:
-			"pending: no dev tool makes import() refuse on a live forge (only a > 36 MiB trunk or a platform fault does); the seeder's fallback chain and breaker are covered by the repo-backend tests",
+			"pending: no dev tool makes import() refuse on a live forge; the seeder's fallback to branch lanes and its breaker are covered by the repo-backend tests",
 	}, async () => {});
 });
 

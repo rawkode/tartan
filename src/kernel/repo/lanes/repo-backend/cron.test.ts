@@ -112,14 +112,14 @@ Deno.test("the cron groups l-* names by family, pages the listing and isolates f
 	ok(outcome.failed.some((f) => f.includes("sweep boom")));
 });
 
-Deno.test("a failed Artifacts listing (an internal error) still sweeps the index's names", async () => {
+Deno.test("a failed Artifacts listing still sweeps the index's names", async () => {
 	const repoA = ulid();
 	const indexed = laneArtifactsName(repoA, ulid());
 	const swept: string[][] = [];
 	const logged: string[] = [];
 	const outcome = await runRepoBackendCron({
 		artifacts: {
-			list: () => Promise.reject(new Error("An internal error occurred.")),
+			list: () => Promise.reject(new Error("listing failed")),
 		} as never,
 		tree: {
 			listRepos: () => Promise.reject(new Error("unused")),

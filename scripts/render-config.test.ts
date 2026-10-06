@@ -386,9 +386,9 @@ Deno.test("the registry variant renders a digest and refuses a tag", () => {
 });
 
 Deno.test("--domain adds a custom-domain route, replacing an existing routes value", () => {
-	const config = render({ domain: "Git.Rawkode.Dev" });
+	const config = render({ domain: "Git.Example.Com" });
 	assert.deepEqual(config.routes, [{
-		pattern: "git.rawkode.dev",
+		pattern: "git.example.com",
 		custom_domain: true,
 	}]);
 	assert.equal(

@@ -6,10 +6,9 @@
 //
 // A replayable read (`info/refs`, or an `upload-pack` whose request is
 // already buffered) is sent again, twice at most and within a second, when
-// the upstream answers a transient 5xx or the request fails: under load an
-// Artifacts repo answers 500 or 503 now and then, and an agent's stock git
-// does not retry its clone or fetch. A push (`receive-pack`) and a streamed
-// request body are never resent.
+// the upstream answers a transient 5xx or the request fails: an agent's
+// stock git does not retry its clone or fetch. A push (`receive-pack`) and a
+// streamed request body are never resent.
 
 import type { Upstream } from "@tartan/contract/kernel.ts";
 import { authorizationFor } from "../repo/gitremote.ts";

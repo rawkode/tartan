@@ -59,9 +59,8 @@ export const laneRepoFamilies = async (
 		set.add(name.toLowerCase());
 		families.set(parsed.repoUlid, set);
 	};
-	// A failed listing (Artifacts answered "An internal error occurred." on
-	// every cron tick of dev-e2e) keeps the pages read so far and the
-	// index's names below: the sweep still runs over what it knows.
+	// A failed listing keeps the pages read so far and the index's names
+	// below: the sweep still runs over what it knows.
 	let cursor: string | undefined;
 	try {
 		for (let page = 0; page < LIST_PAGES_MAX; page++) {

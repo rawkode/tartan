@@ -191,7 +191,7 @@ landTest(
 		h.reviewProvider = REVIEW_INST;
 		rolesOf(h).set(MAINT, 40);
 		// Pushed without its phase 2 (no push.diffed yet), and the lane range
-		// cannot be read (Artifacts answers 500): whether it touches policy is
+		// cannot be read (fault injected): whether it touches policy is
 		// unknown.
 		const lane = await pushLane(h, {
 			owner: A,

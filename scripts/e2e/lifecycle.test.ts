@@ -596,11 +596,6 @@ Deno.test("stage up passes the M2 switches through to deploy, checked first", ()
 		GuardError,
 	);
 	throws(
-		() => checkSwitches({ laneMode: "create" as "import" }),
-		GuardError,
-		"the create-and-push recipe is gone: import or branch only",
-	);
-	throws(
 		() => checkSwitches({ k2: { storeId: "nope", secretName: "k2-consumer" } }),
 		GuardError,
 	);

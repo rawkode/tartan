@@ -2,7 +2,7 @@
 //
 //   stage up [--no-containers] [--image dockerfile|registry] [--rotate-idp]
 //            [--k2 --k2-token-store <id> --k2-token-secret <name>]
-//            [--lane-mode import|create|branch] [--workload-transport local|k2]
+//            [--lane-mode import|branch] [--workload-transport local|k2]
 //            [--projects] [--build-ext] [--echo on|off]
 //                                               IdP + dev-e2e forge (containers and repo config on by
 //                                               default; the M2 switches are deploy's own flags);
@@ -766,7 +766,7 @@ const USAGE = `Usage: deno task e2e -- <command>
 
   stage up [--no-containers] [--image dockerfile|registry] [--rotate-idp]
            [--k2 --k2-token-store <id> --k2-token-secret <name>]
-           [--lane-mode import|create|branch] [--workload-transport local|k2]
+           [--lane-mode import|branch] [--workload-transport local|k2]
            [--projects] [--build-ext] [--echo on|off]
   stage reset [stage up flags]
   stage down [--keep-idp]
