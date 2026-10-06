@@ -36,6 +36,8 @@
 //   - `--workload-transport <local|k2>` sets `vars.TARTAN_WORKLOAD_TRANSPORT`,
 //     the stage's override of `WORKLOAD_TRANSPORT` (`k2` needs `--k2-stream`
 //     with the consume token);
+//   - `--echo <on|off>` sets `vars.TARTAN_ECHO`, the stage's override of
+//     `ECHO_ENABLED` (band-2 guidance; set once the stage's push-guidance tests pass);
 //   - relative paths (`$schema`, `main`, `assets.directory`, a Dockerfile
 //     `image`) are rebased, because wrangler resolves them against the
 //     directory of the config file it is given.
@@ -77,6 +79,10 @@ export type LaneModeOverride = typeof LANE_MODE_VALUES[number];
 export const WORKLOAD_TRANSPORT_VALUES = ["local", "k2"] as const;
 export type WorkloadTransportOverride =
 	typeof WORKLOAD_TRANSPORT_VALUES[number];
+/** `src/constants.ts` `echoEnabledOf`. */
+export const ECHO_VAR = "TARTAN_ECHO";
+export const ECHO_VALUES = ["on", "off"] as const;
+export type EchoOverride = typeof ECHO_VALUES[number];
 /** Stages that may enable the dev tools: `dev` and `dev-*`. */
 export const DEV_TOOLS_STAGE_RE = /^dev(?:-|$)/;
 /** The global log's producer binding and var (WP26; `src/env.ts`). */
@@ -116,6 +122,8 @@ export type RenderOptions = {
 	readonly laneMode?: LaneModeOverride;
 	/** `TARTAN_WORKLOAD_TRANSPORT` (absent = the compiled default; `k2` needs `k2.token`). */
 	readonly workloadTransport?: WorkloadTransportOverride;
+	/** `TARTAN_ECHO` (absent = the compiled `ECHO_ENABLED`). */
+	readonly echo?: EchoOverride;
 	// Directory of the source config and of the rendered file; used only to
 	// rebase relative paths. Equal directories leave paths untouched.
 	readonly sourceDir: string;
@@ -655,6 +663,12 @@ export const renderConfig = (
 			"--workload-transport k2 needs the global log: --k2-stream with --k2-token-store and --k2-token-secret",
 		);
 	}
+	if (
+		options.echo !== undefined &&
+		!(ECHO_VALUES as readonly string[]).includes(options.echo)
+	) {
+		fail(`--echo is ${ECHO_VALUES.join(" or ")}`);
+	}
 
 	const root = asObject(parseJsonc(source), "the root");
 	for (const key of ["k2", "secrets_store_secrets"]) {
@@ -823,6 +837,7 @@ export const renderConfig = (
 				string,
 			]]
 			: []),
+		...(options.echo ? [[ECHO_VAR, options.echo] as [string, string]] : []),
 	];
 	const vars = prop(root, "vars");
 	if (vars) {
@@ -932,7 +947,7 @@ export const renderConfig = (
 			options.workloadTransport
 				? ` workload_transport=${options.workloadTransport}`
 				: ""
-		}`,
+		}${options.echo ? ` echo=${options.echo}` : ""}`,
 		"",
 	].join("\n");
 	const rendered = header + applyEdits(source, edits);
@@ -965,6 +980,7 @@ export const USAGE =
 		LANE_MODE_VALUES.join(" | ")
 	}; default: the compiled LANE_MODE)
   --workload-transport <t> ${WORKLOAD_TRANSPORT_VAR}: local | k2 (k2 needs --k2-stream and the token)
+  --echo <on|off>          ${ECHO_VAR}: band-2 guidance on this stage (default: the compiled ECHO_ENABLED)
   --source <path>          source config (default: wrangler.jsonc)
   --out <path>             output (default: .wrangler/deploy/wrangler.<stage>.jsonc next to the source)
   -h, --help               show this help`;
@@ -995,6 +1011,7 @@ export const parseCliArgs = (
 	let projects = false;
 	let laneMode: LaneModeOverride | undefined;
 	let workloadTransport: WorkloadTransportOverride | undefined;
+	let echo: EchoOverride | undefined;
 	let sourcePath = "wrangler.jsonc";
 	let outPath: string | undefined;
 
@@ -1082,6 +1099,14 @@ export const parseCliArgs = (
 				workloadTransport = v as WorkloadTransportOverride;
 				break;
 			}
+			case "--echo": {
+				const v = value();
+				if (!(ECHO_VALUES as readonly string[]).includes(v)) {
+					fail(`--echo is ${ECHO_VALUES.join(" or ")}`);
+				}
+				echo = v as EchoOverride;
+				break;
+			}
 			case "--source":
 				sourcePath = value();
 				break;
@@ -1137,6 +1162,7 @@ export const parseCliArgs = (
 		projects,
 		...(laneMode === undefined ? {} : { laneMode }),
 		...(workloadTransport === undefined ? {} : { workloadTransport }),
+		...(echo === undefined ? {} : { echo }),
 		sourcePath,
 		outPath: out,
 		sourceDir: path.dirname(path.resolve(sourcePath)),

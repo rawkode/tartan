@@ -10,6 +10,7 @@ import { expect, type Screen } from "e2e";
 import type { Browser } from "@e2e-dev/web";
 import type { WorkItem } from "@tartan/contract";
 import { test } from "../support/fixtures.ts";
+import { workNoun } from "../support/labels.ts";
 import { mcpClient } from "../support/mcp.ts";
 import { PACK_GROUP } from "../support/names.ts";
 import {
@@ -71,7 +72,9 @@ test.describe("work items", {
 		await expectSlotsSettled(browser, view, RENDERED.repoTab("work"));
 
 		const form = browser.locator(WORK_TAB);
-		await expect(form.getByRole("heading", "New work item")).toBeVisible();
+		// The Classic pack calls a work item an issue (its member's wording).
+		await expect(form.getByRole("heading", `New ${workNoun("classic")}`))
+			.toBeVisible();
 		const title = `Rate limits for ${stage.runId}`;
 		const why = `Bursts overload the router (${stage.runId}).`;
 		const acceptance = ["429 after 100 requests", "Retry-After is set"];

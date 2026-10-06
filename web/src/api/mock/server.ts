@@ -13,6 +13,8 @@ import type {
 	InstallRequest,
 	LaneDto,
 	LaneSelfTestResult,
+	LogDeadListResponse,
+	LogStatusResponse,
 	MeResponse,
 	NodeDto,
 	PermissionSheet,
@@ -410,6 +412,56 @@ export const createMockFetch = (
 				return json(state.lastSelfTest);
 			}
 			return json({ last: state.lastSelfTest });
+		}
+		if (path === "/-/api/log/status" && method === "GET") {
+			const at = Date.now();
+			const status: LogStatusResponse = {
+				label: "K2 (public beta)",
+				health: "ok",
+				transport: "k2",
+				stream: { configured: true, name: "tartan_dev_log" },
+				relay: {
+					forge: {
+						stream: "forge",
+						state: "ok",
+						epoch: "e1",
+						head: 42,
+						relayedSeq: 42,
+						lag: 0,
+						oldestUnrelayedAt: null,
+						attempts: 0,
+						nextAt: null,
+						lastError: null,
+						lastOkAt: at - 4_000,
+						sentRecords: 42,
+						sentBytes: 21_504,
+						unknownOutcomes: 0,
+					},
+				},
+				consumer: {
+					group: "workloads",
+					worker: 0,
+					consume: "ok",
+					subscription: "sub_mock",
+					lastPollOkAt: at - 2_000,
+					lastRecordAt: at - 3_000,
+					consumerLagMs: 900,
+					records: 128,
+					retry: 0,
+					dead: 0,
+					resubscribed: 0,
+					lastError: null,
+					via: [],
+					relayLags: [],
+					relayLagsAt: null,
+				},
+				lastHour: { k2: 6, backstop: 0, local: 0 },
+			};
+			return json(status);
+		}
+		if (path === "/-/api/log/dead" && method === "GET") {
+			const dead: LogDeadListResponse = { dead: [] };
+			return json(dead);
 		}
 		if (path === "/-/api/admin/root-key/export" && method === "POST") {
 			if (!state.setup.rootKeyFallback) {

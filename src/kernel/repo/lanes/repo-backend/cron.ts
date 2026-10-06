@@ -59,15 +59,24 @@ export const laneRepoFamilies = async (
 		set.add(name.toLowerCase());
 		families.set(parsed.repoUlid, set);
 	};
+	// A failed listing (Artifacts answered "An internal error occurred." on
+	// every cron tick of dev-e2e) keeps the pages read so far and the
+	// index's names below: the sweep still runs over what it knows.
 	let cursor: string | undefined;
-	for (let page = 0; page < LIST_PAGES_MAX; page++) {
-		const listed = await deps.artifacts.list({
-			limit: LIST_PAGE,
-			...(cursor !== undefined ? { cursor } : {}),
+	try {
+		for (let page = 0; page < LIST_PAGES_MAX; page++) {
+			const listed = await deps.artifacts.list({
+				limit: LIST_PAGE,
+				...(cursor !== undefined ? { cursor } : {}),
+			});
+			for (const repo of listed.repos) add(repo.name);
+			cursor = listed.cursor;
+			if (cursor === undefined || listed.repos.length === 0) break;
+		}
+	} catch (error) {
+		deps.log("repoBackend cron: Artifacts listing failed", {
+			error: errorText(error),
 		});
-		for (const repo of listed.repos) add(repo.name);
-		cursor = listed.cursor;
-		if (cursor === undefined || listed.repos.length === 0) break;
 	}
 	for (const state of ["pending", "live"] as const) {
 		try {

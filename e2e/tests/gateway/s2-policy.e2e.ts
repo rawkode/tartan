@@ -6,10 +6,12 @@
 // Every refusal is checked by its `ng` reason (contract `REF_POLICY_REASONS`)
 // and by the ref it must not have moved.
 //
-// Not here: the lane-remote table and the upstream scope check belong
-// to the `repo` lane backend (M2): pending skips tagged `m2-lanes`. The
-// public-view rows need a public repo, which the e2e groups never hold:
-// pending skips tagged `public-view`.
+// On a stage whose forge default is repo lanes (`--lane-mode import`), the
+// Owner keeps these repos on branch lanes (the repo's lane mode override).
+// The lane-remote table and the upstream scope check are the `repo`
+// backend's: tests/lanes/repo-lanes.e2e.ts. The public-view rows need a
+// public repo, which the e2e groups never hold: pending skips tagged
+// `public-view`.
 
 import { appendFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -32,6 +34,11 @@ import {
 } from "../../support/gateway.ts";
 import { git, gitDate, gitEnv, gitOk } from "../../support/git.ts";
 import { gitHttp, ok, query, tokenApi } from "../../support/http.ts";
+import {
+	BRANCH_MODE,
+	repoLanesByDefault,
+	setLaneMode,
+} from "../../support/lanes.ts";
 import { PACK_GROUP } from "../../support/names.ts";
 import { fixtureRepo } from "../../support/repos.ts";
 import { keyOf, sharedDirOf } from "../../support/shared.ts";
@@ -69,6 +76,11 @@ const setupOf = (stage: Stage, index: number): Promise<Setup> =>
 	sharedStore().once(`s2-${index}-setup`, async (): Promise<Setup> => {
 		const suite = index === 0 ? "s2" : `s2-${index}`;
 		const repo = await fixtureRepo(stage, "classic", suite);
+		// These rows are the branch backend's: on a stage whose forge default
+		// is repo lanes, the Owner keeps this repo on branch lanes.
+		if (repoLanesByDefault(stage)) {
+			await setLaneMode(stage, repo.id, BRANCH_MODE);
+		}
 		const scratch = path.join(
 			sharedDirOf(tmpdir(), stage.runId),
 			`scratch-${suite}`,
@@ -532,6 +544,9 @@ test.describe("Ref policy: the canonical receive-pack table (branch lanes)", {
 		);
 		const suite = index === 0 ? "s2-landing" : `s2-landing-${index}`;
 		const repo = await fixtureRepo(stage, "swarm", suite);
+		if (repoLanesByDefault(stage)) {
+			await setLaneMode(stage, repo.id, BRANCH_MODE);
+		}
 		const agent = scriptedAgent(stage, PACK_GROUP.swarm, "A");
 		const { lane: first } = await agent.mcp.call<{ lane: LaneHandle }>(
 			"lanes_open",
@@ -589,26 +604,6 @@ test.describe("Ref policy: the canonical receive-pack table (branch lanes)", {
 test.describe("Ref policy: rows that are not on this stage", {
 	tags: ["gateway", "s2", "pending"],
 }, () => {
-	for (
-		const row of [
-			"lane remote L0: a malformed ref, a reserved parent or a case variant of main on a lane remote",
-			"lane remote L1: a push to a lane remote while the lane is opening or closed",
-			"lane remote L2: a push to a lane remote while the lane is landing",
-			"lane remote L3: the owner updates, forces and leases main of its lane remote; a stale old",
-			"lane remote L3: another agent's push to a lane remote is not-your-lane",
-			"lane remote L4: deleting main of a lane remote is use-lanes-close",
-			"lane remote L5: any other ref of a lane remote is lane-main-only",
-			"lane remote: a lane-pinned token on another lane's remote",
-			"lane remote: anonymous and roleless clones of a lane remote",
-			"lane remote: a lane push is forwarded with a token that cannot write the canonical repo",
-		]
-	) {
-		test(row, {
-			tags: ["m2-lanes"],
-			skip:
-				"pending M2: lane remotes need the repo lane backend (LANE_MODE=import)",
-		}, async () => {});
-	}
 	for (
 		const row of [
 			"public view: an anonymous want of a hidden SHA (identity and gzip) is ERR",

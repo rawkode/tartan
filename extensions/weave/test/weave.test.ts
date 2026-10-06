@@ -608,6 +608,84 @@ Deno.test("refusals: a quarantined lane is ejected and the rest proceed; an unex
 	j.close();
 });
 
+Deno.test("K13.3 at land.submit: a policy change without its sign-off is ejected, the train goes on; two policy changes land one at a time", async () => {
+	const k = train();
+	const [c1, c2] = [1, 2].map((n) => k.submitChange(n));
+	k.state.policy.set(c1.changeId, false);
+	k.approve(c1);
+	k.approve(c2);
+	await k.settle();
+	equal(stateOf(k, c1), "ejected");
+	equal(stateOf(k, c2), "landing");
+	equal(k.emittedOf("queue.paused").length, 0, "the train is not paused");
+	const ejected = k.emittedOf("queue.ejected").find((e) =>
+		e.data.changeId === c1.changeId
+	);
+	ok(ejected !== undefined, "queue.ejected for the unsigned change");
+	equal(ejected.data.reason, "veto");
+	equal(ejected.data.code, "policy-signoff", "the ejection names the refusal");
+	ok(
+		k.notices.some((n) => String(n.notice.text).includes("policy-signoff")),
+		"the author is told why",
+	);
+	equal(k.submits.map((s) => s.batch.map((c) => c.changeId)), [
+		[c1.changeId, c2.changeId],
+		[c2.changeId],
+	]);
+	checkQueueEvents(k);
+	k.close();
+
+	// Two signed-off policy changes in one batch: each is retried alone.
+	const j = train();
+	const [d1, d2] = [1, 2].map((n) => j.submitChange(n));
+	j.state.policy.set(d1.changeId, true);
+	j.state.policy.set(d2.changeId, true);
+	j.approve(d1);
+	j.approve(d2);
+	await j.settle();
+	equal(j.emittedOf("queue.paused").length, 0);
+	equal(j.submits.map((s) => s.batch.map((c) => c.changeId)), [
+		[d1.changeId, d2.changeId],
+		[d1.changeId],
+	]);
+	equal(stateOf(j, d1), "landing");
+	equal(stateOf(j, d2), "waiting");
+	j.close();
+});
+
+Deno.test("K13.3 at land.submit: a change whose diff is not known yet (policy-unknown) is retried with backoff, never ejected, and lands once its diff is known", async () => {
+	const k = train();
+	const [c1, c2] = [1, 2].map((n) => k.submitChange(n));
+	k.state.policyUnknown.add(c1.changeId);
+	k.approve(c1);
+	k.approve(c2);
+	// Within the first backoffs (5 s, 10 s, 20 s, …) the batch is resubmitted
+	// as is: no ejection, no pause.
+	await k.settle(60_000);
+	ok(k.submits.length >= 2, `retried (${k.submits.length} submits)`);
+	ok(
+		k.submits.every((sub) =>
+			sub.batch.map((c) => c.changeId).join() ===
+				[c1.changeId, c2.changeId].join()
+		),
+		"the same stored batch",
+	);
+	equal(k.emittedOf("queue.ejected").length, 0, "nothing is ejected");
+	equal(k.emittedOf("queue.paused").length, 0, "the train is not paused");
+	equal(k.entries().map((e) => e.state), ["batched", "batched"]);
+	// Phase 2 arrives: the diff is known and touches no policy path.
+	k.state.policyUnknown.delete(c1.changeId);
+	// The next backoff is due within this horizon; the 5-minute watchdog is not.
+	await k.settle(200_000);
+	equal(k.entries().map((e) => e.state), ["landing", "landing"]);
+	equal(k.emittedOf("queue.ejected").length, 0);
+	k.finish(k.inFlight()[0]);
+	await k.settle();
+	equal(k.entries().map((e) => e.state), ["landed", "landed"]);
+	checkQueueEvents(k);
+	k.close();
+});
+
 Deno.test("watchdog: a lost land.completed is recovered from land.status", async () => {
 	const k = train();
 	const [c1, c2] = [1, 2].map((n) => k.submitChange(n));

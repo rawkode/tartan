@@ -91,6 +91,12 @@ export interface Env {
 	 */
 	readonly TARTAN_WORKLOAD_TRANSPORT?: string;
 	/**
+	 * Per-stage override of `ECHO_ENABLED` (`render-config.ts --echo`,
+	 * `on` or `off`), read with `echoEnabledOf`; absent = the compiled
+	 * default.
+	 */
+	readonly TARTAN_ECHO?: string;
+	/**
 	 * Monorepo projects (WP25 slice A′): `scan` makes cuenv
 	 * `#Project`s the primary project detector (a textual scan, Tier 0) and
 	 * serves the projects API and pages; absent or `off` (the default) keeps

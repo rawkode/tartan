@@ -43,7 +43,11 @@ import {
 
 /** Largest upstream advertisement or `ls-refs` answer the gateway rewrites in memory. */
 export const ADVERTISEMENT_MAX_BYTES = 32 * 1024 * 1024;
-/** A member v2 request larger than this is forwarded without being sniffed. */
+/**
+ * A member request up to this size is buffered: a v2 request is sniffed, and
+ * a buffered request can be resent when the upstream answers a transient 5xx
+ * (`callUpstream`); a larger one is streamed as is.
+ */
 export const MEMBER_SNIFF_MAX_BYTES = 4 * 1024 * 1024;
 /** The agent string of advertisements the gateway synthesizes itself. */
 export const GATEWAY_AGENT = "agent=tartan-gateway";
@@ -274,7 +278,7 @@ const sniffV2 = async (
 };
 
 /** Up to `max` bytes of a body: complete (the whole body) or a replay of what was read plus the rest. */
-const bufferHead = async (
+export const bufferHead = async (
 	body: ReadableStream<Uint8Array>,
 	max: number,
 ): Promise<
@@ -413,10 +417,12 @@ const memberUpload = async (
 	const repo = deps.repo(access.repoId);
 	let forward: BodyInit = body;
 	let filter: ((ref: string) => boolean) | null = null;
-	if (isProtocolV2(r.req.headers.get("git-protocol"))) {
-		const head = await bufferHead(body, MEMBER_SNIFF_MAX_BYTES);
-		if (head.complete) {
-			forward = head.bytes;
+	// Buffered (so a transient upstream answer can be resent), and a v2
+	// request sniffed for `ls-refs`.
+	const head = await bufferHead(body, MEMBER_SNIFF_MAX_BYTES);
+	if (head.complete) {
+		forward = head.bytes;
+		if (isProtocolV2(r.req.headers.get("git-protocol"))) {
 			const sniffed = await sniffV2(head.bytes, encoding);
 			if (sniffed?.command === "ls-refs") {
 				const readContext = await repo.readContext(r.auth as AuthContext);
@@ -425,8 +431,8 @@ const memberUpload = async (
 					sniffed.refPrefixes,
 				);
 			}
-		} else forward = head.rest;
-	}
+		}
+	} else forward = head.rest;
 	const upstream = await repo.upstream({}, "read");
 	let res: Response;
 	try {

@@ -46,6 +46,11 @@ import {
 import { ok, query, tokenApi } from "../../support/http.ts";
 import { slotLabel } from "../../support/labels.ts";
 import {
+	LANE_MAIN,
+	laneRemotePath,
+	REPO_BACKEND,
+} from "../../support/lanes.ts";
+import {
 	APPROVE_LABEL,
 	type Loop,
 	loopFor,
@@ -304,7 +309,18 @@ test.describe("M1 loop", { tags: ["loop"] }, () => {
 				expect(c.lanes[name].base, `lane ${name} starts at trunk`).toBe(
 					LOOP_HEAD,
 				);
-				expect(c.lanes[name].ref).toBe(`refs/heads/lanes/${c.lanes[name].id}`);
+				// A `repo` lane is its own Artifacts repo (main at its lane
+				// remote); a `branch` lane is a hidden ref of the canonical repo.
+				if (c.lanes[name].mode === REPO_BACKEND) {
+					expect(c.lanes[name].ref).toBe(LANE_MAIN);
+					expect(c.lanes[name].remote).toBe(
+						`${stage.origin}${laneRemotePath(repo.path, c.lanes[name].id)}`,
+					);
+				} else {
+					expect(c.lanes[name].ref).toBe(
+						`refs/heads/lanes/${c.lanes[name].id}`,
+					);
+				}
 			}
 			const toA = c.overlapsB.find((o) => o.laneId === c.lanes.A.id);
 			expect(toA, "B's claim lists A's lane as an overlap").toBeDefined();
@@ -343,13 +359,14 @@ test.describe("M1 loop", { tags: ["loop"] }, () => {
 		async ({ app, screen, browser, loop, repo, workdir }) => {
 			const c = await loop.claimed();
 			const p = await loop.pushed();
-			// git: each lane head is on the forge under its own lane ref.
+			// git: each lane head is on the forge under its own lane ref (its
+			// lane remote's main for a `repo` lane).
 			for (const name of AGENTS) {
 				const agent = loop.agentOf(name);
 				const clone = await agent.clone(workdir, repo.remote);
 				const refs = await agent.git(clone, [
 					"ls-remote",
-					"origin",
+					c.lanes[name].remote,
 					c.lanes[name].ref,
 				]);
 				expect(refs.trim().split(/\s+/)[0], `lane ${name}'s head`).toBe(

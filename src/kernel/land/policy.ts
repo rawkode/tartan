@@ -7,6 +7,12 @@
 // and a batch holds at most one such change. The kernel pins the sign-off
 // event into the batch's reason chain itself (K4).
 //
+// A change whose diff is still unknown at `land.submit` (no `push.diffed`
+// for its head, and the lane range could not be read) and has no sign-off
+// is refused with `policy-unknown`, never `policy-signoff`: the refusal is
+// transient (the queue retries the batch once the diff is known) and must
+// not eject a change that may touch no policy path at all.
+//
 // After compose, the per-change paths are authoritative (a list at its cap
 // counts as touching): the policy-touching change's candidate root `*.cue`
 // digest must equal the digest its sign-off names, or the change is ejected
@@ -40,7 +46,8 @@ const active = (ctx: LandCtx) => {
 
 /**
  * K13.3 at `land.submit`, before its transaction (the role lookup and the
- * diff backfill are async). Throws `denied(policy-batch | policy-signoff)`.
+ * diff backfill are async). Throws `denied(policy-batch | policy-signoff |
+ * policy-unknown)`.
  */
 export const checkPolicyAtSubmit = async (
 	ctx: LandCtx,
@@ -50,6 +57,8 @@ export const checkPolicyAtSubmit = async (
 	const rc = active(ctx);
 	if (rc === null) return [];
 	const touching: Pick<LandChange, "changeId" | "laneId" | "head">[] = [];
+	/** Changes whose diff is still unknown (counted as touching). */
+	const unknown = new Set<string>();
 	for (const change of changes) {
 		let touch = rc.policyTouchSync(change.laneId, change.head);
 		if (touch === "unknown" && ctx.ports.laneRange !== undefined) {
@@ -64,6 +73,7 @@ export const checkPolicyAtSubmit = async (
 			}
 			touch = rc.policyTouchSync(change.laneId, change.head);
 		}
+		if (touch === "unknown") unknown.add(change.changeId);
 		if (touch !== "clean") touching.push(change);
 	}
 	if (touching.length === 0) return [];
@@ -77,10 +87,18 @@ export const checkPolicyAtSubmit = async (
 	}
 	const change = touching[0];
 	const signoff = rc.signoffSync(change.laneId, change.head);
+	if (signoff === null && unknown.has(change.changeId)) {
+		throw denied(
+			"policy-unknown",
+			`policy-unknown: the diff of ${change.changeId} at head ${
+				change.head.slice(0, 12)
+			} is not known yet, so whether it changes a root .cue file is unknown; retry once it is (K13)`,
+		);
+	}
 	if (signoff === null) {
 		throw denied(
 			"policy-signoff",
-			`policy-signoff: ${change.changeId} changes a root .cue file (Tartan config; or its diff is unknown); a Maintainer must approve the policy change at head ${
+			`policy-signoff: ${change.changeId} changes a root .cue file (Tartan config); a Maintainer must approve the policy change at head ${
 				change.head.slice(0, 12)
 			} first (K13)`,
 		);

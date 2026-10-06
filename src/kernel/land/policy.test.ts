@@ -186,6 +186,65 @@ landTest(
 );
 
 landTest(
+	"K13.3: a change whose diff is still unknown is refused with policy-unknown (transient), never policy-signoff; once its diff is known it lands",
+	async (h) => {
+		h.reviewProvider = REVIEW_INST;
+		rolesOf(h).set(MAINT, 40);
+		// Pushed without its phase 2 (no push.diffed yet), and the lane range
+		// cannot be read (Artifacts answers 500): whether it touches policy is
+		// unknown.
+		const lane = await pushLane(h, {
+			owner: A,
+			files: { "src/app.ts": "x\n" },
+		});
+		const change = submitChange(h, lane);
+		h.failLaneRange = true;
+		const refused = await code(
+			h.land.submit(landRequest(h, [change]), QUEUE_INST),
+		);
+		match(refused, /^denied\(policy-unknown\)/);
+		ok(!refused.includes("policy-signoff"), refused);
+		ok(refused.includes(change.changeId), "the refusal names the change");
+		// Phase 2 lands later (the diff timer's backstop): the diff is known,
+		// the change touches no policy path and is accepted without a
+		// sign-off.
+		await h.core.recordDiff(lane.pushId!, {
+			rangeBase: lane.head,
+			rangeTruncated: false,
+			diffKey: `diffs/${h.repoId}/${lane.head}.json`,
+			commits: [],
+			paths: ["src/app.ts"],
+			truncated: false,
+		});
+		equal(
+			await code(h.land.submit(landRequest(h, [change]), QUEUE_INST)),
+			"ok",
+		);
+	},
+	opts,
+);
+
+landTest(
+	"K13.3: a policy change with an unknown diff and a standing sign-off of its head is accepted",
+	async (h) => {
+		h.reviewProvider = REVIEW_INST;
+		rolesOf(h).set(MAINT, 40);
+		const lane = await pushLane(h, {
+			owner: A,
+			files: { "tartan.cue": CONFIG },
+		});
+		const change = submitChange(h, lane);
+		await signOff(h, change.laneId, change.head);
+		h.failLaneRange = true;
+		equal(
+			await code(h.land.submit(landRequest(h, [change]), QUEUE_INST)),
+			"ok",
+		);
+	},
+	opts,
+);
+
+landTest(
 	"K13.2: two policy-touching changes in one batch are refused (policy-batch)",
 	async (h) => {
 		h.reviewProvider = REVIEW_INST;

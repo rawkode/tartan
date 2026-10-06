@@ -78,6 +78,8 @@ import { sameOriginPath } from "../ui/links.ts";
 import type { Http } from "./http.ts";
 import type {
 	ForgeSettingsDto,
+	GlobalLogDeadList,
+	GlobalLogStatus,
 	LaneSelfTestStatus,
 	RootKeyExport,
 } from "./types.ts";
@@ -95,6 +97,8 @@ export const ENDPOINTS = {
 	login: "/-/auth/login",
 	logout: "/-/auth/logout",
 	selftestLanes: "/-/api/admin/selftest/lanes",
+	logStatus: "/-/api/log/status",
+	logDead: "/-/api/log/dead",
 	rootKeyExport: "/-/api/admin/root-key/export",
 	settings: "/-/api/settings",
 	nodes: "/-/api/nodes",
@@ -149,6 +153,8 @@ export type GroupCreate = z.input<typeof NodeCreateRequestSchema>;
 export type DiffQuery = {
 	/** Ask for each file's unified patch (`FileDiff.patch`, `patchOmitted`). */
 	readonly patch?: boolean;
+	/** `/-/api/compare` only: read both sides from this lane (base and head are SHAs). */
+	readonly lane?: string;
 };
 
 /** `GET /-/api/lanes` filters (WP5a `handleLanes`). */
@@ -212,6 +218,10 @@ export const createApi = (http: Http) => ({
 			http.post<LaneSelfTestResult>(ENDPOINTS.selftestLanes),
 		lastLaneSelfTest: () =>
 			http.get<LaneSelfTestStatus>(ENDPOINTS.selftestLanes),
+		/** The global log on K2 (the forge Owner only, WP26). */
+		logStatus: () => http.get<GlobalLogStatus>(ENDPOINTS.logStatus),
+		/** The global log's parked records (the forge Owner only). */
+		logDead: () => http.get<GlobalLogDeadList>(ENDPOINTS.logDead),
 		settings: () => http.get<ForgeSettingsDto>(ENDPOINTS.settings),
 		/** Button path: the generated root key, shown once to move into `TARTAN_SECRET`. */
 		exportRootKey: () => http.post<RootKeyExport>(ENDPOINTS.rootKeyExport),
@@ -278,6 +288,7 @@ export const createApi = (http: Http) => ({
 				base,
 				head,
 				patch: options.patch ? 1 : undefined,
+				lane: options.lane,
 			}),
 	},
 

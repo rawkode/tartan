@@ -201,9 +201,23 @@ export const createSeeder = (ctx: LandCtx, deps: () => SeedDeps) => {
 				);
 			}
 		} finally {
-			ctx.tx(() =>
-				ctx.core.markKernelWriteSync(intent.id, pushed ? "pushed" : "abandoned")
-			);
+			ctx.tx(() => {
+				ctx.core.markKernelWriteSync(
+					intent.id,
+					pushed ? "pushed" : "abandoned",
+				);
+				// The seeded commits are trunk commits (K17's `trunk_commits`,
+				// in trunk order): without them every read keyed by a trunk
+				// position refused the seeded tip, and review's repo policy at a
+				// change's base answered `policy-not-trunk`, so no change based
+				// on a seeded trunk could be reviewed or land.
+				if (pushed) {
+					ctx.core.recordLandingSync({
+						trunkCommits: commits.map((c) => c.sha),
+						landedLaneIds: [],
+					});
+				}
+			});
 		}
 
 		// The labelled history: one landed batch and one done Advance each.

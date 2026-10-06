@@ -1174,6 +1174,63 @@ export const createRegistry = (
 	};
 
 	/**
+	 * A bundled pack's members hold the config the pack declares for them
+	 * (`members[].config` over each member's own defaults, as `plan`
+	 * computes it at install). When a deploy changes a bundled pack's member
+	 * config under the same versions, the installations the pack made follow
+	 * it (audited `extension.config`, reason `bundled-pack`): without this, a
+	 * Classic subtree installed before the pack named its tabs kept "Work"
+	 * and "Changes" instead of "Issues" and "Pull requests" (seen on an
+	 * upgraded forge). No route edits an installation's config, so
+	 * nothing an Owner chose is overwritten.
+	 */
+	const refreshPackMembersSync = (pack: Manifest): number => {
+		if (pack.kind !== "pack") return 0;
+		let refreshed = 0;
+		for (const member of pack.members ?? []) {
+			const row = packageRow(member.id, member.version);
+			if (row === null) continue;
+			const mm = manifestOf(row);
+			const config = JSON.stringify({
+				...(mm.config?.default ?? {}),
+				...(member.config ?? {}),
+			});
+			const stale = sql.exec<{ id: string }>(
+				`SELECT id FROM installations WHERE pack = ? AND ext_id = ?
+				 AND version = ? AND config_json <> ?`,
+				pack.id,
+				member.id,
+				member.version,
+				config,
+			).toArray();
+			if (stale.length === 0) continue;
+			sql.exec(
+				`UPDATE installations SET config_json = ? WHERE pack = ? AND ext_id = ?
+				 AND version = ?`,
+				config,
+				pack.id,
+				member.id,
+				member.version,
+			);
+			for (const { id } of stale) {
+				modules.events.auditSync({
+					principal: SYS_KERNEL,
+					action: "extension.config",
+					target: id,
+					data: {
+						ext: member.id,
+						version: member.version,
+						pack: pack.id,
+						reason: "bundled-pack",
+					},
+				});
+			}
+			refreshed += stale.length;
+		}
+		return refreshed;
+	};
+
+	/**
 	 * Drops what a retired builtin left behind (`RETIRED_BUILTINS`, not in
 	 * this deploy's bundle): every installation of it (pack members
 	 * included), its contributions and its bundled package rows, with one
@@ -1266,6 +1323,11 @@ export const createRegistry = (
 					repoConfig.bumpEpochSync(SYS_KERNEL, null);
 				}
 				changed += 1;
+			}
+			// After every package row is current: a pack's members are read
+			// from their own rows.
+			for (const pkg of pkgs) {
+				if (refreshPackMembersSync(pkg.manifest) > 0) changed += 1;
 			}
 			if (changed > 0) bumpExtVersion();
 			repoConfig.onEvaluatorSync();

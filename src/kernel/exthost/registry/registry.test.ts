@@ -716,6 +716,45 @@ Deno.test("a changed bundled manifest under the same version gives its installat
 	equal(r.registerBuiltinsSync([changed]), 0);
 });
 
+Deno.test("a bundled pack's member config follows a deploy that changes it (e2e: the Classic pack's labels)", async () => {
+	// A Classic subtree installed before the pack named its tabs
+	// "Issues" and "Pull requests": its tartan.work kept the old config.
+	const { fx, r, f } = setup();
+	await f.install(OWNER, req("tartan.pack.swarm", "acme"));
+	const workOf = async () =>
+		(await f.inForce(nodeId(fx, "acme/platform/router"))).find((i) =>
+			i.installation.extId === "tartan.work"
+		)!.installation;
+	const before = await workOf();
+	deepStrictEqual(before.config, {});
+	const old = PKGS.find((p) => p.manifest.id === "tartan.pack.swarm")!
+		.manifest;
+	const labels = { work: "Issues", "new-work": "New issue" };
+	const changed = bundled(manifest("tartan.pack.swarm", {
+		...JSON.parse(JSON.stringify(old)),
+		members: (old.members ?? []).map((m) =>
+			m.id === "tartan.work" ? { ...m, config: { labels } } : m
+		),
+	}));
+	ok(r.registerBuiltinsSync([changed]) >= 1);
+	const after = await workOf();
+	equal(after.id, before.id, "the same installation");
+	deepStrictEqual(after.config, { labels });
+	ok(
+		fx.events.audits.some((a) =>
+			a.action === "extension.config" && a.target === before.id
+		),
+		"the refresh is audited",
+	);
+	// The other members and a manual install of the same extension keep
+	// their config; a second boot has nothing to do.
+	const board = (await f.inForce(nodeId(fx, "acme/platform/router"))).find(
+		(i) => i.installation.extId === "tartan.board",
+	)!.installation;
+	deepStrictEqual(board.config, {});
+	equal(r.registerBuiltinsSync([changed]), 0);
+});
+
 Deno.test("an installation still holding an older bundled manifest's grants is brought up to date at the next boot, content unchanged", async () => {
 	// dev-e2e and the demo forge registered the new Weave manifest before
 	// the grant refresh existed: the package row is current, its

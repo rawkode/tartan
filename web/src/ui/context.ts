@@ -18,6 +18,8 @@ export type UiDiffRequest = {
 	readonly repo: string;
 	readonly base: string;
 	readonly head: string;
+	/** Read both sides from this lane (a `repo` lane's commits are in its lane repo). */
+	readonly lane?: string;
 	readonly paths?: readonly string[];
 };
 

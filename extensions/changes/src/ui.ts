@@ -196,6 +196,9 @@ const diffTab = (repo: RepoCtx, change: Change, ctx: SlotContext): UiDoc => {
 				base: rev.base,
 				head: rev.head,
 				source: `lane ${change.laneId}, revision ${rev.n}`,
+				// A `repo` lane's head is in its lane repo until it lands: the host
+				// compares within the lane (members only).
+				lane: change.laneId,
 			}),
 		]),
 		{ refreshOn: ["changes.*"] },
@@ -268,6 +271,7 @@ const revisionsTab = async (
 					base: prev.head,
 					head: rev.head,
 					source: `r${prev.n} → r${rev.n}`,
+					lane: change.laneId,
 				}),
 			]),
 		]),

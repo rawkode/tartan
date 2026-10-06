@@ -80,6 +80,8 @@ export type World = {
 	readonly redirects: Map<string, string>;
 	readonly forgeOwners: Set<string>;
 	config: GatewayConfig;
+	/** The installations' echo on accepted pushes; none by default. */
+	echo: GatewayDeps["echo"];
 	/** Replaces RepoDO's facade methods the gateway calls (fault injection). */
 	repo: GatewayRepo;
 	principal(
@@ -230,6 +232,7 @@ export const createWorld = async (
 		redirects,
 		forgeOwners,
 		config: defaultConfig(),
+		echo: undefined,
 		repo: realRepo,
 		principal: (kind, opts = {}) => {
 			const id = `${kind === "user" ? "u" : "a"}_${ulid()}`;
@@ -336,6 +339,10 @@ export const createWorld = async (
 		},
 		repo: () => world.repo,
 		isForgeOwner: (principal) => Promise.resolve(forgeOwners.has(principal)),
+		echo: (event, at, budgetMs) =>
+			world.echo === undefined
+				? Promise.resolve([])
+				: world.echo(event, at, budgetMs),
 		probe: () => ({
 			laneDiff: (source, after) => {
 				probeCalls.push({ source, after });

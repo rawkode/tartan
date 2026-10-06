@@ -45,6 +45,8 @@ import { logStreamName } from "../src/kernel/bus/config.ts";
 import { cfK2Streams, ensureLogStream, retentionFor } from "./k2.ts";
 import {
 	defaultOutPath,
+	ECHO_VALUES,
+	type EchoOverride,
 	type K2Render,
 	LANE_MODE_VALUES,
 	type LaneModeOverride,
@@ -116,6 +118,8 @@ export type DeployOptions = PreflightPlan & {
 	readonly laneMode?: LaneModeOverride;
 	/** `--workload-transport`: the stage's override of `WORKLOAD_TRANSPORT` (needs `--k2` with the token). */
 	readonly workloadTransport?: WorkloadTransportOverride;
+	/** `--echo`: the stage's override of `ECHO_ENABLED` (once its push-guidance tests pass live). */
+	readonly echo?: EchoOverride;
 	readonly account?: string;
 	/** The global log (WP26); absent: no stream, every run dispatches inline. */
 	readonly k2?: DeployK2;
@@ -143,6 +147,7 @@ export const DEPLOY_FLAGS = {
 	"build-ext": "bool",
 	"lane-mode": "value",
 	"workload-transport": "value",
+	echo: "value",
 	k2: "bool",
 	"k2-stream": "value",
 	"k2-retention": "value",
@@ -175,6 +180,8 @@ export const DEPLOY_USAGE =
   --lane-mode <mode>      TARTAN_LANE_MODE: this stage's lane mode (import | branch;
                           default the compiled LANE_MODE)
   --workload-transport <t> TARTAN_WORKLOAD_TRANSPORT: local | k2 (k2 needs --k2 and the token)
+  --echo <on|off>         TARTAN_ECHO: band-2 guidance on this stage (default the compiled
+                          ECHO_ENABLED)
   --build-ext             also build the Rust → WASM extension packages
                           (needs cargo, the wasm32-unknown-unknown target,
                           wasm-tools and jco; never committed, built here)
@@ -243,9 +250,15 @@ export const optionsFromArgs = (
 /** `--lane-mode` and `--workload-transport` (validated here and again by render-config). */
 const switchOverrides = (
 	flags: Map<string, string | true>,
-): Pick<DeployOptions, "laneMode" | "workloadTransport"> => {
+): Pick<DeployOptions, "laneMode" | "workloadTransport" | "echo"> => {
 	const laneMode = flags.get("lane-mode");
 	const transport = flags.get("workload-transport");
+	const echo = flags.get("echo");
+	if (
+		echo !== undefined && !(ECHO_VALUES as readonly unknown[]).includes(echo)
+	) {
+		throw new UsageError(`--echo is ${ECHO_VALUES.join(" or ")}`);
+	}
 	if (
 		laneMode !== undefined &&
 		!(LANE_MODE_VALUES as readonly unknown[]).includes(laneMode)
@@ -276,6 +289,7 @@ const switchOverrides = (
 		...(transport === undefined
 			? {}
 			: { workloadTransport: transport as WorkloadTransportOverride }),
+		...(echo === undefined ? {} : { echo: echo as EchoOverride }),
 	};
 };
 
@@ -1019,7 +1033,32 @@ export type DeployRecord = {
 	readonly runner?: RunnerInfo;
 	readonly setupState: SetupState;
 	readonly setupUrlFile?: string;
+	/** The rendered switches of this deploy (absent: the compiled defaults). */
+	readonly switches: DeploySwitches;
 };
+
+/** What a deploy switched on for its stage, as the rendered vars say. */
+export type DeploySwitches = {
+	readonly devTools: boolean;
+	readonly repoConfig: boolean;
+	readonly projects: boolean;
+	readonly laneMode?: LaneModeOverride;
+	readonly workloadTransport?: WorkloadTransportOverride;
+	readonly echo?: EchoOverride;
+	readonly buildExt: boolean;
+};
+
+export const switchesOf = (options: DeployOptions): DeploySwitches => ({
+	devTools: options.devTools,
+	repoConfig: options.repoConfig,
+	projects: options.projects,
+	...(options.laneMode === undefined ? {} : { laneMode: options.laneMode }),
+	...(options.workloadTransport === undefined
+		? {}
+		: { workloadTransport: options.workloadTransport }),
+	...(options.echo === undefined ? {} : { echo: options.echo }),
+	buildExt: options.buildExt,
+});
 
 export const recordPath = (root: string, stage: string): string =>
 	path.join(root, ".wrangler", "deploy", `record.${stage}.json`);
@@ -1219,6 +1258,7 @@ export const runDeploy = async (
 		...(options.workloadTransport === undefined
 			? {}
 			: { workloadTransport: options.workloadTransport }),
+		...(options.echo === undefined ? {} : { echo: options.echo }),
 		...(k2 === undefined ? {} : { k2 }),
 		sourceDir: deps.root,
 		outDir: path.dirname(configPath),
@@ -1473,6 +1513,7 @@ export const runDeploy = async (
 		...(runner ? { runner } : {}),
 		setupState: health.setupState,
 		...(setupUrlFile ? { setupUrlFile } : {}),
+		switches: switchesOf(options),
 	};
 	const file = recordPath(deps.root, options.stage);
 	// Each deploy writes a fresh record; destroy adds its outcome to it.

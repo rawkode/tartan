@@ -11,6 +11,7 @@
 // host-only and is never accepted from an extension.
 
 import { z } from "zod";
+import { LaneIdSchema } from "./common.ts";
 import { byteLength } from "./text.ts";
 
 export const UI_LIMITS = {
@@ -186,6 +187,13 @@ export type DiffNode = Base & {
 	base?: string;
 	head?: string;
 	source?: string;
+	/**
+	 * The lane whose objects `head` (and `base`) are read from: a `repo`
+	 * lane's commits live in its own lane repo, never in the canonical one
+	 * until they land, so the host asks for the comparison with the
+	 * lane as the source (members only).
+	 */
+	lane?: string;
 	paths?: string[];
 	patch?: string;
 };
@@ -436,6 +444,7 @@ const UiNodeUnion = z.discriminatedUnion("t", [
 		base: z.string().optional(),
 		head: z.string().optional(),
 		source: z.string().optional(),
+		lane: LaneIdSchema.optional(),
 		paths: z.array(z.string()).optional(),
 		patch: z.string().max(60000).optional(),
 	}),

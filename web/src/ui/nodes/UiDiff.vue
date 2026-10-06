@@ -13,6 +13,8 @@ const props = defineProps<{
 	base?: string;
 	head?: string;
 	source?: string;
+	/** Read both sides from this lane (a `repo` lane's commits live in its lane repo). */
+	lane?: string;
 	paths?: readonly string[];
 	patch?: string;
 }>();
@@ -32,6 +34,7 @@ onMounted(async () => {
 			repo: props.repo,
 			base: props.base,
 			head: props.head,
+			...(props.lane === undefined ? {} : { lane: props.lane }),
 			paths: props.paths,
 		});
 		const wanted = props.paths ? new Set(props.paths) : null;

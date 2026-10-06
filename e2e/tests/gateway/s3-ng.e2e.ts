@@ -8,9 +8,15 @@
 // -q and -v outputs. No output ever carries a control character.
 //
 // Band 2 (`remote: tartan ▸ …` guidance on a refusal, echo lines on an
-// accepted lane push) is sent only with `ECHO_ENABLED` (src/constants.ts):
-// while it is off, the matrix checks that no Tartan band-2 line is
-// sent, and the echo tests are pending skips that run once it is on.
+// accepted lane push) is sent only with echo on (`ECHO_ENABLED` in
+// src/constants.ts, or `stage up --echo on`). While it is off, the
+// matrix checks that no Tartan band-2 line is sent; with it on, the refusal
+// guidance is checked. The accepted-push echo test stays a pending skip
+// whatever the switch: no Swarm pack member contributes an echo yet, so
+// this suite cannot see one. The WASM suite (tests/wasm/no-secrets.e2e.ts)
+// checks an extension's echo on an accepted push; it is best-effort (within
+// `ECHO_LIMITS.totalBudgetMs`), so that suite pushes up to three times and
+// logs which push carried it.
 //
 // Untrusted text (a work item title with ESC, OSC and BEL sequences) is
 // stripped of its control characters before it reaches another agent's
@@ -27,7 +33,7 @@ import { sharedStore, test } from "../../support/fixtures.ts";
 import { FIXTURE_HEAD } from "../../support/fixture-repo.ts";
 import {
 	controlsIn,
-	echoEnabled,
+	echoOn,
 	refusedWith,
 	tartanRemoteLines,
 } from "../../support/gateway.ts";
@@ -35,12 +41,12 @@ import { git, gitDate, gitEnv, gitOk } from "../../support/git.ts";
 import { PACK_GROUP } from "../../support/names.ts";
 import { fixtureRepo } from "../../support/repos.ts";
 import { keyOf } from "../../support/shared.ts";
-import { type Stage, tokensOf } from "../../support/stage.ts";
+import { type Stage, stage, tokensOf } from "../../support/stage.ts";
 
 const WOVEN: RefPolicyReason = "woven-by-tartan";
-const ECHO = echoEnabled();
+const ECHO = echoOn(stage().switches);
 const ECHO_OFF =
-	"pending: band-2 lines need ECHO_ENABLED (src/constants.ts), which is off by default";
+	"pending: band-2 lines need echo on this stage (stage up --echo on, or ECHO_ENABLED in src/constants.ts)";
 
 /** How stock git can ask for the refusal: capabilities, protocol, output. */
 const MATRIX: readonly {
@@ -158,8 +164,13 @@ test.describe("The synthesized ng through the product gateway", {
 	test(
 		"an accepted lane push carries Tartan's band-2 lines before git's own end",
 		{
-			skip: ECHO ? false : ECHO_OFF,
-			tags: ["echo", "agent"],
+			// An accepted push carries the echo of the installations in force
+			// (its echo); no Swarm member has an `echo` contribution yet
+			// (radar's sideband is a stretch), so this repo gets none. The WASM
+			// suite checks acme.no-secrets' echo lines on a real push.
+			skip:
+				"pending: no Swarm pack member contributes an echo yet (radar's sideband echo); tests/wasm/no-secrets.e2e.ts checks an extension's echo on an accepted push",
+			tags: ["echo", "agent", "pending"],
 			timeout: 300_000,
 		},
 		async ({ stage, workdir }) => {
@@ -176,7 +187,7 @@ test.describe("The synthesized ng through the product gateway", {
 			await agent.commit(clone, "S3 echo");
 			const pushed = await agent.gitResult(clone, [
 				"push",
-				"origin",
+				lane.remote,
 				`HEAD:${lane.ref}`,
 			]);
 			expect(pushed.code).toBe(0);
@@ -222,7 +233,9 @@ test.describe("The synthesized ng through the product gateway", {
 			await agent.commit(clone, `S3 escapes ${agent.name}`);
 			const pushed = await agent.gitResult(clone, [
 				"push",
-				"origin",
+				// The lane's own remote: the canonical repo for a branch lane, its
+				// lane remote for a `repo` lane.
+				lane.remote,
 				`HEAD:${lane.ref}`,
 			]);
 			expect(pushed.code, `agent ${agent.name} pushes its lane`).toBe(0);

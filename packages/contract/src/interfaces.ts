@@ -830,6 +830,11 @@ export const QUEUE_EVENTS = {
 		reason: z.enum(["conflict", "veto", "failure", "stale", "withdrawn"]),
 		paths: z.array(z.string()).optional(),
 		conflictsWith: z.array(ChangeIdSchema).optional(),
+		/**
+		 * The kernel refusal that named the change, when one ejected it: the
+		 * `denied` reason of `land.submit` (`policy-signoff`, K13.3).
+		 */
+		code: z.string().max(64).optional(),
 	}),
 	"queue.landed": z.looseObject({
 		changeId: ChangeIdSchema,

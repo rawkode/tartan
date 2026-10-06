@@ -208,6 +208,8 @@ export type LandHarness = {
 	failExec: ((argv: readonly string[]) => boolean) | null;
 	/** `LAND.create` fails this many more times. */
 	failCreates: number;
+	/** The land ports' `laneRange` (phase 2 of a push) fails while set. */
+	failLaneRange: boolean;
 	/** The sandbox's mirror directory (delete it to model a restart). */
 	readonly mirrorRoot: string;
 	readonly services: LandServices;
@@ -343,12 +345,14 @@ export const createLandHarness = async (
 		forgeHold: string | null;
 		devTools: boolean;
 		forgeHoldId: number | undefined;
+		failLaneRange: boolean;
 	} = {
 		gates: null,
 		reviewProvider: undefined,
 		forgeHold: null,
 		devTools: false,
 		forgeHoldId: undefined,
+		failLaneRange: false,
 	};
 	const dispatch = {
 		gates: (_point: unknown, input: unknown) =>
@@ -554,6 +558,9 @@ export const createLandHarness = async (
 				),
 			roleOf: (principal) => Promise.resolve(roles.get(principal) ?? 0),
 			laneRange: async (laneId) => {
+				if (harnessRef.failLaneRange) {
+					throw new Error("Artifacts answered 500 (fault injected)");
+				}
 				await (coreFacade as RepoCoreFacade).laneRange(laneId);
 			},
 			waitUntil: (p) => void waits.push(p),
@@ -774,6 +781,12 @@ export const createLandHarness = async (
 		},
 		set failCreates(v) {
 			faults.creates = v;
+		},
+		get failLaneRange() {
+			return harnessRef.failLaneRange;
+		},
+		set failLaneRange(v) {
+			harnessRef.failLaneRange = v;
 		},
 		mirrorRoot,
 		services,

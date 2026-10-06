@@ -24,7 +24,8 @@ import { git, gitDate, gitEnv, gitOk } from "../support/git.ts";
 import { ok, query, tokenApi } from "../support/http.ts";
 import { expectApiClean, watchApi } from "../support/page.ts";
 import { fixtureRepo, importModeRepo } from "../support/repos.ts";
-import { type Stage, tokensOf } from "../support/stage.ts";
+import { echoOn } from "../support/gateway.ts";
+import { type Stage, stage, tokensOf } from "../support/stage.ts";
 
 type Repo = Awaited<ReturnType<typeof importModeRepo>>;
 
@@ -211,9 +212,10 @@ test.describe("git: import, clone and the push rules", {
 // repo is not available here; the fixture repo is imported and protected.
 test("a refused push to main carries remote: guidance", {
 	session: "developer",
-	tags: ["git", "regression", "pending"],
-	skip:
-		"pending: band-2 guidance needs ECHO_ENABLED (src/constants.ts), off by default",
+	tags: ["git", "regression", "echo"],
+	skip: echoOn(stage().switches)
+		? false
+		: "pending: band-2 guidance needs echo on this stage (stage up --echo on, or ECHO_ENABLED in src/constants.ts)",
 }, async ({ stage, workdir }) => {
 	const { ownerPat } = tokensOf(stage);
 	const repo = await fixtureRepo(stage, "classic", "push-guidance");

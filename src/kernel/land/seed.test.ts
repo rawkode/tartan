@@ -138,6 +138,21 @@ landTest(
 		const types = h.events.read({ since: 0, limit: 500 }).map((e) => e.type);
 		ok(!types.includes("ref.advanced"), types.join(","));
 
+		// Every seeded commit is a trunk commit, in trunk order after the old
+		// tip (repo policy at a change's base reads trunk positions; e2e: a
+		// change on a seeded trunk was refused `policy-not-trunk`).
+		const seqs = h.storage.sql.exec<{ sha: string; seq: number }>(
+			"SELECT sha, seq FROM trunk_commits ORDER BY seq",
+		).toArray();
+		const position = new Map(seqs.map((r) => [r.sha, r.seq]));
+		ok(position.has(before), "the old tip is a trunk commit");
+		const seededSeqs = oldestFirst.map((a) => position.get(a.newSha!));
+		ok(seededSeqs.every((s) => s !== undefined), "every seeded commit");
+		for (let i = 1; i < seededSeqs.length; i++) {
+			ok(seededSeqs[i]! > seededSeqs[i - 1]!, `in trunk order at ${i}`);
+		}
+		ok(seededSeqs[0]! > position.get(before)!, "after the old tip");
+
 		// A second seed continues the history from the new tip.
 		const again = await h.land.seedHistory({ count: 2, actor: OWNER });
 		const newest = (await h.land.advances({ limit: 2 })).advances;

@@ -867,3 +867,22 @@ Deno.test("--lane-mode and --workload-transport render the stage's switch overri
 		/--workload-transport is local or k2/,
 	);
 });
+
+Deno.test("--echo renders the stage's TARTAN_ECHO; absent keeps the compiled ECHO_ENABLED", () => {
+	const vars = (o: Partial<RenderOptions>) => obj(render(o).vars);
+	assert.equal(vars({}).TARTAN_ECHO, undefined);
+	assert.equal(vars({ echo: "on" }).TARTAN_ECHO, "on");
+	assert.equal(vars({ echo: "off" }).TARTAN_ECHO, "off");
+	const header = renderConfig(source, options({ echo: "on" })).split("\n")[1];
+	assert.ok(header.includes("echo=on"), header);
+	assert.equal(parseCliArgs(["--stage", "dev", "--echo", "on"])?.echo, "on");
+	assert.equal(parseCliArgs(["--stage", "dev"])?.echo, undefined);
+	throwsRender(
+		() => parseCliArgs(["--stage", "dev", "--echo", "yes"]),
+		/--echo is on or off/,
+	);
+	throwsRender(
+		() => render({ echo: "loud" as "on" }),
+		/--echo is on or off/,
+	);
+});

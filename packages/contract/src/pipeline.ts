@@ -215,6 +215,14 @@ export type JobStatus = {
 	readonly tail?: string;
 };
 
+/** How a CI run reaches its Workflow: through the global log's consumer, or inline (WP26). */
+export const RUN_TRANSPORTS = ["k2", "local"] as const;
+export type RunTransport = typeof RUN_TRANSPORTS[number];
+
+/** Who created a run's Workflow instance (`run.dispatched.via`, WP26). */
+export const RUN_DISPATCH_VIAS = ["k2", "backstop", "local"] as const;
+export type RunDispatchVia = typeof RUN_DISPATCH_VIAS[number];
+
 export type RunStatus = {
 	readonly runId: string;
 	readonly repoId: string;
@@ -225,6 +233,12 @@ export type RunStatus = {
 	readonly requestedBy: string;
 	readonly createdAt: number;
 	readonly finishedAt?: number;
+	/** The run's recorded transport (absent on runs older than the global log). */
+	readonly transport?: RunTransport;
+	/** Who created its Workflow instance, once it was dispatched. */
+	readonly via?: RunDispatchVia;
+	/** When its Workflow instance was created. */
+	readonly dispatchedAt?: number;
 	readonly jobs: readonly JobStatus[];
 };
 

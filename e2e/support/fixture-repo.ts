@@ -247,6 +247,240 @@ export const BROKEN_CONFIG_FIXTURE: Fixture = {
 };
 
 // ---------------------------------------------------------------------------
+// Two lane repositories in one Advance (multi-repo compose)
+// ---------------------------------------------------------------------------
+
+/**
+ * The Weave's debounce in the compose repo: an overlay of the Swarm group's
+ * Weave (`config.repoOverridable`), so the first approved change waits for
+ * the second before a batch forms. It is the Weave's maximum (60 s): both
+ * approvals must arrive within it, or the changes land through two Advances
+ * and the compose test fails on timing, not on the forge.
+ */
+export const COMPOSE_DEBOUNCE_MS = 60_000;
+
+export const COMPOSE_COMMITS: readonly FixtureCommit[] = [
+	{
+		subject: "Configure a patient Weave",
+		at: T0,
+		files: {
+			"README.md":
+				"# e2e compose\n\nTwo lane repositories land through one Advance.\n",
+			"ci.cue": ciCue("One job that prints a marker for changes and lands."),
+			"weave.cue": [
+				"package tartan",
+				"",
+				"// The Weave waits for a second approved change before a batch forms.",
+				`extensions: "tartan.weave": settings: debounceMs: ${COMPOSE_DEBOUNCE_MS}`,
+				"",
+			].join("\n"),
+		},
+	},
+];
+
+export const COMPOSE_SHAS: readonly string[] = [
+	"7b2f125c739bb69dcb5805bfb3f6b0d364e7c485",
+];
+
+export const COMPOSE_FIXTURE: Fixture = {
+	commits: COMPOSE_COMMITS,
+	shas: COMPOSE_SHAS,
+};
+
+// ---------------------------------------------------------------------------
+// A Swarm repo whose queue@1 an Owner swaps to FIFO
+// ---------------------------------------------------------------------------
+
+/**
+ * Every change is routed to a person (an owners rule of sensitivity 3 on
+ * every path), because FIFO lands only what a person approved.
+ */
+export const SWAP_COMMITS: readonly FixtureCommit[] = [
+	{
+		subject: "Route every change to a person",
+		at: T0,
+		files: {
+			"README.md":
+				"# e2e queue swap\n\nAn Owner swaps the queue@1 provider of this repository.\n",
+			"ci.cue": ciCue("One job that prints a marker for changes and lands."),
+			"review.cue": [
+				"package tartan",
+				"",
+				"// A person reviews every change here.",
+				'extensions: "tartan.review": settings: owners: rules: [',
+				'\t{paths: ["**"], sensitivity: 3},',
+				"]",
+				"",
+			].join("\n"),
+		},
+	},
+];
+
+export const SWAP_SHAS: readonly string[] = [
+	"e1bfbd96b76e9b73a000e0fadb08867d9b8a431e",
+];
+
+export const SWAP_FIXTURE: Fixture = { commits: SWAP_COMMITS, shas: SWAP_SHAS };
+
+// ---------------------------------------------------------------------------
+// A monorepo whose projects are cuenv `#Project`s
+// ---------------------------------------------------------------------------
+
+const CUENV_IMPORT = 'import "github.com/cuenv/cuenv/schema"';
+
+/** The two cuenv projects of the monorepo fixture: name, root. */
+export const MONOREPO_PROJECTS = {
+	design: { name: "e2e-design", root: "packages/design" },
+	web: { name: "e2e-web", root: "apps/web" },
+} as const;
+export type MonorepoProject = keyof typeof MONOREPO_PROJECTS;
+
+const cuenvProject = (name: string): string =>
+	[
+		"package cuenv",
+		"",
+		CUENV_IMPORT,
+		"",
+		"schema.#Project",
+		"",
+		`name: "${name}"`,
+		"",
+		"tasks: check: schema.#Task & {",
+		'\tcommand: "bun"',
+		'\targs: ["run", "check"]',
+		"}",
+		"",
+	].join("\n");
+
+export const MONOREPO_COMMITS: readonly FixtureCommit[] = [
+	{
+		subject: "Lay out the monorepo",
+		at: T0,
+		files: {
+			"README.md":
+				"# e2e monorepo\n\nTwo cuenv projects: a design system and a website.\n",
+			"ci.cue": ciCue("One job that prints a marker for changes and lands."),
+			// A CUE module root: cuenv's projects live in one (the detector reads
+			// nothing without it). No deps: package tartan imports none.
+			"cue.mod/module.cue": [
+				'module: "example.com/e2e/monorepo"',
+				'language: version: "v0.14.0"',
+				"",
+			].join("\n"),
+			"env.cue": [
+				"package cuenv",
+				"",
+				CUENV_IMPORT,
+				"",
+				"// The root layer: every project inherits it.",
+				"schema.#Base",
+				"",
+				'env: LOG_LEVEL: "info"',
+				"",
+			].join("\n"),
+			[`${MONOREPO_PROJECTS.design.root}/env.cue`]: cuenvProject(
+				MONOREPO_PROJECTS.design.name,
+			),
+			[`${MONOREPO_PROJECTS.design.root}/README.md`]:
+				"# Design system\n\nTokens and components for the e2e website.\n",
+			[`${MONOREPO_PROJECTS.design.root}/src/tokens.ts`]:
+				'export const brand = "#5b21b6";\n',
+			[`${MONOREPO_PROJECTS.web.root}/env.cue`]: cuenvProject(
+				MONOREPO_PROJECTS.web.name,
+			),
+			[`${MONOREPO_PROJECTS.web.root}/README.md`]:
+				"# Website\n\nThe e2e website.\n",
+			[`${MONOREPO_PROJECTS.web.root}/src/index.ts`]:
+				'export const title = "e2e";\n',
+		},
+	},
+];
+
+export const MONOREPO_SHAS: readonly string[] = [
+	"d8b16b446a440729275c1d33787d453fd1956f57",
+];
+
+export const MONOREPO_FIXTURE: Fixture = {
+	commits: MONOREPO_COMMITS,
+	shas: MONOREPO_SHAS,
+};
+
+// ---------------------------------------------------------------------------
+// Repository config in CUE, end to end
+// ---------------------------------------------------------------------------
+
+/** The jobs of the CUE suite's pipeline (`tartan.ci`). */
+export const CUE_JOBS = ["e2e-check", "e2e-lint"] as const;
+/** The owners rule's paths: a change there is routed to a person. */
+export const CUE_OWNED = "docs/**";
+/** The project the config names. */
+export const CUE_PROJECT = "app";
+
+/** `ci.cue` with `jobs` (each prints `<job>-ok`), run for changes and lands. */
+export const cueCi = (jobs: readonly string[]): string =>
+	[
+		"package tartan",
+		"",
+		"// The pipeline: every job runs for changes and lands.",
+		'extensions: "tartan.ci": settings: pipeline: {',
+		...jobs.map((j) => `\tjobs: "${j}": run: "echo ${j}-ok"`),
+		`\ton: {change: [${jobs.map((j) => `"${j}"`).join(", ")}], land: [${
+			jobs.map((j) => `"${j}"`).join(", ")
+		}]}`,
+		'\tlanes: ci: "on-submit"',
+		"}",
+		"",
+	].join("\n");
+
+export const CUE_COMMITS: readonly FixtureCommit[] = [
+	{
+		subject: "Configure the repository in CUE",
+		at: T0,
+		files: {
+			"README.md":
+				"# e2e cue\n\nThe root package tartan configures CI, review and projects.\n",
+			"tartan.cue": [
+				"package tartan",
+				"",
+				"// One project: everything under src/.",
+				`projects: ${CUE_PROJECT}: root: "src"`,
+				"",
+			].join("\n"),
+			"ci.cue": cueCi(CUE_JOBS),
+			"review.cue": [
+				"package tartan",
+				"",
+				"// The docs are owned: a person reviews every change there.",
+				'extensions: "tartan.review": settings: owners: rules: [',
+				`\t{paths: ["${CUE_OWNED}"], sensitivity: 3},`,
+				"]",
+				"",
+			].join("\n"),
+			"env.cue": [
+				"package cuenv",
+				"",
+				"// Another tool's root file: the forge must leave it alone.",
+				'env: NODE_ENV: "test"',
+				"",
+			].join("\n"),
+			"src/app.ts": 'export const app = "e2e";\n',
+			"docs/guide.md": "# Guide\n\nHow the e2e app works.\n",
+		},
+	},
+];
+
+export const CUE_SHAS: readonly string[] = [
+	"73547929020ea903deeb82b7448106d93318ac97",
+];
+
+export const CUE_FIXTURE: Fixture = { commits: CUE_COMMITS, shas: CUE_SHAS };
+
+/** The root `.cue` files of the CUE suite's trunk, any package. */
+export const CUE_ROOT_FILES: readonly string[] = Object.keys(
+	CUE_COMMITS[0].files,
+).filter((f) => f.endsWith(".cue")).sort();
+
+// ---------------------------------------------------------------------------
 
 /**
  * Builds `commits` in `dir` (an empty directory) with `home` as git's HOME;

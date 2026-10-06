@@ -25,8 +25,8 @@ import {
 import type { BrowseDeps, BrowseRepo } from "../deps.ts";
 
 export type ProbeCall = {
-	readonly a: { repoId: string; sha: string };
-	readonly b: { repoId: string; sha: string };
+	readonly a: { repoId: string; laneId?: string; sha: string };
+	readonly b: { repoId: string; laneId?: string; sha: string };
 	/** `{patch: true}` was asked for (`patch=1`). */
 	readonly patch: boolean;
 };
@@ -98,8 +98,16 @@ export const createBrowseHarness = () => {
 		probe: () => ({
 			diff: (a, b, options) => {
 				probeCalls.push({
-					a: { repoId: a.repoId, sha: a.sha },
-					b: { repoId: b.repoId, sha: b.sha },
+					a: {
+						repoId: a.repoId,
+						...(a.laneId === undefined ? {} : { laneId: a.laneId }),
+						sha: a.sha,
+					},
+					b: {
+						repoId: b.repoId,
+						...(b.laneId === undefined ? {} : { laneId: b.laneId }),
+						sha: b.sha,
+					},
 					patch: options?.patch === true,
 				});
 				return Promise.resolve(probeAnswer);

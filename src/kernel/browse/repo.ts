@@ -13,6 +13,8 @@ import {
 	type CompareResponse,
 	type FileDiff,
 	invalid,
+	isIdOf,
+	isSha,
 	type LogResponse,
 	NOTES_REF,
 	notFound,
@@ -372,8 +374,49 @@ export const createCommitHandler = (depsFor = defaultDeps): RouteHandler =>
 		);
 	});
 
+/**
+ * `lane=<laneId>`: both sides are read from that lane (`base` and `head`
+ * are SHAs): a `repo` lane's commits live in its own lane repo until they
+ * land, so a change's diff names commits the canonical repo does
+ * not hold. Members only: lanes have no public view.
+ */
+const laneCompare = async (
+	s: Session,
+	laneId: string,
+): Promise<Response> => {
+	const { view, url, deps } = s;
+	if (view.publicView || !isIdOf("lane", laneId)) {
+		throw notFound(`unknown lane ${laneId}`);
+	}
+	const base = param(url, "base", 1024);
+	const head = param(url, "head", 1024);
+	if (!isSha(base) || !isSha(head)) {
+		throw invalid("with lane, base and head are commit SHAs");
+	}
+	const source = { repoId: view.node.id, laneId };
+	const files = base === head ? [] : await deps.probe().diff(
+		{ ...source, sha: base },
+		{ ...source, sha: head },
+		{ patch: wantsPatch(url) },
+	);
+	return json(
+		{
+			repo: view.node.path,
+			base,
+			head,
+			mergeBase: base,
+			commits: [],
+			files: [...files],
+			truncated: false,
+		} satisfies CompareResponse,
+	);
+};
+
 export const createCompareHandler = (depsFor = defaultDeps): RouteHandler =>
-	withRepo(depsFor, async ({ view, reads, resolver, url, deps }) => {
+	withRepo(depsFor, async (s) => {
+		const lane = s.url.searchParams.get("lane");
+		if (lane !== null) return await laneCompare(s, lane);
+		const { view, reads, resolver, url, deps } = s;
 		const base = param(url, "base", 1024);
 		const head = param(url, "head", 1024);
 		const patch = wantsPatch(url);

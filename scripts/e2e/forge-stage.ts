@@ -53,13 +53,91 @@ export type ForgeDeps = {
 	readonly accountId: string;
 };
 
+/**
+ * The M2 switches a stage may be deployed with, passed through to `deno
+ * task deploy` (each flag is deploy's own; the compiled defaults stay off):
+ * the global log with its consume token (`--k2 --k2-token-store <id>
+ * --k2-token-secret <name>`: the stream `tartan_dev_e2e_log` is found or
+ * created), the lane mode and workload transport overrides, monorepo
+ * projects and the Rust → WASM extension packages.
+ */
+export type StageSwitches = {
+	/** The K2 Consume token's Secrets Store names (ids and names only, never the value). */
+	readonly k2?: { readonly storeId: string; readonly secretName: string };
+	readonly laneMode?: "import" | "branch";
+	readonly workloadTransport?: "local" | "k2";
+	readonly projects?: boolean;
+	readonly buildExt?: boolean;
+	/** `TARTAN_ECHO`: band-2 guidance on this stage. */
+	readonly echo?: "on" | "off";
+};
+
 /** How a stage is deployed. */
 export type StagePlan = {
 	/** Containers (CI, Advances, repository config) on; the default. */
 	readonly containers: boolean;
 	/** The runner image source for `deploy --image` (containers only). */
 	readonly image: "registry" | "dockerfile";
+	/** The M2 switches (none by default). */
+	readonly switches?: StageSwitches;
 };
+
+const STORE_ID_RE = /^[0-9a-f]{32}$/;
+const SECRET_NAME_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const LANE_MODES: readonly string[] = ["import", "branch"];
+const TRANSPORTS: readonly string[] = ["local", "k2"];
+
+/** Checks a plan's switches the way deploy will, before anything is deployed. */
+export const checkSwitches = (switches: StageSwitches): StageSwitches => {
+	if (switches.k2 !== undefined) {
+		if (!STORE_ID_RE.test(switches.k2.storeId)) {
+			throw new GuardError("--k2-token-store is a 32-hex Secrets Store id");
+		}
+		if (!SECRET_NAME_RE.test(switches.k2.secretName)) {
+			throw new GuardError("--k2-token-secret is a Secrets Store secret name");
+		}
+	}
+	if (
+		switches.laneMode !== undefined && !LANE_MODES.includes(switches.laneMode)
+	) {
+		throw new GuardError("--lane-mode is import or branch");
+	}
+	if (
+		switches.workloadTransport !== undefined &&
+		!TRANSPORTS.includes(switches.workloadTransport)
+	) {
+		throw new GuardError("--workload-transport is local or k2");
+	}
+	if (switches.echo !== undefined && !["on", "off"].includes(switches.echo)) {
+		throw new GuardError("--echo is on or off");
+	}
+	if (switches.workloadTransport === "k2" && switches.k2 === undefined) {
+		throw new GuardError(
+			"--workload-transport k2 needs --k2 with --k2-token-store and --k2-token-secret",
+		);
+	}
+	return switches;
+};
+
+/** deploy's flags for `switches`. */
+export const switchArgs = (switches: StageSwitches | undefined): string[] => [
+	...(switches?.k2 === undefined ? [] : [
+		"--k2",
+		"--k2-token-store",
+		switches.k2.storeId,
+		"--k2-token-secret",
+		switches.k2.secretName,
+	]),
+	...(switches?.laneMode === undefined
+		? []
+		: ["--lane-mode", switches.laneMode]),
+	...(switches?.workloadTransport === undefined
+		? []
+		: ["--workload-transport", switches.workloadTransport]),
+	...(switches?.projects === true ? ["--projects"] : []),
+	...(switches?.buildExt === true ? ["--build-ext"] : []),
+	...(switches?.echo === undefined ? [] : ["--echo", switches.echo]),
+];
 
 /**
  * The runner image source of `stage up` without `--image`: `dockerfile`
@@ -192,6 +270,7 @@ export const deployArgs = (
 	...(input.containers
 		? ["--image", input.image, "--repo-config"]
 		: ["--no-containers"]),
+	...switchArgs(input.switches),
 	...(input.claimed ? ["--delete-setup-token"] : []),
 ];
 
@@ -234,6 +313,7 @@ export const deployForge = async (
 		deployArgs({
 			containers: input.containers,
 			image: input.image,
+			...(input.switches === undefined ? {} : { switches: input.switches }),
 			claimed,
 			accountId: deps.accountId,
 		}),

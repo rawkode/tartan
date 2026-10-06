@@ -19,7 +19,7 @@ import type {
 } from "@tartan/contract/kernel.ts";
 import {
 	ARTIFACTS_CONTROL_PER_S_ISOLATE,
-	ECHO_ENABLED,
+	echoEnabledOf,
 	LANE_CAP_CLIENT_CHECK,
 	LANE_CAP_TTL_S,
 	maxPushBytes,
@@ -28,6 +28,7 @@ import {
 } from "../../constants.ts";
 import type { Env } from "../../env.ts";
 import { loopback } from "../../exports.ts";
+import { createExtDispatch } from "../exthost/host/dispatch.ts";
 import { createCapMac } from "../http/capmac.ts";
 import type { ControlBucket } from "../repo/upstream.ts";
 import {
@@ -102,7 +103,7 @@ export const createTreePort = (env: Env): GatewayTree => {
 
 export const gatewayConfig = (env: Env): GatewayConfig => ({
 	maxPushBytes: maxPushBytes(env.TARTAN_MAX_PUSH_MB),
-	echo: ECHO_ENABLED,
+	echo: echoEnabledOf(env),
 	upstreamAuth: UPSTREAM_AUTH,
 	phase1WaitMs: PHASE1_FLUSH_WAIT_MS,
 	policy: canonicalPushPolicy,
@@ -180,6 +181,13 @@ export const createGatewayDeps = (
 			return await probe.laneDiff(source, after);
 		},
 	}),
+	// The push echo: the fan-out every caller shares (dispatch.ts), RepoProbe
+	// for the echo inputs through the request's own exports.
+	echo: async (event, at, budgetMs) => {
+		const exports = (ctx as { exports?: unknown }).exports ??
+			(await import("cloudflare:workers")).exports;
+		return await createExtDispatch(env, { exports }).echo(event, at, budgetMs);
+	},
 	fetch: (request) => fetch(request),
 	requestId: ulid,
 	log,

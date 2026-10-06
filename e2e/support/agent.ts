@@ -59,6 +59,40 @@ export type ScriptedAgent = {
 export const AGENT_COMMIT_DATE = gitDate(1_767_398_400);
 
 const LANE_OPEN_WAIT_MS = 60_000;
+/**
+ * git's words for a transient answer. The gateway relays its upstream's
+ * failure (the lane's Artifacts repo can answer 500 or 503 under load) as a
+ * 5xx and nothing is written; an agent tries again. A
+ * read (fetch) is retried on 500 and 502–504; a push only on 502–504, the
+ * gateway's "the git backend refused the push; try again".
+ */
+const TRANSIENT_READ = /RPC failed; HTTP 50[0234]|returned error: 50[0234]/;
+const TRANSIENT_PUSH = /RPC failed; HTTP 50[234]|returned error: 50[234]/;
+const transient = (args: readonly string[], error: unknown): boolean =>
+	(args[0] === "push" ? TRANSIENT_PUSH : TRANSIENT_READ).test(String(error));
+
+/** Runs git `args`, again (backing off) while its answer is transient. */
+const retrying = async (
+	args: readonly string[],
+	run: (args: readonly string[]) => Promise<string>,
+): Promise<string> => {
+	for (let attempt = 1;; attempt += 1) {
+		try {
+			return await run(args);
+		} catch (error) {
+			if (attempt >= GIT_TRIES || !transient(args, error)) throw error;
+			// Stock git does not retry: each retry is reported in the run's log.
+			console.warn(
+				`e2e-retry: git ${
+					args[0]
+				} answered a transient 5xx (attempt ${attempt} of ${GIT_TRIES})`,
+			);
+			await sleep(5_000 * attempt);
+		}
+	}
+};
+/** Tries of one lane command when its answer is transient. */
+const GIT_TRIES = 3;
 
 const sleep = (ms: number): Promise<void> =>
 	new Promise((resolve) => setTimeout(resolve, ms));
@@ -99,11 +133,10 @@ export const scriptedAgent = (
 			const home = path.join(root, "home");
 			const clone = path.join(root, "clone");
 			await mkdir(home, { recursive: true });
-			await gitOk(["clone", "-q", remote, clone], {
-				cwd: root,
-				env: env(home),
-				token,
-			});
+			await retrying(
+				["clone", "-q", remote, clone],
+				(args) => gitOk(args, { cwd: root, env: env(home), token }),
+			);
 			homes.set(clone, home);
 			return clone;
 		},
@@ -131,7 +164,10 @@ export const scriptedAgent = (
 		},
 		runLane: async (text, cwd) => {
 			for (const args of parseGitCommands(text)) {
-				await gitOk(args, { cwd, env: envOf(cwd), token });
+				await retrying(
+					args,
+					(a) => gitOk(a, { cwd, env: envOf(cwd), token }),
+				);
 			}
 		},
 		commit: async (cwd, subject, trailers = []) => {

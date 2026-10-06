@@ -22,6 +22,7 @@ import {
 	TOKEN_ENV,
 } from "./e2e-cli.ts";
 import {
+	checkSwitches,
 	claimedForgeHealth,
 	DEFAULT_IMAGE,
 	deployArgs,
@@ -30,11 +31,16 @@ import {
 	type ForgeDeps,
 	imageNote,
 	imageOf,
+	switchArgs,
 } from "./forge-stage.ts";
 import { GuardError } from "./guards.ts";
 import { ensureIdp, type IdpDeps } from "./idp-stage.ts";
 import { type StateFs, statePaths } from "./state.ts";
-import { TOKEN_VARS } from "../../e2e/support/stage.ts";
+import {
+	NO_SWITCHES,
+	parseSwitches,
+	TOKEN_VARS,
+} from "../../e2e/support/stage.ts";
 
 const ROOT = "/repo";
 const paths = statePaths(ROOT);
@@ -558,4 +564,80 @@ Deno.test("the claimed-forge health guard retries a slow or wrong answer with ba
 		null,
 	);
 	deepStrictEqual(none, [5, 5], "three attempts, then the last answer");
+});
+
+Deno.test("stage up passes the M2 switches through to deploy, checked first", () => {
+	const switches = checkSwitches({
+		k2: { storeId: ACCOUNT, secretName: "k2-consumer" },
+		laneMode: "import",
+		workloadTransport: "k2",
+		projects: true,
+		buildExt: true,
+	});
+	const args = deployArgs({
+		containers: true,
+		image: "dockerfile",
+		switches,
+		claimed: true,
+		accountId: ACCOUNT,
+	});
+	ok(args.includes("--k2"));
+	equal(args[args.indexOf("--k2-token-store") + 1], ACCOUNT);
+	equal(args[args.indexOf("--k2-token-secret") + 1], "k2-consumer");
+	equal(args[args.indexOf("--lane-mode") + 1], "import");
+	equal(args[args.indexOf("--workload-transport") + 1], "k2");
+	ok(args.includes("--projects"));
+	ok(args.includes("--build-ext"));
+	deepStrictEqual(switchArgs(undefined), []);
+	deepStrictEqual(switchArgs({}), []);
+	throws(() => checkSwitches({ workloadTransport: "k2" }), GuardError);
+	throws(
+		() => checkSwitches({ laneMode: "repo" as "import" }),
+		GuardError,
+	);
+	throws(
+		() => checkSwitches({ laneMode: "create" as "import" }),
+		GuardError,
+		"the create-and-push recipe is gone: import or branch only",
+	);
+	throws(
+		() => checkSwitches({ k2: { storeId: "nope", secretName: "k2-consumer" } }),
+		GuardError,
+	);
+});
+
+Deno.test("the run passes the stage's switches to the suites, without a secret", () => {
+	const env = e2eEnv({
+		origin: FORGE,
+		issuer: ISSUER,
+		runId: "r2026100512000000",
+		containers: true,
+		passwords: {
+			owner: "o".repeat(43),
+			developer: "d".repeat(43),
+			reporter: "r".repeat(43),
+			outsider: "x".repeat(43),
+		},
+		switches: {
+			laneMode: "import",
+			workloadTransport: "k2",
+			projects: true,
+			repoConfig: true,
+			k2: true,
+			k2Token: true,
+			buildExt: false,
+			echo: "on",
+		},
+	});
+	const parsed = parseSwitches(env.TARTAN_E2E_SWITCHES);
+	equal(parsed.laneMode, "import");
+	equal(parsed.workloadTransport, "k2");
+	equal(parsed.k2Token, true);
+	equal(parsed.echo, "on");
+	equal(secretValues(env).includes(env.TARTAN_E2E_SWITCHES), false);
+	deepStrictEqual(parseSwitches(undefined), NO_SWITCHES);
+	equal(
+		parseSwitches(JSON.stringify({ laneMode: "x; rm -rf" })).laneMode,
+		null,
+	);
 });

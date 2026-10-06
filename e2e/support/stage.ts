@@ -59,12 +59,66 @@ export const TOKEN_VARS: Readonly<
 	},
 };
 
+/**
+ * The switches the stage was deployed with (`TARTAN_E2E_SWITCHES`, from its
+ * deploy record): suites that need one skip with the reason when it is off.
+ */
+export type Switches = {
+	readonly laneMode: string | null;
+	readonly workloadTransport: string | null;
+	readonly projects: boolean;
+	readonly repoConfig: boolean;
+	readonly k2: boolean;
+	readonly k2Token: boolean;
+	readonly buildExt: boolean;
+	/** `TARTAN_ECHO` as rendered, or null for the compiled `ECHO_ENABLED`. */
+	readonly echo: "on" | "off" | null;
+};
+
+export const NO_SWITCHES: Switches = {
+	laneMode: null,
+	workloadTransport: null,
+	projects: false,
+	repoConfig: false,
+	k2: false,
+	k2Token: false,
+	buildExt: false,
+	echo: null,
+};
+
+const SWITCH_MODE_RE = /^[a-z0-9]{1,16}$/;
+
+/** `TARTAN_E2E_SWITCHES`, checked field by field; anything else is off. */
+export const parseSwitches = (text: string | undefined): Switches => {
+	if (text === undefined || text === "") return NO_SWITCHES;
+	let v: Record<string, unknown>;
+	try {
+		v = JSON.parse(text) as Record<string, unknown>;
+	} catch {
+		throw new StageError("TARTAN_E2E_SWITCHES is not JSON");
+	}
+	const mode = (x: unknown) =>
+		typeof x === "string" && SWITCH_MODE_RE.test(x) ? x : null;
+	return {
+		laneMode: mode(v.laneMode),
+		workloadTransport: mode(v.workloadTransport),
+		projects: v.projects === true,
+		repoConfig: v.repoConfig === true,
+		k2: v.k2 === true,
+		k2Token: v.k2Token === true,
+		buildExt: v.buildExt === true,
+		echo: v.echo === "on" || v.echo === "off" ? v.echo : null,
+	};
+};
+
 export type Stage = {
 	readonly origin: string;
 	readonly issuer: string;
 	readonly runId: string;
 	/** False when the stage was deployed with `--no-containers`. */
 	readonly containers: boolean;
+	/** The M2 switches of the deploy. */
+	readonly switches: Switches;
 	readonly passwords: Readonly<Record<Persona, string>>;
 	/** Absent for `e2e list` and the claim run (phase A). */
 	readonly tokens?: RunTokens;
@@ -162,6 +216,7 @@ export const readStage = (env: Env = process.env): Stage => {
 		issuer,
 		runId,
 		containers: containers === "1",
+		switches: parseSwitches(env["TARTAN_E2E_SWITCHES"]),
 		passwords,
 		...(tokens === null ? {} : { tokens }),
 		...(setupToken !== undefined && setupToken !== "" ? { setupToken } : {}),

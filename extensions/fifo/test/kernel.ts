@@ -183,6 +183,16 @@ export const createKernel = (options: KernelOptions) => {
 		commits: 0,
 		provider: "self" as "self" | "other" | "none" | "unknown",
 		kernelChecksProvider: false,
+		/**
+		 * K13.3 at `land.submit`: the changes that touch a root `*.cue` file,
+		 * each with whether a Maintainer signed its head off.
+		 */
+		policy: new Map<string, boolean>(),
+		/**
+		 * K13.3: changes whose diff the kernel cannot read yet (no
+		 * `push.diffed`), so `land.submit` answers `policy-unknown`.
+		 */
+		policyUnknown: new Set<string>(),
 	};
 	let seq = 0;
 
@@ -329,6 +339,31 @@ export const createKernel = (options: KernelOptions) => {
 			return { batchId: r.batchId };
 		}
 		if (state.landingPaused) throw denied("landing-paused", "landing paused");
+		const unknown = r.batch.find((c) =>
+			state.policyUnknown.has(c.changeId) && !state.policy.get(c.changeId)
+		);
+		if (unknown !== undefined) {
+			const text =
+				`policy-unknown: the diff of ${unknown.changeId} is not known yet, so whether it changes a root .cue file is unknown; retry once it is (K13)`;
+			refusals.push(text);
+			throw denied("policy-unknown", text);
+		}
+		const touching = r.batch.filter((c) => state.policy.has(c.changeId));
+		if (touching.length > 1) {
+			const text =
+				`policy-batch: a batch holds at most one change that touches a root .cue file (${
+					touching.map((c) => c.changeId).join(", ")
+				}); land them one at a time`;
+			refusals.push(text);
+			throw denied("policy-batch", text);
+		}
+		if (touching.length === 1 && !state.policy.get(touching[0].changeId)) {
+			const text = `policy-signoff: ${
+				touching[0].changeId
+			} changes a root .cue file; a Maintainer must approve the policy change first (K13)`;
+			refusals.push(text);
+			throw denied("policy-signoff", text);
+		}
 		try {
 			// WP10: only the repo's default branch lands.
 			if (r.ref !== trunk) throw invalid(`only ${trunk} lands`);

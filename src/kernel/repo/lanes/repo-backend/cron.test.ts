@@ -111,3 +111,39 @@ Deno.test("the cron groups l-* names by family, pages the listing and isolates f
 	ok(outcome.failed.some((f) => f.includes("redrive boom")));
 	ok(outcome.failed.some((f) => f.includes("sweep boom")));
 });
+
+Deno.test("a failed Artifacts listing (an internal error) still sweeps the index's names", async () => {
+	const repoA = ulid();
+	const indexed = laneArtifactsName(repoA, ulid());
+	const swept: string[][] = [];
+	const logged: string[] = [];
+	const outcome = await runRepoBackendCron({
+		artifacts: {
+			list: () => Promise.reject(new Error("An internal error occurred.")),
+		} as never,
+		tree: {
+			listRepos: () => Promise.reject(new Error("unused")),
+			listArtifactsIndex: (state) =>
+				Promise.resolve(
+					state === "live"
+						? [{ name: indexed, kind: "lane" } as ArtifactsIndexRow]
+						: [],
+				),
+		},
+		core: () => ({
+			redriveSeeds: () => Promise.resolve({ laneIds: [] }),
+			reconcileLaneRepos: () => Promise.resolve({ checked: 0, observed: 0 }),
+			sweepLaneRepos: (names) => {
+				swept.push([...names]);
+				return Promise.resolve({ deleted: [], kept: [...names] });
+			},
+		}),
+		log: (message) => {
+			logged.push(message);
+		},
+		forEachRepo: () => Promise.resolve(),
+	}, 10 * LANE_ORPHAN_AGE_MS);
+	deepStrictEqual(swept, [[indexed]]);
+	deepStrictEqual(outcome.failed, []);
+	ok(logged.some((m) => m.includes("Artifacts listing failed")));
+});

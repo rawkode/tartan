@@ -2,7 +2,8 @@
 // Forge settings and health. What the kernel serves today: the forge name and
 // the root-key notice (`GET /-/api/me`), the build and its bindings
 // (`/-/health`), the lane-repo self-test (`GET`/`POST
-// /-/api/admin/selftest/lanes`, the forge Owner only) and invite links. A
+// /-/api/admin/selftest/lanes`, the forge Owner only), the global log tile
+// (`/-/api/log/status` and `/-/api/log/dead`, the forge Owner) and invite links. A
 // read-only summary of the identity provider, push limits and lane defaults
 // and exporting a generated root key have no kernel route yet, so the page
 // says so instead of calling routes that answer 404, 405 or 501.
@@ -11,6 +12,7 @@ import type { LaneSelfTestResult } from "@tartan/contract/api.ts";
 import { useApi, useSession } from "../../app/context.ts";
 import { errorMessage } from "../../api/http.ts";
 import AsyncState from "../../components/AsyncState.vue";
+import GlobalLogPanel from "../../components/GlobalLogPanel.vue";
 import InviteForm from "../../components/InviteForm.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import SelfTestResult from "../../components/SelfTestResult.vue";
@@ -106,6 +108,8 @@ const runSelfTest = async (): Promise<void> => {
 					</div>
 				</template>
 			</section>
+
+			<GlobalLogPanel v-if="isAdmin" />
 
 			<section v-if="signedIn" class="tt-panel tt-stack" aria-labelledby="invite-title">
 				<h2 id="invite-title" class="set-title">Invite people</h2>

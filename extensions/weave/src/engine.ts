@@ -26,6 +26,10 @@
 // - A refused submit (`head-moved`, a quarantined or closed lane, an invalid
 //   chain) drops the culprits found by reading their lanes; unexplained
 //   refusals retry each change alone, and a change refused alone is ejected.
+//   The kernel's repository-config refusals (K13.2–K13.3) are refusals too,
+//   never a pause: a change named for a missing sign-off is ejected
+//   (`queue.ejected` with `code: policy-signoff`); a change whose diff is not
+//   known yet (`policy-unknown`) is retried with backoff, never ejected.
 // - `land.conflicted`/`land.vetoed` eject the change (`queue.ejected`) and
 //   notify its author with both intents, the other changes' paths and the
 //   conflict regions (the notify-author resolver floor).
@@ -1026,6 +1030,8 @@ export const createQueueExtension = (policy: QueuePolicy): ExtensionModule => {
 		readonly conflictsWith?: readonly string[];
 		readonly regions?: unknown;
 		readonly failing?: readonly string[];
+		/** The kernel refusal that named the change (`queue.ejected.code`). */
+		readonly code?: string;
 	};
 
 	/**
@@ -1063,6 +1069,7 @@ export const createQueueExtension = (policy: QueuePolicy): ExtensionModule => {
 				reason: o.reason,
 				...(o.paths ? { paths: [...o.paths] } : {}),
 				...(o.conflictsWith ? { conflictsWith: [...o.conflictsWith] } : {}),
+				...(o.code ? { code: o.code } : {}),
 			},
 			`ejected:${
 				entry.batch_id ?? `q${entry.enqueued_at}`
@@ -1604,10 +1611,21 @@ export const createQueueExtension = (policy: QueuePolicy): ExtensionModule => {
 		"not_implemented",
 	]);
 	/**
-	 * Refusals that clear by themselves: a lane-sync job still holds the lane,
-	 * so the freeze to `landing` was refused; nothing was created.
+	 * Refusals that clear by themselves; nothing was created. A lane-sync job
+	 * still holds the lane, so the freeze to `landing` was refused; or a
+	 * change's diff is not known yet (`policy-unknown`, K13.3), so the kernel
+	 * cannot tell whether it needs a policy sign-off: never an ejection, the
+	 * batch retries with backoff until the diff is known.
 	 */
-	const TRANSIENT_REASONS = new Set(["lane-git-job"]);
+	const TRANSIENT_REASONS = new Set(["lane-git-job", "policy-unknown"]);
+	/**
+	 * The kernel's repository-config refusals at `land.submit` (K13.2–K13.3):
+	 * nothing was created. They block that land, never the train (K9): a
+	 * change named without its sign-off is ejected, and a batch of two policy
+	 * changes retries each alone.
+	 */
+	const POLICY_REFUSAL =
+		/\b(policy-signoff|policy-batch|config-plan-changed)\b/;
 
 	const onSubmitError = async (
 		x: ExtCtx,
@@ -1631,6 +1649,25 @@ export const createQueueExtension = (policy: QueuePolicy): ExtensionModule => {
 		if (e.code === "denied" && NOT_PROVIDER.test(text)) {
 			// The kernel lands only for the queue@1 provider in force: hand over.
 			release(x, `land.submit refused: ${text}`);
+			return;
+		}
+		if (
+			e.code === "denied" &&
+			POLICY_REFUSAL.test(`${e.reason ?? ""} ${text}`)
+		) {
+			const signoff = /\bpolicy-signoff\b/.test(`${e.reason ?? ""} ${text}`);
+			const named = signoff
+				? entriesOfBatch(d, batch.batch_id)
+					.filter((m) => text.includes(m.change_id))
+					.map((m) => m.change_id)
+				: [];
+			await refuse(
+				x,
+				batch,
+				text,
+				named,
+				signoff ? "policy-signoff" : undefined,
+			);
 			return;
 		}
 		if (e.code === "denied") {
@@ -1661,12 +1698,24 @@ export const createQueueExtension = (policy: QueuePolicy): ExtensionModule => {
 		x: ExtCtx,
 		batch: BatchRow,
 		why: string,
+		/** Changes the refusal names (a missing policy sign-off, K13.3). */
+		named: readonly string[] = [],
+		/** The refusal's reason, carried by the named changes' `queue.ejected`. */
+		code?: string,
 	): Promise<void> => {
 		const d = dbOf(x.sql);
 		const members = entriesOfBatch(d, batch.batch_id).filter((e) =>
 			e.state === "batched"
 		);
 		const culprits = new Map<string, Drop>();
+		for (const changeId of named) {
+			culprits.set(changeId, {
+				state: "ejected",
+				reason: "veto",
+				message: `land.submit refused: ${oneLine(why, 500)}`,
+				...(code === undefined ? {} : { code }),
+			});
+		}
 		/** Changes another batch is landing: left to it, without an event. */
 		const elsewhere = new Set<string>();
 		for (const entry of members) {

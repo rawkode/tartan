@@ -129,10 +129,14 @@ export const git = (
 ): Promise<GitResult> =>
 	new Promise((resolve, reject) => {
 		const scrub = scrubber(options.token);
+		// Its own process group: a timeout kills git and its transport
+		// helper (git-remote-https), which otherwise holds the pipes open,
+		// so `close` never comes and the call hangs past its limit.
 		const child = spawn("git", [...args], {
 			cwd: options.cwd,
 			env: { ...options.env },
 			stdio: ["ignore", "pipe", "pipe"],
+			detached: true,
 		});
 		const out: Buffer[] = [];
 		const err: Buffer[] = [];
@@ -140,17 +144,10 @@ export const git = (
 		child.stderr.on("data", (chunk: Buffer) => err.push(chunk));
 		const limit = options.timeoutMs ?? GIT_TIMEOUT_MS;
 		let killed = false;
-		const timer = setTimeout(() => {
-			killed = true;
-			child.kill("SIGKILL");
-		}, limit);
-		child.on("error", (error) => {
-			clearTimeout(timer);
-			reject(
-				new Error(`git ${args[0] ?? ""} could not start: ${error.message}`),
-			);
-		});
-		child.on("close", (code) => {
+		let settled = false;
+		const finish = (code: number | null) => {
+			if (settled) return;
+			settled = true;
 			clearTimeout(timer);
 			const stderr = scrub(Buffer.concat(err).toString("utf8"));
 			resolve({
@@ -162,7 +159,35 @@ export const git = (
 					} s)`
 					: stderr,
 			});
+		};
+		const timer = setTimeout(() => {
+			killed = true;
+			try {
+				if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
+				else child.kill("SIGKILL");
+			} catch {
+				child.kill("SIGKILL");
+			}
+		}, limit);
+		child.on("error", (error) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			reject(
+				new Error(`git ${args[0] ?? ""} could not start: ${error.message}`),
+			);
 		});
+		// After a kill, a helper that escaped the group may still hold the
+		// pipes: settle on exit, a moment later, whatever they do.
+		child.on("exit", (code) => {
+			if (!killed) return;
+			setTimeout(() => {
+				child.stdout.destroy();
+				child.stderr.destroy();
+				finish(code);
+			}, 2_000);
+		});
+		child.on("close", (code) => finish(code));
 	});
 
 /** `git` that must succeed; the error carries the scrubbed stderr only. */

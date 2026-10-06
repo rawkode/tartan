@@ -14,6 +14,7 @@ import {
 	STAGE_TTL_MS,
 	type StateFs,
 	statePaths,
+	switchesOfRecord,
 } from "./state.ts";
 
 const ORIGIN = "https://tartan-dev-e2e.acme.workers.dev";
@@ -181,4 +182,31 @@ Deno.test("a run waits until a fresh deploy has settled (Durable Object resets a
 	equal(settleWait(record, deployed + 3_600_000), 0);
 	equal(settleWait({ ...record, deployedAt: null }, deployed), 0);
 	ok(DEPLOY_SETTLE_MS >= 60_000);
+});
+
+Deno.test("a deploy record's switches are read as ids and modes only", () => {
+	const s = switchesOfRecord({
+		k2: { streamId: "a".repeat(32), token: { storeId: "b".repeat(32) } },
+		switches: {
+			laneMode: "import",
+			workloadTransport: "k2",
+			projects: true,
+			repoConfig: true,
+			buildExt: true,
+		},
+	});
+	equal(s.laneMode, "import");
+	equal(s.workloadTransport, "k2");
+	equal(s.k2, true);
+	equal(s.k2Token, true);
+	equal(s.projects, true);
+	const none = switchesOfRecord({});
+	equal(none.laneMode, null);
+	equal(none.k2, false);
+	equal(none.k2Token, false);
+	equal(none.buildExt, false);
+	equal(
+		switchesOfRecord({ switches: { laneMode: "x; rm -rf" } }).laneMode,
+		null,
+	);
 });

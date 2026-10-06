@@ -48,6 +48,29 @@ export const extensionDir = (
 	throw new Error(`no extension ${ext} under ${root}`);
 };
 
+/**
+ * What a pack's Work tab calls a work item: `issue` when the pack configures
+ * `tartan.work` with `wording: "classic"` (the Classic pack), else
+ * `work item` (extensions/work/src/wording.ts).
+ */
+export const workNoun = (
+	pack: "swarm" | "classic",
+	root: string = EXTENSIONS_DIR,
+): string => {
+	const manifest = JSON.parse(
+		readFileSync(path.join(root, "packs", pack, "tartan.json"), "utf8"),
+	) as {
+		readonly members?: readonly {
+			readonly id: string;
+			readonly config?: { readonly wording?: string };
+		}[];
+	};
+	return manifest.members?.find((m) => m.id === "tartan.work")?.config
+			?.wording === "classic"
+		? "issue"
+		: "work item";
+};
+
 /** A static slot contribution's label (its id when it has none). */
 export const slotLabel = (
 	ext: string,

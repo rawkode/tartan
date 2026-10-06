@@ -16,13 +16,22 @@ import {
 	BROKEN_CONFIG_FIXTURE,
 	buildFixture,
 	buildHistory,
+	COMPOSE_FIXTURE,
+	CUE_FIXTURE,
 	FIXTURE,
 	FIXTURE_COMMITS,
 	FIXTURE_HEAD,
 	FIXTURE_SHAS,
 	LOOP_FIXTURE,
+	MONOREPO_FIXTURE,
+	SWAP_FIXTURE,
 } from "../../e2e/support/fixture-repo.ts";
-import { gitEnv, parseGitCommands, scrubber } from "../../e2e/support/git.ts";
+import {
+	git,
+	gitEnv,
+	parseGitCommands,
+	scrubber,
+} from "../../e2e/support/git.ts";
 import {
 	failedRequests,
 	withFailedRequests,
@@ -233,6 +242,10 @@ Deno.test({
 				["basic", FIXTURE],
 				["loop", LOOP_FIXTURE],
 				["broken config", BROKEN_CONFIG_FIXTURE],
+				["compose", COMPOSE_FIXTURE],
+				["swap", SWAP_FIXTURE],
+				["monorepo", MONOREPO_FIXTURE],
+				["cue", CUE_FIXTURE],
 			] as const
 		) {
 			const dir = await Deno.makeTempDir({ prefix: "tartan-e2e-fixture-" });
@@ -357,6 +370,13 @@ Deno.test("the tab table comes from the pack manifests", () => {
 	}
 	equal(tabRoute({ id: "x", route: "board/*" }), "board");
 	equal(tabRoute({ id: "x" }), "x");
+	// The Classic pack renames its members' tabs (the view API's labels).
+	const label = (pack: string, ext: string) =>
+		tabs.find((t) => t.pack === pack && t.ext === ext && t.slot === "repo.tab")
+			?.label;
+	equal(label("classic", "tartan.work"), "Issues");
+	equal(label("classic", "tartan.changes"), "Pull requests");
+	equal(label("swarm", "tartan.work"), "Work");
 });
 
 Deno.test("a pack naming an extension without a manifest fails collection", async () => {
@@ -484,4 +504,35 @@ Deno.test("a repo's projects 404 while projects are off is a designed not-found 
 			"500 /-/api/repos/01k6rrrrrrrrrrrrrrrrrrrrrr/projects",
 		],
 	);
+});
+
+Deno.test("a git call past its limit is killed with its transport helper and settles", async () => {
+	// A server that accepts and never answers: git's HTTP helper (a child of
+	// git) waits on it while holding git's pipes.
+	const listener = Deno.listen({ hostname: "127.0.0.1", port: 0 });
+	const port = (listener.addr as Deno.NetAddr).port;
+	const held: Deno.Conn[] = [];
+	(async () => {
+		for await (const conn of listener) held.push(conn);
+	})().catch(() => {});
+	const home = await Deno.makeTempDir();
+	try {
+		const started = Date.now();
+		const result = await git(
+			["ls-remote", `http://127.0.0.1:${port}/stalled.git`],
+			{
+				cwd: home,
+				env: gitEnv({ home }),
+				timeoutMs: 1_500,
+			},
+		);
+		const took = Date.now() - started;
+		ok(took < 15_000, `settled after ${took} ms`);
+		ok(result.code !== 0);
+		ok(result.stderr.includes("was killed after 1.5 s"), result.stderr);
+	} finally {
+		for (const conn of held) conn.close();
+		listener.close();
+		await Deno.remove(home, { recursive: true });
+	}
 });

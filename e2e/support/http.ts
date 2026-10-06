@@ -230,7 +230,8 @@ export const gitHttp = async (
 		| {
 			readonly kind: "post";
 			readonly service: string;
-			readonly body: string;
+			/** A string is sent as UTF-8; a pack needs bytes. */
+			readonly body: string | Uint8Array;
 			readonly headers?: Readonly<Record<string, string>>;
 		},
 ): Promise<GitHttpReply> => {
@@ -250,7 +251,7 @@ export const gitHttp = async (
 			method: request.kind === "post" ? "POST" : "GET",
 			headers,
 			redirect: "manual",
-			...(request.kind === "post" ? { body: request.body } : {}),
+			...(request.kind === "post" ? { body: request.body as BodyInit } : {}),
 		},
 		`${request.kind === "post" ? "POST" : "GET"} ${repoPath}.git/${
 			request.kind === "post" ? request.service : "info/refs"

@@ -5,6 +5,8 @@ import { deepStrictEqual, equal, ok } from "node:assert/strict";
 import { LANE_FALLBACK_ORDER, LANE_MODES } from "@tartan/contract";
 import {
 	DEFAULT_MAX_PUSH_MB,
+	ECHO_ENABLED,
+	echoEnabledOf,
 	FALLBACK_SWITCHES,
 	LANE_CAP_TTL_S,
 	LANE_FALLBACK,
@@ -88,4 +90,13 @@ Deno.test("laneModeOf and workloadTransportOf take a stage's rendered override, 
 		workloadTransportOf({ TARTAN_WORKLOAD_TRANSPORT: "queue" }),
 		WORKLOAD_TRANSPORT,
 	);
+});
+
+Deno.test("echoEnabledOf takes a stage's rendered TARTAN_ECHO, else ECHO_ENABLED", () => {
+	equal(echoEnabledOf(undefined), ECHO_ENABLED);
+	equal(echoEnabledOf({}), ECHO_ENABLED);
+	equal(echoEnabledOf({ TARTAN_ECHO: "on" }), true);
+	equal(echoEnabledOf({ TARTAN_ECHO: "off" }), false);
+	equal(echoEnabledOf({ TARTAN_ECHO: "1" }), ECHO_ENABLED);
+	equal(echoEnabledOf({ TARTAN_ECHO: "" }), ECHO_ENABLED);
 });

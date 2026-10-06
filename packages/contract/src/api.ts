@@ -38,7 +38,7 @@ import {
 import type { Manifest } from "./manifest.ts";
 import type { Notice } from "./notices.ts";
 import type { WhyNote } from "./notes.ts";
-import type { RunStatus } from "./pipeline.ts";
+import type { RunStatus, RunTransport } from "./pipeline.ts";
 import {
 	SLOT_CTX_GATE_RE,
 	SLOT_CTX_LIMITS,
@@ -665,6 +665,116 @@ export type RepoLaneSettingsDto = {
 export type RunDto = RunStatus;
 export type RunsResponse = {
 	readonly runs: readonly RunDto[];
+	readonly cursor?: string;
+};
+
+// ---------------------------------------------------------------------------
+// The global log (WP26): `/-/api/log/status` and `/-/api/log/dead`, forge
+// Owner only. Ids, counts, states and codes; never a record's content.
+// ---------------------------------------------------------------------------
+
+/** `/-/health` `k2` and the status page's health. */
+export const K2_HEALTH_STATES = [
+	"ok",
+	"degraded",
+	"blocked",
+	"produce-only",
+	"off",
+] as const;
+export type K2Health = typeof K2_HEALTH_STATES[number];
+
+export const RELAY_STATES = ["ok", "backoff", "blocked", "off"] as const;
+export type RelayState = typeof RELAY_STATES[number];
+
+/** One Durable Object's relay position into the stream. */
+export type RelayStatus = {
+	/** `repo:<ulid>` or `forge`. */
+	readonly stream: string;
+	readonly state: RelayState;
+	readonly epoch: string;
+	readonly head: number;
+	readonly relayedSeq: number;
+	/** `head − relayedSeq`. */
+	readonly lag: number;
+	/** `at` of the oldest unrelayed event, or null when caught up. */
+	readonly oldestUnrelayedAt: number | null;
+	readonly attempts: number;
+	readonly nextAt: number | null;
+	/** `K2 <code>` or `throw`; never a message body. */
+	readonly lastError: string | null;
+	readonly lastOkAt: number | null;
+	readonly sentRecords: number;
+	readonly sentBytes: number;
+	readonly unknownOutcomes: number;
+};
+
+export type ConsumeState = "ok" | "off" | "error";
+
+/** Dispatch counts by `via` for one hour (UTC, epoch ms of the hour start). */
+export type ViaCounts = {
+	readonly hour: number;
+	readonly k2: number;
+	readonly backstop: number;
+	readonly local: number;
+};
+
+/** A relay lag the cron recorded (worst first). */
+export type RelayLag = {
+	readonly stream: string;
+	readonly state: RelayState;
+	readonly lag: number;
+	readonly oldestUnrelayedAt: number | null;
+};
+
+/** The workloads consumer's state. */
+export type BusStatus = {
+	readonly group: string;
+	readonly worker: number;
+	readonly consume: ConsumeState;
+	readonly subscription: string | null;
+	readonly lastPollOkAt: number | null;
+	/** `timestamp_ms` of the last record consumed. */
+	readonly lastRecordAt: number | null;
+	/** Consume time minus `timestamp_ms` of the last batch's last record. */
+	readonly consumerLagMs: number | null;
+	readonly records: number;
+	readonly retry: number;
+	readonly dead: number;
+	readonly resubscribed: number;
+	readonly lastError: string | null;
+	readonly via: readonly ViaCounts[];
+	readonly relayLags: readonly RelayLag[];
+	readonly relayLagsAt: number | null;
+};
+
+/** A parked record (never its content). */
+export type DeadRecordDto = {
+	readonly id: string;
+	readonly type: string | null;
+	readonly error: string;
+	readonly at: number;
+};
+
+/** `GET /-/api/log/status`. */
+export type LogStatusResponse = {
+	readonly label: "K2 (public beta)";
+	readonly health: K2Health;
+	/** The stage's maximum workload transport (`WORKLOAD_TRANSPORT` or its rendered override). */
+	readonly transport: RunTransport;
+	readonly stream: { readonly configured: boolean; readonly name: string };
+	readonly relay: { readonly forge: RelayStatus | null };
+	readonly consumer: BusStatus | null;
+	/** Dispatch counts by via in the current and the previous clock hour. */
+	readonly lastHour: {
+		readonly k2: number;
+		readonly backstop: number;
+		readonly local: number;
+	};
+};
+
+/** `GET /-/api/log/dead[?limit=&cursor=]`. */
+export type LogDeadListResponse = {
+	readonly dead: readonly DeadRecordDto[];
 	readonly cursor?: string;
 };
 export type JobLogResponse = {

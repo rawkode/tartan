@@ -327,13 +327,14 @@ const RULES: Readonly<Record<string, Rule>> = {
 		firstIssue(
 			closed(
 				n,
-				keys("repo", "base", "head", "source", "paths", "patch"),
+				keys("repo", "base", "head", "source", "lane", "paths", "patch"),
 				"diff",
 			),
 			opt(n["repo"], isStr) ? null : "repo is invalid",
 			opt(n["base"], isStr) ? null : "base is invalid",
 			opt(n["head"], isStr) ? null : "head is invalid",
 			opt(n["source"], isStr) ? null : "source is invalid",
+			opt(n["lane"], isStr) ? null : "lane is invalid",
 			n["paths"] === undefined ? null : arrayIssue(
 				n["paths"],
 				Infinity,

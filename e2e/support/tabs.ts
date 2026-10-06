@@ -33,7 +33,11 @@ type SlotContribution = {
 type Manifest = {
 	readonly id?: string;
 	readonly kind?: string;
-	readonly members?: readonly { readonly id: string }[];
+	readonly members?: readonly {
+		readonly id: string;
+		/** The pack's config for the member: `labels` rename its tabs (Classic). */
+		readonly config?: { readonly labels?: Readonly<Record<string, string>> };
+	}[];
 	readonly contributes?: { readonly slots?: readonly SlotContribution[] };
 };
 
@@ -122,7 +126,9 @@ export const packTabs = (root: string = EXTENSIONS_DIR): TabSpec[] => {
 					ext: member.id,
 					slot: c.slot,
 					id: c.id,
-					label: c.label ?? c.id,
+					// The pack renames a member's tabs by contribution id (the view
+					// API applies `config.labels`: Classic's Issues, Pull requests).
+					label: member.config?.labels?.[c.id] ?? c.label ?? c.id,
 					route: tabRoute({ id: c.id, ...(c.route ? { route: c.route } : {}) }),
 				});
 			}

@@ -82,6 +82,28 @@ export const APPROVE_LABEL = actionLabel("tartan.review", "approve");
 export const REVIEW_PANEL =
 	'section[data-slot="change.panel"][data-ext="tartan.review"]';
 
+/**
+ * The review once it has taken the change's checks in. Before that,
+ * `review_get` answers its default (`route: human`, evidence `pending`),
+ * which a poll for a human route would take for the assessment.
+ */
+export const assessedReview = async (
+	read: () => Promise<Review>,
+	timeout = 15 * 60_000,
+): Promise<Review> => {
+	let current = await read();
+	await expect.poll(async () => {
+		current = await read();
+		return (current.evidence as { pending?: string } | null)?.pending ===
+			undefined;
+	}, {
+		timeout,
+		interval: 5_000,
+		message: "review to assess the change after its checks",
+	}).toBe(true);
+	return current;
+};
+
 const sleep = (ms: number): Promise<void> =>
 	new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -151,6 +173,10 @@ export type ClaimOutcome = {
 			readonly id: string;
 			readonly ref: string;
 			readonly branch: string;
+			/** The lane's backend (`repo`: its own lane repo; `branch`: the canonical repo). */
+			readonly mode: string;
+			/** The absolute git URL its head lives at (the lane remote, or the repo). */
+			readonly remote: string;
 			readonly base: string;
 		}
 	>;
@@ -334,7 +360,14 @@ export const loopOf = (stage: Stage, index: number): Loop => {
 			>;
 			const lanes = {} as Record<
 				AgentName,
-				{ id: string; ref: string; branch: string; base: string }
+				{
+					id: string;
+					ref: string;
+					branch: string;
+					base: string;
+					mode: string;
+					remote: string;
+				}
 			>;
 			let overlapsB: ClaimOutcome["overlapsB"] = [];
 			for (const name of AGENTS) {
@@ -371,6 +404,8 @@ export const loopOf = (stage: Stage, index: number): Loop => {
 					id: lane.id,
 					ref: lane.ref,
 					branch: lane.branch,
+					mode: lane.mode,
+					remote: lane.remote,
 					base: lane.base,
 				};
 				if (name === "B") {

@@ -47,6 +47,30 @@ const log = useResource(
 const job = computed(() =>
 	run.data.value?.jobs.find((j) => j.jobId === jobId.value) ?? null
 );
+/**
+ * How the run reached its Workflow (WP26): its recorded transport (`k2`: the
+ * global log's consumer; `local`: inline) and, once dispatched, by whom
+ * (`k2`, the `backstop` timer, or `local`): `RunStatus.transport` and `via`.
+ */
+const dispatch = computed(() => {
+	const r = run.data.value ?? null;
+	if (r === null || r.transport === undefined) return null;
+	const how = r.transport === "k2"
+		? "through the global log (K2)"
+		: "inline";
+	const by = r.via === undefined
+		? "not dispatched yet"
+		: r.via === "k2"
+		? "dispatched by the K2 consumer"
+		: r.via === "backstop"
+		? "dispatched by the inline backstop"
+		: "dispatched inline";
+	return {
+		transport: r.transport,
+		via: r.via,
+		text: `Requested ${how}; ${by}`,
+	};
+});
 const live = computed(() =>
 	run.data.value?.state === "running" || run.data.value?.state === "queued" ||
 	log.data.value?.live === true
@@ -126,6 +150,10 @@ watch(
 							<dd><time :datetime="isoTime(run.data.value.createdAt)">{{ formatTime(run.data.value.createdAt) }}</time></dd>
 							<dt>Took</dt>
 							<dd>{{ duration(run.data.value.createdAt, run.data.value.finishedAt, now()) }}</dd>
+							<template v-if="dispatch">
+								<dt>Dispatch</dt>
+								<dd :data-transport="dispatch.transport" :data-via="dispatch.via ?? ''">{{ dispatch.text }}</dd>
+							</template>
 						</dl>
 						<h3 class="run__subtitle">Jobs</h3>
 						<p v-if="run.data.value.jobs.length === 0" class="tt-muted">This run has no jobs.</p>

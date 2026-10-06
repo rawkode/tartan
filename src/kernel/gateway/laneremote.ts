@@ -30,7 +30,9 @@ import { laneNotFound, type RepoAccess, resolveAccess } from "./access.ts";
 import { CONTENT_TYPE, gitBody, gitText } from "./respond.ts";
 import type { GatewayDeps, GatewayRepo, GitRequest } from "./types.ts";
 import {
+	bufferHead,
 	emptyReceiveAdvertisement,
+	MEMBER_SNIFF_MAX_BYTES,
 	readAdvertisement,
 	relayUpload,
 	upstreamFailed,
@@ -191,12 +193,14 @@ export const handleLaneUploadPack = async (
 		await body.cancel().catch(() => {});
 		return laneNotFound();
 	}
+	// Buffered up to the member cap, so a transient upstream answer is resent.
+	const head = await bufferHead(body, MEMBER_SNIFF_MAX_BYTES);
 	let res: Response;
 	try {
 		res = await callUpstream(deps, r.req, upstream, {
 			method: "POST",
 			path: "git-upload-pack",
-			body,
+			body: head.complete ? head.bytes : head.rest,
 			encoding: r.req.headers.get("content-encoding"),
 		});
 	} catch (error) {

@@ -35,21 +35,18 @@ const lanes = useResource(
 );
 
 /**
- * `later`: lanes in their own Artifacts repo need the `repo` lane backend,
- * which arrives with milestone M2; the kernel refuses that mode until then
- * (unless it is already the configured mode), so the form does not offer it.
+ * The modes an Owner may choose for this repo (the kernel's
+ * `OWNER_LANE_MODES`; it re-checks): per-agent lane repos created with
+ * `import()` (the `repo` backend), or branch lanes.
  */
 const MODES: readonly {
 	value: LaneMode | "default";
 	label: string;
-	later?: boolean;
 }[] = [
 	{ value: "default", label: "Forge default" },
-	{ value: "import", label: "Own lane repo, created with import()", later: true },
+	{ value: "import", label: "Own lane repo, created with import()" },
 	{ value: "branch", label: "Branch lanes in this repo" },
 ];
-const offered = (mode: (typeof MODES)[number]): boolean =>
-	!mode.later || mode.value === lanes.data.value?.laneMode;
 
 const form = reactive({
 	laneMode: "default" as LaneMode | "default",
@@ -68,7 +65,7 @@ const fill = (s: RepoLaneSettingsDto | null): void => {
 watch(() => lanes.data.value, fill, { immediate: true });
 
 const valid = computed(() =>
-	MODES.some((mode) => mode.value === form.laneMode && offered(mode)) &&
+	MODES.some((mode) => mode.value === form.laneMode) &&
 	Number.isInteger(form.maxActiveLanes) && form.maxActiveLanes >= 1 &&
 	form.maxActiveLanes <= 10_000 && Number.isInteger(form.atticRetentionDays) &&
 	form.atticRetentionDays >= 1 && form.atticRetentionDays <= 30
@@ -178,11 +175,11 @@ const ceilingPct = computed(() => {
 							<div class="tt-field">
 								<label :for="`${id}-mode`" class="tt-field__label">Lane mode</label>
 								<select :id="`${id}-mode`" v-model="form.laneMode" class="tt-input" name="laneMode">
-									<option v-for="mode in MODES" :key="mode.value" :value="mode.value" :disabled="!offered(mode)">{{ mode.label }}</option>
+									<option v-for="mode in MODES" :key="mode.value" :value="mode.value">{{ mode.label }}</option>
 								</select>
 								<p class="tt-hint">
 									New lanes try this first, then the forge's fallback order.
-									Lanes in their own repository arrive with milestone M2.
+									Lanes in their own repository are per-agent Artifacts repositories created with import(), with branch lanes as the fallback.
 								</p>
 							</div>
 							<div class="tt-field">

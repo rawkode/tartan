@@ -181,6 +181,15 @@ export const createForgeApi = (fetchFn: FetchLike, origin: string) => {
 				caller,
 				body: input,
 			}),
+		/** The Owner's repo-overrides opt-in of one installation (WP23). */
+		repoOverrides: async (caller: Caller, installation: string, on: boolean) =>
+			void await request(
+				"PUT",
+				`/-/api/installations/${
+					encodeURIComponent(installation)
+				}/repo-overrides`,
+				{ caller, body: { on } },
+			),
 		createInvite: async (
 			caller: Caller,
 			input: { node: string; role: 10 | 20 | 30 | 40; note?: string },

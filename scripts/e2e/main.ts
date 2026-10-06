@@ -1,8 +1,12 @@
 // The e2e launcher: `deno task e2e -- <sub-command>` (docs/testing/e2e.md).
 //
 //   stage up [--no-containers] [--image dockerfile|registry] [--rotate-idp]
+//            [--k2 --k2-token-store <id> --k2-token-secret <name>]
+//            [--lane-mode import|create|branch] [--workload-transport local|k2]
+//            [--projects] [--build-ext] [--echo on|off]
 //                                               IdP + dev-e2e forge (containers and repo config on by
-//                                               default); claims a fresh forge (phase A)
+//                                               default; the M2 switches are deploy's own flags);
+//                                               claims a fresh forge (phase A)
 //   stage reset [stage up flags]                stage down --keep-idp, then stage up
 //   stage down [--keep-idp]                     destroy the forge (and the IdP)
 //   stage status                                what is deployed, health, expiry
@@ -47,6 +51,7 @@ import {
 import { copyEvidence, LAUNCHER_RUN_FILE } from "./evidence.ts";
 import { createForgeApi } from "./forge-api.ts";
 import {
+	checkSwitches,
 	claimedForgeHealth,
 	deployForge,
 	destroyForge,
@@ -54,6 +59,7 @@ import {
 	forgeHealth,
 	imageOf,
 	type StagePlan,
+	type StageSwitches,
 } from "./forge-stage.ts";
 import {
 	accountIdFrom,
@@ -309,7 +315,43 @@ const removeShared = async (runId: string): Promise<void> => {
 
 const stagePlanOf = (args: string[]): StagePlan => {
 	const containers = !flag(args, "--no-containers");
-	return { containers, image: imageOf(option(args, "--image")) };
+	const image = imageOf(option(args, "--image"));
+	const k2 = flag(args, "--k2");
+	const tokenStore = option(args, "--k2-token-store");
+	const tokenSecret = option(args, "--k2-token-secret");
+	const laneMode = option(args, "--lane-mode");
+	const workloadTransport = option(args, "--workload-transport");
+	const projects = flag(args, "--projects");
+	const buildExt = flag(args, "--build-ext");
+	const echo = option(args, "--echo");
+	if (!k2 && (tokenStore !== undefined || tokenSecret !== undefined)) {
+		throw new GuardError("--k2-token-store and --k2-token-secret need --k2");
+	}
+	if (k2 && (tokenStore === undefined) !== (tokenSecret === undefined)) {
+		throw new GuardError("--k2-token-store and --k2-token-secret go together");
+	}
+	const switches = checkSwitches({
+		...(k2 && tokenStore !== undefined && tokenSecret !== undefined
+			? { k2: { storeId: tokenStore, secretName: tokenSecret } }
+			: {}),
+		...(laneMode === undefined
+			? {}
+			: { laneMode: laneMode as StageSwitches["laneMode"] }),
+		...(workloadTransport === undefined ? {} : {
+			workloadTransport: workloadTransport as StageSwitches[
+				"workloadTransport"
+			],
+		}),
+		...(projects ? { projects } : {}),
+		...(buildExt ? { buildExt } : {}),
+		...(echo === undefined ? {} : { echo: echo as StageSwitches["echo"] }),
+	});
+	if (k2 && switches.k2 === undefined) {
+		throw new GuardError(
+			"--k2 on dev-e2e needs the consume token's --k2-token-store and --k2-token-secret",
+		);
+	}
+	return { containers, image, switches };
 };
 
 const stageUp = async (args: string[]): Promise<number> => {
@@ -466,6 +508,9 @@ const listEnv = async (): Promise<Record<string, string>> => {
 		runId: makeRunId(Date.now(), random(2)),
 		containers: record?.containers ?? true,
 		passwords: await passwordsFor(seed),
+		...(record === null || record === undefined
+			? {}
+			: { switches: record.switches }),
 	});
 };
 
@@ -578,6 +623,7 @@ const run = async (args: string[]): Promise<number> => {
 			containers: record.containers,
 			passwords,
 			creds,
+			switches: record.switches,
 		});
 		await privateOutput();
 		ran = true;
@@ -719,7 +765,10 @@ const agent = async (args: string[]): Promise<number> => {
 const USAGE = `Usage: deno task e2e -- <command>
 
   stage up [--no-containers] [--image dockerfile|registry] [--rotate-idp]
-  stage reset [--no-containers] [--image dockerfile|registry]
+           [--k2 --k2-token-store <id> --k2-token-secret <name>]
+           [--lane-mode import|create|branch] [--workload-transport local|k2]
+           [--projects] [--build-ext] [--echo on|off]
+  stage reset [stage up flags]
   stage down [--keep-idp]
   stage status
   install

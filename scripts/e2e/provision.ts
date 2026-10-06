@@ -20,8 +20,9 @@
 //
 // Teardown, whatever the run's outcome: revoke the run's tokens, disable its
 // agents (including the one a UI test made), archive the run's repos and
-// groups (a group's children first), and sign the launcher's own sessions
-// out.
+// groups (a group's children first), put the stable baseline's settings
+// back (the Swarm group's Weave takes no repository overrides), and sign the
+// launcher's own sessions out.
 
 import {
 	type PersonaName,
@@ -359,8 +360,16 @@ export type TeardownReport = {
 	readonly revoked: number;
 	readonly disabled: number;
 	readonly archived: number;
+	/** Baseline installations whose repository overrides were turned off again. */
+	readonly restored: number;
 	readonly failures: readonly string[];
 };
+
+/** The baseline installation a suite may let repositories overlay (and teardown restores). */
+export const BASELINE_OVERRIDES = {
+	node: "e2e/swarm",
+	extId: "tartan.weave",
+} as const;
 
 export const teardown = async (
 	deps: Pick<ProvisionDeps, "api" | "signOut" | "log">,
@@ -420,13 +429,30 @@ export const teardown = async (
 			}
 		});
 	}
+	// The repo lanes' compose test lets the Swarm group's repos overlay its
+	// Weave (`repo-overrides`); the next run starts from the baseline.
+	let restored = 0;
+	await attempt("restore the baseline's repo overrides", async () => {
+		const at = (await deps.api.installations(owner, BASELINE_OVERRIDES.node))
+			.installations;
+		for (const { installation } of at) {
+			if (
+				installation.extId === BASELINE_OVERRIDES.extId &&
+				installation.nodePath === BASELINE_OVERRIDES.node &&
+				installation.repoOverrides === true
+			) {
+				await deps.api.repoOverrides(owner, installation.id, false);
+				restored++;
+			}
+		}
+	});
 	if (!(await deps.signOut(creds.ownerSession))) {
 		failures.push("sign the owner's launcher session out");
 	}
 	deps.log(
 		`teardown: ${revoked} token(s) revoked, ${disabled} agent(s) disabled, ${archived} repo(s) archived${
-			failures.length > 0 ? `, ${failures.length} failure(s)` : ""
-		}`,
+			restored > 0 ? `, ${restored} repo override(s) turned off` : ""
+		}${failures.length > 0 ? `, ${failures.length} failure(s)` : ""}`,
 	);
-	return { revoked, disabled, archived, failures };
+	return { revoked, disabled, archived, restored, failures };
 };

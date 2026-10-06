@@ -54,6 +54,7 @@ export const DENIED_REASONS = [
 	"destroy-token", // TARTAN_DESTROY_TOKEN missing, wrong or already used
 	"policy-signoff", // K13.3: a policy-touching change without a matching kernel sign-off
 	"policy-batch", // K13.2: more than one policy-touching change in a batch
+	"policy-unknown", // K13.3: a change's diff is not known yet, so whether it touches policy is unknown (retry)
 	"session", // a human act that needs a browser session (sign-off, approvals, applies)
 	"policy-not-trunk", // K13: repo policy is read at a trunk commit, never at a lane head, revision or candidate
 ] as const;

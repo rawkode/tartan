@@ -9,6 +9,7 @@ import { type PersonaName, PERSONAS } from "../../tools/mock-idp/src/users.ts";
 import { GuardError } from "./guards.ts";
 import { bins, type MaskedRun } from "./proc.ts";
 import type { RunCredentials } from "./provision.ts";
+import type { RecordSwitches } from "./state.ts";
 
 export type E2eEnvInput = {
 	readonly origin: string;
@@ -19,6 +20,8 @@ export type E2eEnvInput = {
 	readonly creds?: RunCredentials;
 	/** Phase A (the claim) only. */
 	readonly setupToken?: string;
+	/** The stage's switches from its deploy record (no secret in them). */
+	readonly switches?: RecordSwitches;
 };
 
 /** The run's token variables, as `e2e/support/stage.ts` reads them. */
@@ -54,6 +57,9 @@ export const e2eEnv = (input: E2eEnvInput): Record<string, string> => ({
 	...(input.setupToken === undefined
 		? {}
 		: { TARTAN_E2E_SETUP_TOKEN: input.setupToken }),
+	...(input.switches === undefined
+		? {}
+		: { TARTAN_E2E_SWITCHES: JSON.stringify(input.switches) }),
 });
 
 const SECRET_ENV_RE = new RegExp(

@@ -137,6 +137,7 @@ const reason = computed(() => (check.value.ok ? undefined : check.value.reason))
 		:base="n.base"
 		:head="n.head"
 		:source="n.source"
+		:lane="n.lane"
 		:paths="n.paths"
 		:patch="n.patch"
 	/>

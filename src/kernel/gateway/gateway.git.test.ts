@@ -139,6 +139,50 @@ test("with ECHO_ENABLED, band-2 guidance reaches git as remote: lines, with no c
 	});
 });
 
+test("with echo on, an accepted lane push carries the installations' echo as remote: lines", async () => {
+	await withWorld(async (w) => {
+		const calls: { type: string; repoId: string }[] = [];
+		w.echo = (event, at) => {
+			calls.push({ type: event.type, repoId: at.repoId });
+			return Promise.resolve([
+				"[no-secrets] AWS access key at config/x.ts:3 (AKIA…MPLE)",
+			]);
+		};
+		const { agent, laneId, dir } = await agentWithLane(w, "a");
+		await commitFile(w.sandbox, dir, "a.txt", "one\n");
+		// Echo off (the default): the push succeeds, no line, no echo call.
+		const off = await w.gitAs(agent, [
+			"push",
+			"origin",
+			`HEAD:${laneRef(laneId)}`,
+		], { cwd: dir });
+		ok(!off.stderr.includes("[no-secrets]"), off.stderr);
+		equal(calls.length, 0);
+		// Echo on: the line reaches git as band 2, after the accepted ref.
+		w.config = { ...w.config, echo: true };
+		await commitFile(w.sandbox, dir, "b.txt", "two\n");
+		const on = await w.gitAs(agent, [
+			"push",
+			"origin",
+			`HEAD:${laneRef(laneId)}`,
+		], { cwd: dir });
+		match(
+			on.stderr,
+			/remote: \[no-secrets\] AWS access key at config\/x\.ts:3 \(AKIA…MPLE\)/,
+		);
+		deepStrictEqual(calls.map((c) => c.type), ["push.accepted"]);
+		// An echo that fails releases the flush untouched.
+		w.echo = () => Promise.reject(new Error("host down"));
+		await commitFile(w.sandbox, dir, "c.txt", "three\n");
+		const failed = await w.gitAs(agent, [
+			"push",
+			"origin",
+			`HEAD:${laneRef(laneId)}`,
+		], { cwd: dir });
+		ok(!failed.stderr.includes("[no-secrets]"), failed.stderr);
+	});
+});
+
 test("a redirected repo path answers 301 and git follows it", async () => {
 	await withWorld(async (w) => {
 		w.redirects.set("acme/old-shop", w.repoPath);

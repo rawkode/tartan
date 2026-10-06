@@ -26,6 +26,7 @@
 
 import {
 	ARTIFACTS_OBJECT_LIMIT_BYTES,
+	ECHO_LIMITS,
 	fromRpcError,
 	isKernelRef,
 	LANE_BRANCH_PREFIX,
@@ -108,6 +109,67 @@ export const PEEK_REASONS: Readonly<Record<ReceiveErrorCode, RefPolicyReason>> =
 
 const errorText = (error: unknown): string =>
 	redactSecrets(error instanceof Error ? error.message : String(error));
+
+/**
+ * How long the held-back flush waits for the extensions' echo after phase 1:
+ * their total budget (`ECHO_LIMITS.totalBudgetMs`, the fan-out's own bound)
+ * plus slack for the RPCs around it.
+ */
+export const ECHO_WAIT_MS = ECHO_LIMITS.totalBudgetMs + 500;
+
+/** `promise`'s value, or `fallback` when it fails or takes longer than `ms`. */
+const withinValue = async <T>(
+	promise: Promise<T>,
+	ms: number,
+	fallback: T,
+): Promise<T> => {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	try {
+		return await Promise.race([
+			promise.catch(() => fallback),
+			new Promise<T>((resolve) => {
+				timer = setTimeout(() => resolve(fallback), ms);
+			}),
+		]);
+	} finally {
+		clearTimeout(timer);
+	}
+};
+
+/**
+ * The push echo: for each accepted ref, the echo of the installations in
+ * force (`ExtDispatch.echo`: inputs prefetched from the lane range, lines
+ * sanitized and prefixed `[<ext>]` by the host), at most
+ * `ECHO_LIMITS.maxLines` in all. Only with echo on and side-band negotiated;
+ * otherwise none (notices carry the text).
+ */
+const echoLines = async (
+	s: PushState,
+	caps: NegotiatedCaps,
+	recorded: Promise<RecordPushResult | null>,
+): Promise<readonly string[]> => {
+	const echo = s.deps.echo;
+	if (!s.deps.config.echo || caps.sideBand === null || echo === undefined) {
+		return [];
+	}
+	const result = await recorded;
+	if (result === null) return [];
+	const at = { nodeId: s.access.node.id, repoId: s.access.repoId };
+	const lines = await Promise.all(
+		result.events
+			.filter((event) => event.type === "push.accepted")
+			.map((event) =>
+				echo(event, at, ECHO_LIMITS.totalBudgetMs).catch((error) => {
+					s.deps.log("[tartan] gateway: echo failed", {
+						repoId: s.access.repoId,
+						error: errorText(error),
+					});
+					return [] as readonly string[];
+				})
+			),
+	);
+	return lines.flat().slice(0, ECHO_LIMITS.maxLines);
+};
 
 /** A promise that settles by `ms` at the latest (the timer is always cleared). */
 const within = async (promise: Promise<unknown>, ms: number): Promise<void> => {
@@ -657,8 +719,14 @@ const receivePack = async (
 			),
 		]),
 	);
+	// The push echo: the extensions' echo of the accepted pushes, as band-2
+	// lines before the held-back flush (side-band negotiated, echo on); a
+	// budget that runs out, or any failure, releases the flush untouched.
+	const echoed = echoLines(s, caps, recorded);
 	r.waitUntil(
-		within(recorded, deps.config.phase1WaitMs).then(() => relay.release([])),
+		within(recorded, deps.config.phase1WaitMs)
+			.then(() => withinValue(echoed, ECHO_WAIT_MS, []))
+			.then((lines) => relay.release(lines)),
 	);
 	return new Response(toClient.pipeThrough(relay.stream), {
 		status: 200,

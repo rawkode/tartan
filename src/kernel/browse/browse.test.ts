@@ -623,6 +623,69 @@ Deno.test("compare: commits on head since the merge base, the three-dot diff fro
 	);
 });
 
+Deno.test("compare with lane=<id> reads both sides from that lane, for members only (e2e: a repo lane's Diff tab)", async () => {
+	const f = await fixture();
+	const compare = createCompareHandler(f.b.depsFor);
+	const owner = session(f.owner);
+	const laneId = "ln_01k6aaaaaaaaaaaaaaaaaaaaaa";
+	const res = await get<CompareResponse>(
+		f,
+		compare,
+		`/-/api/compare?${
+			q({
+				repo: f.pub.path,
+				base: f.main,
+				head: f.laneHead,
+				lane: laneId,
+				patch: "1",
+			})
+		}`,
+		owner,
+	);
+	equal(res.status, 200);
+	equal(res.body.mergeBase, f.main);
+	deepStrictEqual(res.body.commits, []);
+	deepStrictEqual(f.b.probeCalls.at(-1), {
+		a: { repoId: f.pub.id, laneId, sha: f.main },
+		b: { repoId: f.pub.id, laneId, sha: f.laneHead },
+		patch: true,
+	});
+	// Lanes have no public view; a lane needs SHAs; a malformed lane id is 404.
+	equal(
+		(await get(
+			f,
+			compare,
+			`/-/api/compare?${
+				q({ repo: f.pub.path, base: f.main, head: f.laneHead, lane: laneId })
+			}`,
+			null,
+		)).status,
+		404,
+	);
+	equal(
+		(await get(
+			f,
+			compare,
+			`/-/api/compare?${
+				q({ repo: f.pub.path, base: "main", head: f.laneHead, lane: laneId })
+			}`,
+			owner,
+		)).status,
+		400,
+	);
+	equal(
+		(await get(
+			f,
+			compare,
+			`/-/api/compare?${
+				q({ repo: f.pub.path, base: f.main, head: f.laneHead, lane: "LN_X" })
+			}`,
+			owner,
+		)).status,
+		404,
+	);
+});
+
 Deno.test("moved repos answer 301 with the new path", async () => {
 	const f = await fixture();
 	const tree = createTreeHandler(f.b.depsFor);

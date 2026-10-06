@@ -11,7 +11,7 @@ export const COMPAT_DATE = "2026-08-15" as const;
  * Version of this contract package, equal to `package.json` `version` (a
  * test keeps them equal). Additive changes bump the minor or the patch.
  */
-export const CONTRACT_VERSION = "0.4.3" as const;
+export const CONTRACT_VERSION = "0.4.5" as const;
 
 /** Extension API id carried by every manifest (`api`) and the WIT package. */
 export const EXT_API = "tartan:ext@0.1.0" as const;

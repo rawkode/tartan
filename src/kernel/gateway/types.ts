@@ -2,10 +2,11 @@
 // as narrow interfaces so the handlers run in Deno tests, in workerd and
 // behind the router with the same code. `deps.ts` builds them from `Env`.
 
-import type { EffectiveRole, NodeDto } from "@tartan/contract";
+import type { EffectiveRole, Envelope, NodeDto } from "@tartan/contract";
 import type {
 	AuthContext,
 	CanonicalPushPolicy,
+	DispatchAt,
 	LaneRepoPushPolicy,
 	RepoCoreFacade,
 	RepoProbeApi,
@@ -69,6 +70,16 @@ export type GatewayDeps = {
 	readonly isForgeOwner: (principal: string) => Promise<boolean>;
 	/** RepoProbe (WP8) for phase 2 of push recording. */
 	readonly probe: () => Pick<RepoProbeApi, "laneDiff">;
+	/**
+	 * The push echo: the installations' echo of one `push.accepted` event
+	 * (`ExtDispatch.echo`, bounded by `budgetMs`), as sanitized `[ext] …`
+	 * lines. Absent: no echo (tests that do not exercise it).
+	 */
+	readonly echo?: (
+		event: Envelope,
+		at: DispatchAt,
+		budgetMs: number,
+	) => Promise<readonly string[]>;
 	/** Outbound fetch to the Artifacts git remotes. */
 	readonly fetch: (request: Request) => Promise<Response>;
 	readonly requestId: () => string;

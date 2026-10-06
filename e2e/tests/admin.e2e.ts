@@ -134,24 +134,34 @@ test.describe("administration as the owner", {
 		await expectApiClean(browser);
 	});
 
-	test("a repo's lane settings form offers branch lanes only", {
-		tags: ["lane-settings"],
-	}, async ({ app, screen, browser, stage }) => {
-		const repo = await fixtureRepo(stage, "classic", "settings");
-		await app.open(`/${repo.path}/-/settings`);
-		await watchApi(browser);
-		await expect(screen.getByRole("heading", { name: "Lanes" })).toBeVisible();
-		const mode = screen.getByLabel("Lane mode");
-		await expect(mode).toBeVisible();
-		await expect(
-			browser.locator('select[name="laneMode"] option:not([disabled])'),
-		).toHaveText(["Forge default", "Branch lanes in this repo"]);
-		await expect(screen.getByRole("button", "Save lane settings"))
-			.toBeVisible();
-		const view = await viewOf(browser, repo.path, "settings");
-		await expectSlotsSettled(browser, view, RENDERED.none);
-		await expectApiClean(browser);
-	});
+	test(
+		"a repo's lane settings form offers every lane mode an Owner may pick",
+		{
+			tags: ["lane-settings", "lanes"],
+		},
+		async ({ app, screen, browser, stage }) => {
+			const repo = await fixtureRepo(stage, "classic", "settings");
+			await app.open(`/${repo.path}/-/settings`);
+			await watchApi(browser);
+			await expect(screen.getByRole("heading", { name: "Lanes" }))
+				.toBeVisible();
+			const mode = screen.getByLabel("Lane mode");
+			await expect(mode).toBeVisible();
+			// The forge default, lane repos created with import(), and branch lanes.
+			await expect(
+				browser.locator('select[name="laneMode"] option:not([disabled])'),
+			).toHaveText([
+				"Forge default",
+				"Own lane repo, created with import()",
+				"Branch lanes in this repo",
+			]);
+			await expect(screen.getByRole("button", "Save lane settings"))
+				.toBeVisible();
+			const view = await viewOf(browser, repo.path, "settings");
+			await expectSlotsSettled(browser, view, RENDERED.none);
+			await expectApiClean(browser);
+		},
+	);
 
 	test("an agent is created, its token shown once, then disabled", {
 		tags: ["agents"],

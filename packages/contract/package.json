@@ -1,6 +1,6 @@
 {
 	"name": "@tartan/contract",
-	"version": "0.4.3",
+	"version": "0.4.5",
 	"private": true,
 	"description": "Tartan contract: types, zod schemas, JSON Schemas, interfaces, facade interfaces and the WIT world",
 	"license": "MIT",

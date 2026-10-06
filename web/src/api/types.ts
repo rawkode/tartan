@@ -7,6 +7,8 @@
 import type {
 	IdpClientAuth,
 	LaneSelfTestResult,
+	LogDeadListResponse,
+	LogStatusResponse,
 } from "@tartan/contract/api.ts";
 import type { PushLimits } from "@tartan/contract/git.ts";
 import type { LaneMode } from "@tartan/contract/lanes.ts";
@@ -37,6 +39,10 @@ export type ForgeSettingsDto = {
 	readonly retainedLaneRepos: number;
 	readonly rootKeyFallback: boolean;
 };
+
+/** The global log's Owner routes (WP26): in the contract since 0.4.5. */
+export type GlobalLogStatus = LogStatusResponse;
+export type GlobalLogDeadList = LogDeadListResponse;
 
 /**
  * `POST /-/api/admin/root-key/export` (WP2, Owner, once): the root key ForgeDO

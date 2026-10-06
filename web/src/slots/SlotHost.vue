@@ -61,6 +61,7 @@ if (api) {
 	provide(UI_DIFF_SOURCE, async (request) => {
 		const compare = await api.browse.compare(request.repo, request.base, request.head, {
 			patch: true,
+			...(request.lane === undefined ? {} : { lane: request.lane }),
 		});
 		return compare.files;
 	});

@@ -45,6 +45,20 @@ export const echoEnabled = (root: string = ROOT): boolean => {
 };
 
 /**
+ * Band-2 guidance on the stage under test: its rendered `TARTAN_ECHO`
+ * (`stage up --echo on|off`), else the compiled `ECHO_ENABLED`.
+ */
+export const echoOn = (
+	switches: { readonly echo: "on" | "off" | null },
+	root: string = ROOT,
+): boolean =>
+	switches.echo === "on"
+		? true
+		: switches.echo === "off"
+		? false
+		: echoEnabled(root);
+
+/**
  * Control characters a terminal must never get from the forge: ESC
  * (the start of CSI and OSC sequences), BEL (an OSC terminator), the C1
  * controls (CSI is also U+009B) and every other C0 except tab, newline and

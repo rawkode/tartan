@@ -175,6 +175,45 @@ export type ForgeRecord = {
 	readonly commit: string | null;
 	/** When the deploy finished (epoch ms), or null when unknown. */
 	readonly deployedAt: number | null;
+	/** The switches the deploy rendered (ids, names and modes only). */
+	readonly switches: RecordSwitches;
+};
+
+/** What the suites learn about the stage's switches (`TARTAN_E2E_SWITCHES`). */
+export type RecordSwitches = {
+	readonly laneMode: string | null;
+	readonly workloadTransport: string | null;
+	readonly projects: boolean;
+	readonly repoConfig: boolean;
+	/** The global log is bound (a K2 stream). */
+	readonly k2: boolean;
+	/** The K2 consume token is bound. */
+	readonly k2Token: boolean;
+	/** The WASM extension packages were built for this deploy. */
+	readonly buildExt: boolean;
+	/** `TARTAN_ECHO` as rendered (`on`, `off`), or null for the compiled default. */
+	readonly echo: "on" | "off" | null;
+};
+
+const MODE_RE = /^[a-z0-9]{1,16}$/;
+
+export const switchesOfRecord = (
+	value: Record<string, unknown>,
+): RecordSwitches => {
+	const s = (value.switches ?? {}) as Record<string, unknown>;
+	const k2 = value.k2 as { token?: unknown } | undefined;
+	const mode = (v: unknown) =>
+		typeof v === "string" && MODE_RE.test(v) ? v : null;
+	return {
+		laneMode: mode(s.laneMode),
+		workloadTransport: mode(s.workloadTransport),
+		projects: s.projects === true,
+		repoConfig: s.repoConfig === true,
+		k2: k2 !== undefined && k2 !== null,
+		k2Token: k2?.token !== undefined && k2?.token !== null,
+		buildExt: s.buildExt === true,
+		echo: s.echo === "on" || s.echo === "off" ? s.echo : null,
+	};
 };
 
 /**
@@ -217,6 +256,7 @@ export const parseForgeRecord = (text: string): ForgeRecord => {
 				Number.isFinite(Date.parse(value.deployedAt))
 			? Date.parse(value.deployedAt)
 			: null,
+		switches: switchesOfRecord(value),
 	};
 };
 

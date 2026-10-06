@@ -181,6 +181,19 @@ export const laneModeOf = (
 };
 
 /**
+ * Band-2 guidance on this stage: the rendered `TARTAN_ECHO` (`on` or `off`,
+ * `render-config.ts --echo`, set on a stage once its push-guidance tests pass live),
+ * else `ECHO_ENABLED`. The button path renders nothing, so it keeps the
+ * compiled default.
+ */
+export const echoEnabledOf = (
+	env: { readonly TARTAN_ECHO?: string } | undefined,
+): boolean => {
+	const rendered = env?.TARTAN_ECHO;
+	return rendered === "on" ? true : rendered === "off" ? false : ECHO_ENABLED;
+};
+
+/**
  * The most a CI run may use on this stage: the rendered
  * `TARTAN_WORKLOAD_TRANSPORT` (`render-config.ts --workload-transport`, only
  * with a K2 stream) when it is `local` or `k2`, else `WORKLOAD_TRANSPORT`.

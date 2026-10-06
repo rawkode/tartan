@@ -14,6 +14,8 @@ export class McpError extends Error {
 		readonly tool: string,
 		readonly code: string,
 		detail: string,
+		/** An error result's `structuredContent` (no credential is ever in it). */
+		readonly structured?: Readonly<Record<string, unknown>>,
 	) {
 		super(`MCP ${tool}: ${code}${detail ? ` (${detail})` : ""}`);
 	}
@@ -106,6 +108,15 @@ export type McpClient = {
 		tool: string,
 		args: Readonly<Record<string, unknown>>,
 	) => Promise<ToolResult<T>>;
+	/** `initialize`: the scope's instructions (the protocol cards in force) and server info. */
+	readonly initialize: () => Promise<InitializeResult>;
+	/** `tools/list`: every tool name the scope lists for this caller. */
+	readonly listTools: () => Promise<string[]>;
+};
+
+export type InitializeResult = {
+	readonly instructions: string;
+	readonly serverName: string;
 };
 
 /** A client for `/-/mcp/<scope>` on the forge. */
@@ -158,18 +169,53 @@ export const mcpClient = (
 		return reply.result;
 	};
 
+	const initialize = async (): Promise<InitializeResult> => {
+		const result = await rpc("initialize", "initialize", {
+			protocolVersion: PROTOCOL_VERSION,
+			capabilities: {},
+			clientInfo: { name: "tartan-e2e", version: "1" },
+		}) as {
+			readonly instructions?: unknown;
+			readonly serverInfo?: { readonly name?: unknown };
+		};
+		initialized = true;
+		return {
+			instructions: typeof result?.instructions === "string"
+				? result.instructions
+				: "",
+			serverName: typeof result?.serverInfo?.name === "string"
+				? result.serverInfo.name
+				: "",
+		};
+	};
+
+	const listTools = async (): Promise<string[]> => {
+		if (!initialized) await initialize();
+		const names: string[] = [];
+		let cursor: string | undefined;
+		for (let page = 0; page < 20; page++) {
+			const result = await rpc(
+				"tools/list",
+				"tools/list",
+				cursor === undefined ? {} : { cursor },
+			) as {
+				readonly tools?: readonly { readonly name?: unknown }[];
+				readonly nextCursor?: unknown;
+			};
+			for (const t of result?.tools ?? []) {
+				if (typeof t.name === "string") names.push(t.name);
+			}
+			if (typeof result?.nextCursor !== "string") break;
+			cursor = result.nextCursor;
+		}
+		return names;
+	};
+
 	const callFull = async <T>(
 		tool: string,
 		args: Readonly<Record<string, unknown>>,
 	): Promise<ToolResult<T>> => {
-		if (!initialized) {
-			await rpc("initialize", "initialize", {
-				protocolVersion: PROTOCOL_VERSION,
-				capabilities: {},
-				clientInfo: { name: "tartan-e2e", version: "1" },
-			});
-			initialized = true;
-		}
+		if (!initialized) await initialize();
 		const result = await rpc(tool, "tools/call", {
 			name: tool,
 			arguments: args,
@@ -187,6 +233,7 @@ export const mcpClient = (
 				String(e?.error ?? "tool error"),
 				[short(e?.reason), short(e?.message)].filter((s) => s !== "")
 					.join(": ") || short(result.content?.[0]?.text),
+				result.structuredContent,
 			);
 		}
 		const value = (result.structuredContent ?? {}) as T;
@@ -201,5 +248,7 @@ export const mcpClient = (
 		call: async <T>(tool: string, args: Readonly<Record<string, unknown>>) =>
 			(await callFull<T>(tool, args)).value,
 		callFull,
+		initialize,
+		listTools,
 	};
 };

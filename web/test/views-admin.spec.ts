@@ -481,19 +481,22 @@ describe("repo lane settings (Owner)", () => {
 		expect(value("Retained lane repos")).toContain(
 			"0 here · forge ceiling 5000",
 		);
-		// Lanes in their own repository arrive with M2: not offered, not saved.
+		// Every mode the kernel lets an Owner pick is offered: the forge
+		// default, the two lane-repo modes and branch lanes; none disabled.
 		const options = findAll(
 			field(app.root, "laneMode"),
 			(el) => el.tag === "option",
 		);
-		const disabled = options.filter((el) => "disabled" in el.attrs).map((el) =>
-			el.attrs["value"]
-		);
-		expect(disabled).toEqual(["import"]);
+		expect(options.map((el) => el.attrs["value"])).toEqual([
+			"default",
+			"import",
+			"branch",
+		]);
+		expect(options.filter((el) => "disabled" in el.attrs)).toEqual([]);
 		choose(field(app.root, "laneMode"), "import");
 		await flush();
 		const save = button(app.root, "Save lane settings");
-		expect("disabled" in save.attrs).toBe(true);
+		expect("disabled" in save.attrs).toBe(false);
 		choose(field(app.root, "laneMode"), "branch");
 		type(field(app.root, "atticRetentionDays"), "31");
 		await flush();
