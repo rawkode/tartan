@@ -221,6 +221,40 @@ pub fn button(text: &str, action: Value, tone: Option<Tone>) -> Node {
 	)
 }
 
+/// A form. On submit the host posts `submit` (an [`action`]) with the field
+/// values by name at the top level of the payload, the action's own payload
+/// merged over them: `on_action` reads `payload["title"]`.
+pub fn form(fields: Vec<Node>, submit_text: &str, submit: Value) -> Node {
+	node(
+		"form",
+		vec![
+			("fields", Value::Array(fields)),
+			("submit", json!({ "text": submit_text, "action": submit })),
+		],
+	)
+}
+
+fn field(t: &str, name: &str, label: Option<&str>, required: bool) -> Node {
+	node(
+		t,
+		vec![
+			("name", json!(name)),
+			("label", json!(label)),
+			("required", if required { json!(true) } else { Value::Null }),
+		],
+	)
+}
+
+/// A one-line text field of a [`form`]; `name` matches `[a-z0-9_]{1,32}`.
+pub fn input(name: &str, label: Option<&str>, required: bool) -> Node {
+	field("input", name, label, required)
+}
+
+/// A multi-line text field of a [`form`].
+pub fn textarea(name: &str, label: Option<&str>, required: bool) -> Node {
+	field("textarea", name, label, required)
+}
+
 /// `on-action` results.
 pub mod result {
 	use super::Tone;
@@ -299,5 +333,25 @@ mod tests {
 			json!(["gate.decided"])
 		);
 		assert_eq!(result::toast(Tone::Success, "done")["toast"]["tone"], "success");
+	}
+
+	#[test]
+	fn a_form_with_fields() {
+		let f = form(
+			vec![input("title", Some("Title"), true), textarea("body", None, false)],
+			"Create",
+			action("create", None, None),
+		);
+		assert_eq!(
+			f,
+			json!({
+				"t": "form",
+				"fields": [
+					{ "t": "input", "name": "title", "label": "Title", "required": true },
+					{ "t": "textarea", "name": "body" },
+				],
+				"submit": { "text": "Create", "action": { "id": "create" } },
+			})
+		);
 	}
 }

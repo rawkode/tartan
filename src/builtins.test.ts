@@ -103,7 +103,7 @@ const SLOT_CTX: SlotContext = {
 };
 
 Deno.test("every package under extensions/ is listed here", () => {
-	deepStrictEqual(found.map((f) => f.manifest.id).sort(), []);
+	deepStrictEqual(found.map((f) => f.manifest.id).sort(), ["rawkode.issues"]);
 });
 
 Deno.test("extensions/**/tartan.json validate: JSON Schema, zod and policy", async () => {
@@ -173,7 +173,7 @@ Deno.test("builtins.ts maps every bundled manifest to its extension module", asy
 		bundled.map((f) => f.manifest.id).sort(),
 		"registry ids == bundled manifests on disk",
 	);
-	ok(!builtins.has("acme.no-secrets"), "third-party wasm is not bundled");
+	ok(!builtins.has("rawkode.issues"), "third-party wasm is not bundled");
 	for (const { dir, manifest } of bundled) {
 		const pkg = builtins.get(manifest.id);
 		ok(pkg, `${manifest.id} registered`);
@@ -225,7 +225,8 @@ Deno.test("embedded migrations and protocol cards match the package files", asyn
 		}
 	}
 	// Non-bundled packages ship their own files at publish time
-	// (acme.no-secrets: WP17 adds migrations/0001_init.sql with the crate).
+	// (rawkode.issues: migrations/0001_init.sql and protocol.md, checked by
+	// `checkBundle` when it is built).
 });
 
 Deno.test("builtin migrations apply in order to a fresh SQLite database", () => {

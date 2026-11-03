@@ -929,11 +929,9 @@ export const warmUp = async (input: {
 
 /**
  * The WASM extension packages `--build-ext` builds (`extensions/<name>/`,
- * a Rust crate; `scripts/build-ext.ts` writes `dist/`). None on this branch:
- * it removed the first-party extensions, and the Issues extension is not
- * written yet.
+ * a Rust crate; `scripts/build-ext.ts` writes `dist/`).
  */
-export const EXT_PACKAGES: readonly string[] = [];
+export const EXT_PACKAGES = ["issues"] as const;
 
 /** The WASM target the extension crates build for. */
 const WASM_TARGET = "wasm32-unknown-unknown";
@@ -1305,11 +1303,9 @@ export const runDeploy = async (
 			}
 		}
 		log(
-			EXT_PACKAGES.length === 0
-				? "--build-ext: no WASM extension package to build"
-				: `built ${
-					EXT_PACKAGES.join(", ")
-				}: publish with an admin token after the claim (PUT /-/api/packages with dist/publish.json)`,
+			`built ${
+				EXT_PACKAGES.join(", ")
+			}: publish with an admin token after the claim (PUT /-/api/packages with dist/publish.json)`,
 		);
 	}
 	const deploy = async () =>

@@ -6,8 +6,8 @@ extension on one public contract, and first-party extensions use exactly the con
 > **Spike branch (`spike/strip-down`).** This branch removed every first-party extension and pack (`tartan.work`,
 > `tartan.changes`, `tartan.board`, `tartan.radar`, `tartan.ci`, `tartan.review`, `tartan.weave`, `tartan.fifo`,
 > `tartan.epics`, `tartan.hud`, `tartan.pack.swarm`, `tartan.pack.classic`), the `acme.no-secrets` WASM demo and
-> `packages/pipeline`. No extension is bundled or installed. Issues will be the first extension, written as a WASM
-> package on the contract below.
+> `packages/pipeline`. No extension is bundled. The first extension is Issues (`rawkode.issues`,
+> [`extensions/issues/`](../extensions/issues/)), a third-party WASM package on the contract below.
 
 This page explains the model, walks through a small JavaScript extension and introduces the Rust SDK. `packages/contract` is the source of truth for every name below;
 `@tartan/ext-api` has the helpers. [`ext/README.md`](ext/README.md) covers the build, publish and test details, and
@@ -354,7 +354,8 @@ cargo test --manifest-path extensions/<name>/Cargo.toml
 deno task build:ext <name>                # or: deno task deploy -- --stage <stage> --build-ext
 ```
 
-The build needs `cargo` with the `wasm32-unknown-unknown` target, `wasm-tools` and jco. An admin then publishes
+The build needs `cargo` with the `wasm32-unknown-unknown` target, `wasm-tools` 1.248.0 (the version CI pins; newer
+releases name the component's internal fixup imports differently, which the import check rejects) and jco. An admin then publishes
 `dist/publish.json`, installs it in shadow mode on a group or repository, replays it over that repository's history on
 the Policy compare page, and promotes it. `deploy --build-ext` builds the packages listed in `EXT_PACKAGES`
-(`scripts/deploy.ts`), which is empty until the Issues extension exists.
+(`scripts/deploy.ts`): today `issues`.

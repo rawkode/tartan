@@ -8,8 +8,9 @@ echo hooks, slots, tools and its own SQLite. It runs on one of two runtimes:
 - **js**: one ES module (bundled, no imports) whose default export implements the hooks of `ExtensionModule`
   (`@tartan/ext-api`'s `defineExtension`).
 
-On the `spike/strip-down` branch there is no extension in `extensions/`: the first-party extensions and the
-`acme.no-secrets` WASM demo were removed, and Issues will be the first WASM extension written on this contract.
+On the `spike/strip-down` branch the only package in `extensions/` is [`rawkode.issues`](../../extensions/issues/)
+(`extensions/issues/`), the Issues extension: a Rust crate on this contract with tools, a `repo.tab` page with a form,
+its own SQLite and no permissions. It is the worked example for everything below.
 
 Both run as a Dynamic Worker **facet** of the installation's own Durable Object (the ExtensionDO): one Dynamic Worker
 per installation and package version, no network (`globalOutbound: null`), an empty `env`, and a database of its own.
