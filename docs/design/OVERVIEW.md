@@ -131,7 +131,7 @@ The git gateway, the MCP host and the SPA run inside the Worker and share its or
 ### The Sandbox runner
 
 `TartanSandbox` runs one container image, built from `containers/runner/Dockerfile` on the Cloudflare Sandbox base
-image with git 2.55.0, pnpm 10.34.6 and the `cue` CLI v0.17.1 added at pinned versions. It runs CI jobs, the
+image with git 2.56.0, pnpm 10.34.6 and the `cue` CLI v0.17.1 added at pinned versions. It runs CI jobs, the
 Advance's git work (`merge-tree`, commit, notes, pushes with a lease) and repository config evaluation. Inside the
 container, processes that parse repository content run as one unprivileged user with read tokens only; a process that
 holds a write token runs as a second user, and the first user's processes are stopped before it starts. Tokens are
