@@ -1,10 +1,9 @@
 <script setup lang="ts">
-// One node's HUD (WP19, hosting WP20's tartan.hud and any other `hud.metric`
-// or `home.section` contributor): the node's `hud` view (metrics, in a grid)
-// and its `home` view (sections), both from `GET /-/api/view`. A
-// namespace shows what is installed on it (tartan.hud counts every repo
-// below); a repository also shows its own repo-scoped contributions (radar's
-// conflicts avoided, the Weave's landed per hour, review's attention inbox).
+// One node's HUD (WP19, hosting every `hud.metric` and `home.section`
+// contributor): the node's `hud` view (metrics, in a grid) and its `home`
+// view (sections), both from `GET /-/api/view`. A namespace shows what is
+// installed on it; a repository also shows its own repo-scoped
+// contributions.
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import type { ViewResponse } from "@tartan/contract/api.ts";
@@ -48,9 +47,8 @@ const headingId = computed(() => `hud-${path.value.replace(/[^a-z0-9]+/g, "-")}`
 		</div>
 		<SlotOutlet v-if="sections.length > 0" :slots="sections" slot-id="home.section" :ctx="ctx" :repo-id="repoId" />
 		<p v-if="empty" class="tt-muted">
-			Nothing on {{ path }} contributes HUD metrics. Install the HUD extension (tartan.hud) on a namespace from
-			<RouterLink to="/-/extensions">Extensions</RouterLink>
-			to count lanes, conflicts and landings across every repository below it.
+			Nothing on {{ path }} contributes HUD metrics. Install an extension that does from
+			<RouterLink to="/-/extensions">Extensions</RouterLink>.
 		</p>
 	</section>
 </template>

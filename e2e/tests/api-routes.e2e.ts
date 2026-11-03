@@ -25,7 +25,6 @@ import {
 	tokenApi,
 } from "../support/http.ts";
 import { PACK_GROUP } from "../support/names.ts";
-import { packSlots, packTabs } from "../support/tabs.ts";
 import { meOf } from "../support/page.ts";
 import { FIXTURE_HEAD } from "../support/fixture-repo.ts";
 import { fixtureRepo } from "../support/repos.ts";
@@ -146,7 +145,7 @@ test.describe("API routes the SPA calls", {
 		});
 	});
 
-	test("/-/agents.md describes the Classic protocol to the owner", {
+	test("/-/agents.md describes the forge to the owner", {
 		session: "owner",
 		tags: ["owner"],
 	}, async ({ app, browser }) => {
@@ -184,7 +183,7 @@ test.describe("API routes the SPA calls", {
 		expect(me.principal).toBeNull();
 	});
 
-	test("the view of a repo carries its node, viewer and slots", {
+	test("the view of a repo carries its node and viewer, and no slots", {
 		session: "developer",
 		tags: ["developer"],
 	}, async ({ app, browser, stage }) => {
@@ -203,26 +202,10 @@ test.describe("API routes the SPA calls", {
 		});
 		expect(view.viewer.role).toBe(30);
 		expect(view.repo?.trunkSha).toBe(FIXTURE_HEAD);
-		// The repo home's dynamic slots: exactly the Classic members'
-		// `repo.sidebar` contributions, from the manifests.
-		const expected = packSlots("classic", "repo.sidebar")
-			.map((s) => `${s.ext}:${s.id}`).sort();
-		expect(expected.length, "Classic contributes a repo.sidebar")
-			.toBeGreaterThan(
-				0,
-			);
-		expect(
-			view.slots.filter((s) => s.slot === "repo.sidebar")
-				.map((s) => `${s.ext}:${s.id}`).sort(),
-		).toEqual(expected);
-		// And the static tabs: every Classic `repo.tab`.
-		const tabs = packTabs().filter((t) =>
-			t.pack === "classic" && t.slot === "repo.tab"
-		).map((t) => t.id).sort();
-		expect(
-			view.static.tabs.filter((t) => t.slot === "repo.tab").map((t) => t.id)
-				.sort(),
-		).toEqual(tabs);
+		// No extension is installed on this branch: the repo home has no
+		// dynamic slots and no extension tabs.
+		expect(view.slots).toEqual([]);
+		expect(view.static.tabs).toEqual([]);
 	});
 
 	for (

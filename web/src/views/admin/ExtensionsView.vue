@@ -289,7 +289,7 @@ const approve = async (): Promise<void> => {
 									<td>
 										<RouterLink :to="`/-/extensions/${encodeURIComponent(inst.id)}`">{{ inst.extId }}</RouterLink>
 										<span v-if="inst.locked" class="chip chip--muted">locked</span>
-										<span v-if="inst.pack" class="chip chip--muted">{{ inst.pack.replace("tartan.pack.", "") }} pack</span>
+										<span v-if="inst.pack" class="chip chip--muted">pack {{ inst.pack }}</span>
 										<button
 											v-for="iface in providedBy.get(inst.id) ?? []"
 											:key="iface"

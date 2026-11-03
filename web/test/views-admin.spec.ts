@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FetchLike } from "../src/api/http.ts";
 import { createMockFetch } from "../src/api/mock/server.ts";
+import { SAMPLE_CATALOG } from "./support/catalog.ts";
 import { mountApp } from "./support/app.ts";
 import {
 	byAttr,
@@ -139,20 +140,20 @@ describe("extensions admin", () => {
 			app.calls.some((c) => c.path.startsWith("/-/api/installations?node=")),
 		).toBe(false);
 		expect(field(app.root, "installed-at").value).toBe("rawkode");
-		expect(byText(app.root, "a", "tartan.weave")).toBeNull();
+		expect(byText(app.root, "a", "sample.queue")).toBeNull();
 		// A repo under acme inherits acme's installations.
 		await showInForce(app.root, "acme/platform/router");
 		expect(app.calls.map((c) => c.path)).toContain(
 			"/-/api/installations?node=acme%2Fplatform%2Frouter",
 		);
 		const rows = findAll(app.root, (el) => el.tag === "tr").map(text);
-		expect(rows.some((r) => r.includes("tartan.weave") && r.includes("acme")))
+		expect(rows.some((r) => r.includes("sample.queue") && r.includes("acme")))
 			.toBe(true);
-		expect(rows.some((r) => r.includes("tartan.radar"))).toBe(true);
+		expect(rows.some((r) => r.includes("sample.notes"))).toBe(true);
 	});
 
 	it("an invited user starts at the node the kernel picks, with no alert (e2e)", async () => {
-		const inner = createMockFetch();
+		const inner = createMockFetch({ catalog: SAMPLE_CATALOG });
 		const startAt = (status: 200 | 404): FetchLike => (input, init) => {
 			if (input !== "/-/api/installations") return inner(input, init);
 			if (status === 404) {
@@ -169,7 +170,7 @@ describe("extensions admin", () => {
 		expect(findAll(app.root, (el) => el.attrs["role"] === "alert"))
 			.toHaveLength(0);
 		const rows = findAll(app.root, (el) => el.tag === "tr").map(text);
-		expect(rows.some((r) => r.includes("tartan.weave"))).toBe(true);
+		expect(rows.some((r) => r.includes("sample.queue"))).toBe(true);
 		// Nothing readable yet: a prompt, not "installations was not found".
 		const none = await mountApp("/-/extensions", { fetch: startAt(404) });
 		await flush();
@@ -181,12 +182,12 @@ describe("extensions admin", () => {
 
 	it("installs a package after showing the permission sheet", async () => {
 		const app = await mountApp("/-/extensions");
-		expect(text(app.root)).toContain("tartan.radar");
-		const weave = findAll(
+		expect(text(app.root)).toContain("sample.notes");
+		const queue = findAll(
 			app.root,
-			(el) => el.tag === "li" && text(el).includes("tartan.weave@0.1.0"),
+			(el) => el.tag === "li" && text(el).includes("sample.queue@0.1.0"),
 		)[0]!;
-		click(byText(weave, "button", "Install…")!);
+		click(byText(queue, "button", "Install…")!);
 		await flush();
 		type(field(app.root, "node"), "acme/platform");
 		await flush();
@@ -194,7 +195,7 @@ describe("extensions admin", () => {
 		await flush();
 		expect(app.calls.find((c) => c.path === "/-/api/installations/sheet")?.body)
 			.toEqual({
-				extId: "tartan.weave",
+				extId: "sample.queue",
 				version: "0.1.0",
 				node: "acme/platform",
 				mode: "shadow",
@@ -205,7 +206,7 @@ describe("extensions admin", () => {
 		)[0]!;
 		expect(text(sheet)).toContain("Land to refs/heads/main");
 		expect(text(sheet)).toContain(
-			"Replaces tartan.weave as the queue@1 provider",
+			"Replaces sample.queue as the queue@1 provider",
 		);
 		expect(
 			app.calls.some((c) =>
@@ -221,12 +222,12 @@ describe("extensions admin", () => {
 			)?.body,
 		)
 			.toMatchObject({
-				extId: "tartan.weave",
+				extId: "sample.queue",
 				node: "acme/platform",
 				mode: "shadow",
 			});
 		expect(app.toasts.items.map((t) => t.text)).toContain(
-			"tartan.weave installed at acme/platform (shadow).",
+			"sample.queue installed at acme/platform (shadow).",
 		);
 	});
 
@@ -239,9 +240,11 @@ describe("extensions admin", () => {
 			app.root,
 			(el) => el.tag === "form" && el.attrs["aria-label"] === "Swap provider",
 		)[0]!;
-		expect(text(form)).toContain("tartan.weave now");
+		expect(text(form)).toContain("sample.queue now");
 		// The only other queue@1 package is preselected (the dry run names it).
-		expect(text(field(app.root, "swap-to"))).toContain("tartan.fifo@0.1.0");
+		expect(text(field(app.root, "swap-to"))).toContain(
+			"sample.queue-fifo@0.1.0",
+		);
 		expect(field(app.root, "swap-at").value).toBe("acme/platform/router");
 		submit(form);
 		await flush();
@@ -251,7 +254,7 @@ describe("extensions admin", () => {
 		expect(dry?.body).toEqual({
 			node: "acme/platform/router",
 			iface: "queue@1",
-			extId: "tartan.fifo",
+			extId: "sample.queue-fifo",
 			version: "0.1.0",
 			dryRun: true,
 		});
@@ -259,7 +262,7 @@ describe("extensions admin", () => {
 			app.root,
 			(el) => el.attrs["aria-label"] === "Swap sheet",
 		)[0]!;
-		expect(text(sheet)).toContain("Install tartan.fifo@0.1.0 here");
+		expect(text(sheet)).toContain("Install sample.queue-fifo@0.1.0 here");
 		expect(text(sheet)).toContain("Land to refs/heads/main");
 		expect(text(sheet)).toContain("needs an Owner");
 		submit(form);
@@ -271,11 +274,11 @@ describe("extensions admin", () => {
 		expect(swaps[1]!.body).toEqual({
 			node: "acme/platform/router",
 			iface: "queue@1",
-			extId: "tartan.fifo",
+			extId: "sample.queue-fifo",
 			version: "0.1.0",
 		});
 		const rows = findAll(app.root, (el) => el.tag === "tr").map(text);
-		expect(rows.some((r) => r.includes("tartan.fifo"))).toBe(true);
+		expect(rows.some((r) => r.includes("sample.queue-fifo"))).toBe(true);
 		expect(
 			findAll(
 				app.root,
@@ -288,7 +291,7 @@ describe("extensions admin", () => {
 		const app = await mountApp("/-/extensions");
 		await showInForce(app.root, "acme");
 		await app.router.push(
-			byText(app.root, "a", "acme.no-secrets")!.attrs["href"]!,
+			byText(app.root, "a", "sample.gate")!.attrs["href"]!,
 		);
 		await flush();
 		// A wasm gate: the breaker panel and the replay link are offered.
@@ -302,7 +305,7 @@ describe("extensions admin", () => {
 		);
 		click(button(app.root, "Reset breaker"));
 		await flush();
-		expect(confirms).toEqual(["Reset the circuit breaker of acme.no-secrets?"]);
+		expect(confirms).toEqual(["Reset the circuit breaker of sample.gate?"]);
 		expect(
 			app.calls.filter((c) => c.path.includes("/breaker")).map((c) => c.method),
 		).toEqual(["GET", "POST"]);
@@ -320,10 +323,10 @@ describe("extensions admin", () => {
 		expect(replay?.body).toEqual({ repo: "acme/platform/router", n: 50 });
 		const result = text(byAttr(app.root, "data-replay")[0]!);
 		expect(result).toContain("would have vetoed 2 of the last 41 advances");
-		expect(result).toContain("AKIA…MPLE");
+		expect(result).toContain("seeded.env:2 is not allowed");
 		click(button(app.root, "Promote to enforce"));
 		await flush();
-		expect(confirms.at(-1)).toContain("Promote acme.no-secrets to enforce");
+		expect(confirms.at(-1)).toContain("Promote sample.gate to enforce");
 		expect(app.calls.some((c) => c.path.endsWith("/promote"))).toBe(true);
 		expect(text(byAttr(app.root, "data-mode")[0]!)).toBe("enforce");
 		expect(text(app.root)).toContain(
@@ -334,7 +337,7 @@ describe("extensions admin", () => {
 	it("changes an installation's mode and shows its settings read-only until M2", async () => {
 		const app = await mountApp("/-/extensions");
 		await showInForce(app.root, "acme");
-		const link = byText(app.root, "a", "tartan.weave")!;
+		const link = byText(app.root, "a", "sample.queue")!;
 		await app.router.push(link.attrs["href"]!);
 		await flush();
 		expect(text(app.root)).toContain("Approved permissions");
@@ -345,7 +348,7 @@ describe("extensions admin", () => {
 			)[0]!,
 		);
 		await flush();
-		expect(confirms).toEqual(["Switch tartan.weave to shadow?"]);
+		expect(confirms).toEqual(["Switch sample.queue to shadow?"]);
 		expect(app.calls.find((c) => c.path.endsWith("/mode"))?.body).toEqual({
 			mode: "shadow",
 		});
@@ -353,7 +356,7 @@ describe("extensions admin", () => {
 		// text. The kernel has no config route yet: nothing to submit.
 		const terms = findAll(app.root, (el) => el.tag === "dt").map(text);
 		const details = findAll(app.root, (el) => el.tag === "dd").map(text);
-		expect(details[terms.indexOf("Train size")]).toBe("1");
+		expect(details[terms.indexOf("Batch size")]).toBe("1");
 		expect(details[terms.indexOf("Queue label <script>")]).toBe("main");
 		expect(findAll(app.root, (el) => el.tag === "script")).toEqual([]);
 		expect(byTag(app.root, "form")).toEqual([]);
@@ -367,7 +370,7 @@ describe("extensions admin", () => {
 		const app = await mountApp("/-/extensions");
 		await showInForce(app.root, "acme");
 		await app.router.push(
-			byText(app.root, "a", "tartan.weave")!.attrs["href"]!,
+			byText(app.root, "a", "sample.queue")!.attrs["href"]!,
 		);
 		await flush();
 		const state = () => text(byAttr(app.root, "data-repo-overrides")[0]!);
@@ -381,7 +384,7 @@ describe("extensions admin", () => {
 		expect(byText(app.root, "button", "Stop repo overrides")).not.toBeNull();
 
 		// An installation made from a repo's package tartan: managed there.
-		const inner = createMockFetch();
+		const inner = createMockFetch({ catalog: SAMPLE_CATALOG });
 		const managed: FetchLike = async (input, init) => {
 			const res = await inner(input, init);
 			if (!/^\/-\/api\/installations\/i_[^/]+$/.test(input)) return res;

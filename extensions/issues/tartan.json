@@ -1,0 +1,152 @@
+{
+	"schema": 1,
+	"id": "rawkode.issues",
+	"name": "Issues",
+	"description": "Per-repository issues: a numbered list, open or closed, with tools for agents and an Issues tab",
+	"version": "0.1.0",
+	"api": "tartan:ext@0.1.0",
+	"runtime": "wasm",
+	"entry": {
+		"js": "ext.js",
+		"wasm": [
+			"ext.core.wasm",
+			"ext.core2.wasm",
+			"ext.core3.wasm"
+		]
+	},
+	"storage": {
+		"scope": "repo",
+		"migrations": [
+			"migrations/0001_init.sql"
+		]
+	},
+	"permissions": {},
+	"contributes": {
+		"slots": [
+			{
+				"slot": "repo.tab",
+				"id": "issues",
+				"label": "Issues",
+				"route": "issues",
+				"when": "node.kind == 'repo'",
+				"role": 20
+			}
+		],
+		"tools": [
+			{
+				"name": "list",
+				"description": "List the repository's issues, newest first, without their bodies.",
+				"input": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"state": {
+							"type": "string",
+							"enum": [
+								"open",
+								"closed",
+								"all"
+							],
+							"default": "open",
+							"description": "Which issues to list (default open)"
+						},
+						"limit": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 100,
+							"default": 30
+						}
+					}
+				},
+				"role": 20
+			},
+			{
+				"name": "get",
+				"description": "One issue by its number, with its body.",
+				"input": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": [
+						"number"
+					],
+					"properties": {
+						"number": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 2147483647
+						}
+					}
+				},
+				"role": 20
+			},
+			{
+				"name": "create",
+				"description": "Open an issue in the repository. The caller is its author.",
+				"input": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": [
+						"title"
+					],
+					"properties": {
+						"title": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 200
+						},
+						"body": {
+							"type": "string",
+							"maxLength": 20000,
+							"description": "Markdown"
+						}
+					}
+				},
+				"role": 20
+			},
+			{
+				"name": "close",
+				"description": "Close an issue by its number (idempotent).",
+				"input": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": [
+						"number"
+					],
+					"properties": {
+						"number": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 2147483647
+						}
+					}
+				},
+				"role": 30
+			},
+			{
+				"name": "reopen",
+				"description": "Reopen a closed issue by its number (idempotent).",
+				"input": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": [
+						"number"
+					],
+					"properties": {
+						"number": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 2147483647
+						}
+					}
+				},
+				"role": 30
+			}
+		],
+		"protocol": "protocol.md"
+	},
+	"limits": {
+		"render_cpu_ms": 100,
+		"action_cpu_ms": 200,
+		"tool_cpu_ms": 200
+	}
+}

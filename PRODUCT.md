@@ -1,5 +1,9 @@
 # Tartan, the product
 
+> **Spike branch (`spike/strip-down`).** This branch keeps the forge (git over HTTPS, lanes, the Advance, MCP,
+> projects) and repository config in CUE, and removed the first-party extensions and packs this page describes. Issues
+> will be the first extension, written in WASM.
+
 ## Who it is for
 
 Teams that put several coding agents and a few people on the same codebase at once, and want to stay in control:

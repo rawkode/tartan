@@ -20,6 +20,7 @@ import {
 	positionLink,
 	settingsActions,
 } from "../src/views/repoconfig/model.ts";
+import { SAMPLE_CATALOG } from "./support/catalog.ts";
 import { mountApp } from "./support/app.ts";
 import { fakeSockets } from "./support/fakes.ts";
 import {
@@ -55,7 +56,7 @@ const withMock = (options: {
 	readonly config?: (state: RepoConfigStateDto) => RepoConfigStateDto;
 	readonly preview?: (p: RepoConfigPreviewDto) => RepoConfigPreviewDto;
 } = {}): FetchLike => {
-	const inner = createMockFetch();
+	const inner = createMockFetch({ catalog: SAMPLE_CATALOG });
 	return async (input, init) => {
 		const res = await inner(input, init);
 		const path = new URL(input, "https://forge.test").pathname;
@@ -100,13 +101,13 @@ describe("repository settings → extensions", () => {
 		const file = byText(app.root, "a", "tartan.cue")!;
 		expect(file.attrs["href"]).toBe(`${REPO}/-/blob/${SHAS.c3}/tartan.cue`);
 		// Effective rows and where they come from.
-		expect(page).toContain("tartan.weave");
+		expect(page).toContain("sample.queue");
 		expect(page).toContain("inherited from /acme");
 		expect(page).toContain("overridable: batch, debounceMs");
 		expect(page).toContain("policy: pipeline");
 		// Repo policy in force (text only) and the approvals.
 		expect(page).toContain('"run": "pnpm test"');
-		expect(page).toContain("acme.no-secrets 0.2.0");
+		expect(page).toContain("sample.gate 0.2.0");
 		// The Config tab is current and the copyable export command is there.
 		expect(byText(app.root, "a", "Config")?.attrs["aria-current"]).toBe("page");
 		expect(
@@ -134,17 +135,17 @@ describe("repository settings → extensions", () => {
 					code: "BUILD_VALUE",
 					message: "<img src=x onerror=alert(1)>",
 					issues: [{
-						path: 'extensions."tartan.weave".settings.batch',
+						path: 'extensions."sample.queue".settings.batch',
 						msg: "invalid value 12 (out of bound <=4)",
 						pos: [
 							"./tartan.cue:3:40",
-							"cue.mod/pkg/tartan.dev/ext/x/tartan_weave/settings.cue:4:9",
+							"cue.mod/pkg/tartan.dev/ext/x/sample_queue/settings.cue:4:9",
 							"other.cue:1:1",
 						],
 					}],
 					denials: [{
 						code: "locked_gate",
-						path: 'extensions."tartan.review".mode',
+						path: 'extensions."sample.review".mode',
 						message: "inherited from /acme; change it there",
 					}],
 				},
@@ -332,9 +333,9 @@ describe("change card: repo config (K13.3)", () => {
 		expect(body).toContain("human (K13)");
 		expect(body).toContain("sign-off pending");
 		expect(body).toContain(
-			"overlay tartan.weave (inherited from /acme): batch 4 → 2",
+			"overlay sample.queue (inherited from /acme): batch 4 → 2",
 		);
-		expect(body).toContain("install acme.no-secrets 0.2.0 (enforce)");
+		expect(body).toContain("install sample.gate 0.2.0 (enforce)");
 		expect(body).toContain(`evaluated at head ${HEAD.slice(0, 7)}`);
 		// The lane came from the change's events; its preview and evaluation were read.
 		expect(app.calls.some((c) => c.path.startsWith("/-/api/events"))).toBe(

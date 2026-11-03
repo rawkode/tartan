@@ -134,8 +134,8 @@ const policyRows = computed(() => {
 	const p = state.value?.policy;
 	if (!p) return [];
 	return [
-		{ key: "pipeline", label: "Pipeline (tartan.ci)", value: p.pipeline },
-		{ key: "owners", label: "Owners (tartan.review)", value: p.owners },
+		{ key: "pipeline", label: "Pipeline", value: p.pipeline },
+		{ key: "owners", label: "Owners", value: p.owners },
 		{ key: "projects", label: "Projects", value: p.projects },
 		{ key: "global", label: "Global files", value: p.global },
 	].filter((r) => r.value !== undefined);
@@ -363,8 +363,8 @@ const schemaFiles = computed(() =>
 							<h3 id="config-policy" class="config-sub">Repo policy</h3>
 							<p class="tt-muted">
 								Read at each change's base on trunk:
-								<code>extensions: "tartan.ci": settings: pipeline</code>,
-								<code>extensions: "tartan.review": settings: owners</code>, and the top-level
+								the repo-policy settings of the extensions in force (<code>pipeline</code>,
+								<code>owners</code>), and the top-level
 								<code>projects</code> and <code>global</code>.
 							</p>
 							<template v-if="state.policy.inForce">

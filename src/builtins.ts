@@ -26,47 +26,6 @@ import {
 	parseManifest,
 } from "@tartan/contract";
 
-import * as board from "../extensions/board/src/index.ts";
-import boardManifest from "../extensions/board/tartan.json" with {
-	type: "json",
-};
-import * as changes from "../extensions/changes/src/index.ts";
-import changesManifest from "../extensions/changes/tartan.json" with {
-	type: "json",
-};
-import * as ci from "../extensions/ci/src/index.ts";
-import ciManifest from "../extensions/ci/tartan.json" with { type: "json" };
-import * as epics from "../extensions/epics/src/index.ts";
-import epicsManifest from "../extensions/epics/tartan.json" with {
-	type: "json",
-};
-import * as fifo from "../extensions/fifo/src/index.ts";
-import fifoManifest from "../extensions/fifo/tartan.json" with { type: "json" };
-import * as hud from "../extensions/hud/src/index.ts";
-import hudManifest from "../extensions/hud/tartan.json" with { type: "json" };
-import * as classicPack from "../extensions/packs/classic/src/index.ts";
-import * as packs from "../extensions/packs/src/index.ts";
-import classicPackManifest from "../extensions/packs/classic/tartan.json" with {
-	type: "json",
-};
-import swarmPackManifest from "../extensions/packs/swarm/tartan.json" with {
-	type: "json",
-};
-import * as radar from "../extensions/radar/src/index.ts";
-import radarManifest from "../extensions/radar/tartan.json" with {
-	type: "json",
-};
-import * as review from "../extensions/review/src/index.ts";
-import reviewManifest from "../extensions/review/tartan.json" with {
-	type: "json",
-};
-import * as weave from "../extensions/weave/src/index.ts";
-import weaveManifest from "../extensions/weave/tartan.json" with {
-	type: "json",
-};
-import * as work from "../extensions/work/src/index.ts";
-import workManifest from "../extensions/work/tartan.json" with { type: "json" };
-
 /** The exports every `extensions/<name>/src/index.ts` provides. */
 export type BuiltinExports = {
 	readonly extension: ExtensionModule;
@@ -83,36 +42,8 @@ export type BuiltinSource = BuiltinExports & {
 	readonly manifest: unknown;
 };
 
-const source = (
-	dir: string,
-	manifest: unknown,
-	exports: BuiltinExports,
-): BuiltinSource => ({
-	dir,
-	manifest,
-	extension: exports.extension,
-	migrations: exports.migrations,
-	protocol: exports.protocol,
-	...(exports.settingsCue === undefined
-		? {}
-		: { settingsCue: exports.settingsCue }),
-});
-
 /** Every bundled package, in registration order (packs after their members). */
-export const BUILTIN_SOURCES: readonly BuiltinSource[] = [
-	source("work", workManifest, work),
-	source("changes", changesManifest, changes),
-	source("board", boardManifest, board),
-	source("epics", epicsManifest, epics),
-	source("hud", hudManifest, hud),
-	source("radar", radarManifest, radar),
-	source("ci", ciManifest, ci),
-	source("review", reviewManifest, review),
-	source("weave", weaveManifest, weave),
-	source("fifo", fifoManifest, fifo),
-	source("packs/swarm", swarmPackManifest, packs),
-	source("packs/classic", classicPackManifest, classicPack),
-];
+export const BUILTIN_SOURCES: readonly BuiltinSource[] = [];
 
 /** Package path of a migration: `migrations/0001_init.sql` for `{n: 1, name: "init"}`. */
 export const migrationPath = (m: ExtMigration): string =>

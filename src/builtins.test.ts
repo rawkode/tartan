@@ -27,6 +27,7 @@ import {
 	validateUi,
 } from "@tartan/contract";
 import { loadSchema } from "../packages/contract/test/helpers.ts";
+import { LEGACY_SOURCES } from "./kernel/exthost/host/testing/legacy-builtins.ts";
 import {
 	BUILTIN_SOURCES,
 	builtins,
@@ -48,6 +49,10 @@ type Found = {
 /** Every `tartan.json` under `extensions/`, nested pack manifests included. */
 const findManifests = async (dir = ""): Promise<string[]> => {
 	const found: string[] = [];
+	const root = new URL(dir, EXTENSIONS);
+	if (dir === "" && !(await Deno.stat(root).then(() => true, () => false))) {
+		return found;
+	}
 	for await (const entry of Deno.readDir(new URL(dir, EXTENSIONS))) {
 		if (entry.isFile && entry.name === "tartan.json") {
 			found.push(dir.replace(/\/$/, ""));
@@ -97,22 +102,8 @@ const SLOT_CTX: SlotContext = {
 	mode: "enforce",
 };
 
-Deno.test("every first-party extension and pack has a manifest", () => {
-	deepStrictEqual(found.map((f) => f.manifest.id).sort(), [
-		"acme.no-secrets",
-		"tartan.board",
-		"tartan.changes",
-		"tartan.ci",
-		"tartan.epics",
-		"tartan.fifo",
-		"tartan.hud",
-		"tartan.pack.classic",
-		"tartan.pack.swarm",
-		"tartan.radar",
-		"tartan.review",
-		"tartan.weave",
-		"tartan.work",
-	]);
+Deno.test("every package under extensions/ is listed here", () => {
+	deepStrictEqual(found.map((f) => f.manifest.id).sort(), ["rawkode.issues"]);
 });
 
 Deno.test("extensions/**/tartan.json validate: JSON Schema, zod and policy", async () => {
@@ -182,7 +173,7 @@ Deno.test("builtins.ts maps every bundled manifest to its extension module", asy
 		bundled.map((f) => f.manifest.id).sort(),
 		"registry ids == bundled manifests on disk",
 	);
-	ok(!builtins.has("acme.no-secrets"), "third-party wasm is not bundled");
+	ok(!builtins.has("rawkode.issues"), "third-party wasm is not bundled");
 	for (const { dir, manifest } of bundled) {
 		const pkg = builtins.get(manifest.id);
 		ok(pkg, `${manifest.id} registered`);
@@ -234,7 +225,8 @@ Deno.test("embedded migrations and protocol cards match the package files", asyn
 		}
 	}
 	// Non-bundled packages ship their own files at publish time
-	// (acme.no-secrets: WP17 adds migrations/0001_init.sql with the crate).
+	// (rawkode.issues: migrations/0001_init.sql and protocol.md, checked by
+	// `checkBundle` when it is built).
 });
 
 Deno.test("builtin migrations apply in order to a fresh SQLite database", () => {
@@ -362,31 +354,8 @@ Deno.test("stub modules implement exactly the declared hooks, as no-ops", async 
 	}
 });
 
-Deno.test("packs list registered builtin members at their bundled version", () => {
-	const packsFound = found.filter((f) => f.manifest.kind === "pack");
-	equal(packsFound.length, 2);
-	for (const { dir, manifest } of packsFound) {
-		for (const member of manifest.members ?? []) {
-			const pkg = builtins.get(member.id);
-			ok(pkg, `${dir}: member ${member.id} is bundled`);
-			equal(pkg.manifest.kind, "extension");
-			equal(member.version, pkg.manifest.version);
-		}
-	}
-	const swarm = builtins.get("tartan.pack.swarm")!.manifest.members!;
-	const classic = builtins.get("tartan.pack.classic")!.manifest.members!;
-	ok(
-		swarm.some((m) => m.id === "tartan.weave") &&
-			!swarm.some((m) => m.id === "tartan.fifo"),
-	);
-	ok(
-		classic.some((m) => m.id === "tartan.fifo") &&
-			!classic.some((m) => m.id === "tartan.weave"),
-	);
-});
-
 Deno.test("the registry rejects broken packages", () => {
-	const good = BUILTIN_SOURCES.find((s) => s.dir === "weave")!;
+	const good = LEGACY_SOURCES.find((s) => s.dir === "weave")!;
 	const raw = good.manifest as Record<string, unknown>;
 	const variants: [string, BuiltinSource][] = [
 		["wrong entry", {
@@ -414,7 +383,7 @@ Deno.test("the registry rejects broken packages", () => {
 	ok(threw, "duplicate ids throw");
 	threw = false;
 	try {
-		createBuiltinRegistry(BUILTIN_SOURCES.filter((s) => s.dir !== "board"));
+		createBuiltinRegistry(LEGACY_SOURCES.filter((s) => s.dir !== "board"));
 	} catch (e) {
 		threw = isTartanError(e) && /tartan\.board/.test(e.message);
 	}

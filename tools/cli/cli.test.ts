@@ -1,36 +1,36 @@
-// `tartan` CLI (WP11): the credential helper with stock git, the
-// pre-push hook with stock git (a 32 MiB blob, the canonical `main` and
-// another agent's lane remote are refused before any upload; the own lane
-// goes through), and login / lane open against a local forge stand-in.
+// `tt` against a local forge stand-in with stock git: `auth login
+// --with-token` (checked with whoami, stored 0600), `auth status|token|logout`,
+// `auth setup-git`, git running `tt auth git-credential get`, and `repo clone`
+// over HTTP with and without `setup-git`.
 
 import { deepStrictEqual, equal, match, ok } from "node:assert/strict";
 import { createUlid } from "@tartan/contract";
-import { type Args, credential, type Io, laneOpen, login } from "./commands.ts";
-import { resolveCredential } from "./config.ts";
-import { credentialAnswer, invocation } from "./credential.ts";
+import type { Io } from "./commands.ts";
+import { originOf, resolveCredential } from "./config.ts";
+import { credentialAnswer, helperValue } from "./credential.ts";
 import { createGit, type Git, gitOk } from "./git.ts";
-import { installGitHook } from "./hooks.ts";
-import { readLanes, recordLane } from "./lanes.ts";
-import { parseArgs } from "./main.ts";
+import { parseArgs, run } from "./main.ts";
+import { cloneTarget } from "./repo.ts";
 import { startFakeForge } from "./testing/server.ts";
 
 const ulid = createUlid();
 const TOKEN = `tagt_${"A".repeat(43)}`;
-const MINE = `ln_${ulid()}`;
-const OTHERS = `ln_${ulid()}`;
+const LANE = `ln_${ulid()}`;
 const ME = `a_${ulid()}`;
-const OTHER_AGENT = `a_${ulid()}`;
 
 type Sandbox = {
 	readonly dir: string;
 	readonly env: Record<string, string>;
 	readonly git: Git;
+	readonly bare: string;
+	readonly head: string;
 };
 
+/** A temp dir with its own global git config, and a bare repo with one commit. */
 const sandbox = async (
 	extra: Record<string, string> = {},
 ): Promise<Sandbox> => {
-	const dir = await Deno.makeTempDir({ prefix: "tartan-cli-" });
+	const dir = await Deno.makeTempDir({ prefix: "tt-cli-" });
 	await Deno.writeTextFile(`${dir}/gitconfig`, "");
 	const env = {
 		GIT_CONFIG_GLOBAL: `${dir}/gitconfig`,
@@ -44,7 +44,16 @@ const sandbox = async (
 		...extra,
 	};
 	await Deno.mkdir(`${dir}/work`);
-	return { dir, env, git: createGit(`${dir}/work`, env) };
+	await Deno.mkdir(`${dir}/seed`);
+	const bare = `${dir}/upstream.git`;
+	const seed = createGit(`${dir}/seed`, env);
+	await gitOk(seed, ["init", "-q", "-b", "main"]);
+	await Deno.writeTextFile(`${dir}/seed/README.md`, "# shop\n");
+	await gitOk(seed, ["add", "README.md"]);
+	await gitOk(seed, ["commit", "-q", "-m", "trunk"]);
+	const head = await gitOk(seed, ["rev-parse", "HEAD"]);
+	await gitOk(seed, ["clone", "-q", "--bare", ".", bare]);
+	return { dir, env, git: createGit(`${dir}/work`, env), bare, head };
 };
 
 const ioFor = (
@@ -67,31 +76,98 @@ const ioFor = (
 	};
 };
 
-const args = (argv: string[]): Args => parseArgs(argv);
+const withForge = async (
+	test: (
+		forge: ReturnType<typeof startFakeForge>,
+		box: Sandbox,
+	) => Promise<void>,
+	extra: Record<string, string> = {},
+) => {
+	const box = await sandbox(extra);
+	const forge = startFakeForge({ token: TOKEN, bare: box.bare });
+	forge.setTools((name) =>
+		name === "whoami"
+			? { principal: { id: ME, handle: "claude-1" } }
+			: { error: "not_found" }
+	);
+	try {
+		await test(forge, box);
+	} finally {
+		await forge.close();
+		await Deno.remove(box.dir, { recursive: true });
+	}
+};
 
-const helperCommand = () =>
-	`!${invocation().map((a) => `'${a}'`).join(" ")} credential`;
+const login = async (forge: { origin: string }, box: Sandbox) => {
+	const io = ioFor(box, `${TOKEN}\n`);
+	const code = await run(io, [
+		"auth",
+		"login",
+		"--hostname",
+		forge.origin,
+		"--with-token",
+	]);
+	equal(code, 0, io.errors.join("\n"));
+	return io;
+};
+
+/** The values of a multi-valued git config key in one scope (empty ones too). */
+const helpers = async (git: Git, scope: string, key: string) => {
+	const out = await git(["config", scope, "--get-all", key]);
+	equal(out.code, 0, out.stderr);
+	return out.stdout.replace(/\n$/, "").split("\n");
+};
 
 // ---------------------------------------------------------------------------
 // Unit
 // ---------------------------------------------------------------------------
 
-Deno.test("parseArgs: values, repeats, bare flags and --", () => {
+Deno.test("parseArgs: values, repeats, bare flags, -h and the -- passthrough", () => {
 	const parsed = parseArgs([
-		"open",
-		"--repo",
-		"acme/shop",
-		"--prefix",
-		"src/",
-		"--prefix=docs/",
+		"clone",
+		"--hostname",
+		"code.example.test",
+		"--repo=a/b",
+		"--repo=c/d",
 		"--json",
+		"-h",
+		"acme/shop",
 		"--",
-		"--literal",
+		"--depth",
+		"1",
 	]);
-	deepStrictEqual(parsed.positional, ["open", "--literal"]);
-	deepStrictEqual(parsed.flags.prefix, ["src/", "docs/"]);
+	deepStrictEqual(parsed.positional, ["clone", "acme/shop"]);
+	equal(parsed.flags.hostname, "code.example.test");
+	deepStrictEqual(parsed.flags.repo, ["a/b", "c/d"]);
 	equal(parsed.flags.json, true);
-	equal(parsed.flags.repo, "acme/shop");
+	equal(parsed.flags.help, true);
+	deepStrictEqual(parsed.passthrough, ["--depth", "1"]);
+});
+
+Deno.test("originOf takes a bare host name as https", () => {
+	equal(originOf("code.example.test"), "https://code.example.test");
+	equal(originOf("http://127.0.0.1:8787/x"), "http://127.0.0.1:8787");
+});
+
+Deno.test("cloneTarget: a forge path resolves against the forge; a URL passes through", () => {
+	const forge = () => "https://code.example.test";
+	deepStrictEqual(cloneTarget("/acme/platform/router.git", forge), {
+		url: "https://code.example.test/acme/platform/router.git",
+		origin: "https://code.example.test",
+	});
+	deepStrictEqual(cloneTarget("https://other.test/a/b.git", forge), {
+		url: "https://other.test/a/b.git",
+		origin: "https://other.test",
+	});
+	for (const bad of ["shop", "acme/../etc", "acme/sh op", "acme//shop"]) {
+		let refused = false;
+		try {
+			cloneTarget(bad, forge);
+		} catch {
+			refused = true;
+		}
+		ok(refused, bad);
+	}
 });
 
 Deno.test("TARTAN_TOKEN is offered only to its own forge; a stored principal only with its own token", () => {
@@ -130,7 +206,7 @@ Deno.test("credentialAnswer: the token for a known forge (any path), nothing els
 			{
 				protocol: "https",
 				host: "code.example.test",
-				path: "acme/shop/-/lanes/x.git",
+				path: `acme/shop/-/lanes/${LANE}.git`,
 			},
 			config,
 			env,
@@ -155,306 +231,207 @@ Deno.test("credentialAnswer: the token for a known forge (any path), nothing els
 	);
 });
 
+Deno.test("help: tt --help, tt auth --help and tt repo clone --help", async () => {
+	const box = await sandbox();
+	try {
+		const io = ioFor(box);
+		equal(await run(io, ["--help"]), 0);
+		match(io.lines[0], /^Work with a Tartan forge/);
+		equal(await run(io, ["auth", "--help"]), 0);
+		match(io.lines[1], /setup-git:/);
+		equal(await run(io, ["repo", "clone", "-h"]), 0);
+		match(io.lines[2], /tt repo clone <owner\/…\/repo \| URL>/);
+		equal(await run(io, ["lane", "open"]), 2);
+		match(io.errors[0], /unknown command "lane"/);
+	} finally {
+		await Deno.remove(box.dir, { recursive: true });
+	}
+});
+
 // ---------------------------------------------------------------------------
-// The credential helper with stock git
+// auth
 // ---------------------------------------------------------------------------
 
-Deno.test("credential helper: stock git authenticates to the repo URL and to a lane remote with the token", async () => {
-	const forge = startFakeForge({ token: TOKEN });
-	const box = await sandbox({ TARTAN_TOKEN: TOKEN, TARTAN_URL: forge.origin });
-	try {
-		forge.refs.set("refs/heads/main", "1".repeat(40));
+Deno.test("auth login --with-token checks the token with whoami and stores it 0600; status, token and logout", async () => {
+	await withForge(async (forge, box) => {
+		const bad = ioFor(box, "nope\n");
+		equal(
+			await run(bad, [
+				"auth",
+				"login",
+				"--hostname",
+				forge.origin,
+				"--with-token",
+			]),
+			1,
+		);
+		match(bad.errors[0], /not a Tartan token/);
+		const io = await login(forge, box);
+		match(io.lines[0], /Logged in to .* as claude-1/);
+		equal(forge.toolCalls[0].name, "whoami");
+		const stat = await Deno.stat(box.env.TARTAN_CONFIG);
+		equal((stat.mode ?? 0) & 0o777, 0o600);
+		const stored = JSON.parse(await Deno.readTextFile(box.env.TARTAN_CONFIG));
+		equal(stored.default, forge.origin);
+		equal(stored.forges[forge.origin].token, TOKEN);
+		equal(stored.forges[forge.origin].principal, ME);
+
+		const status = ioFor(box);
+		equal(await run(status, ["auth", "status"]), 0);
+		match(status.lines[0], /Logged in as claude-1/);
+		ok(!status.lines[0].includes(TOKEN), "status masks the token");
+
+		const token = ioFor(box);
+		equal(await run(token, ["auth", "token"]), 0);
+		deepStrictEqual(token.lines, [TOKEN]);
+
+		const out = ioFor(box);
+		equal(await run(out, ["auth", "logout"]), 0);
+		const after = JSON.parse(await Deno.readTextFile(box.env.TARTAN_CONFIG));
+		deepStrictEqual(after, { forges: {} });
+		equal(await run(ioFor(box), ["auth", "status"]), 1);
+		equal(await run(ioFor(box), ["auth", "token"]), 2);
+	});
+});
+
+Deno.test("auth login without --with-token points at the forge's token page and reads the token", async () => {
+	await withForge(async (forge, box) => {
+		const io = ioFor(box, `${TOKEN}\n`);
+		equal(await run(io, ["auth", "login", "--hostname", forge.origin]), 0);
+		match(io.errors[0], new RegExp(`${forge.origin}/-/agents`));
+		match(io.lines[0], /Logged in/);
+	});
+});
+
+Deno.test("stock git runs tt auth git-credential get for the repo URL and a lane remote", async () => {
+	await withForge(async (forge, box) => {
+		await login(forge, box);
 		const helper = [
 			"-c",
 			"credential.helper=",
 			"-c",
-			`credential.${forge.origin}.helper=${helperCommand()}`,
+			`credential.${forge.origin}.helper=${helperValue()}`,
 		];
-		for (const path of ["/acme/shop.git", `/acme/shop/-/lanes/${MINE}.git`]) {
+		for (const path of ["/acme/shop.git", `/acme/shop/-/lanes/${LANE}.git`]) {
 			const out = await box.git([
 				...helper,
 				"ls-remote",
 				`${forge.origin}${path}`,
 			]);
 			equal(out.code, 0, out.stderr);
-			match(out.stdout, /1{40}\trefs\/heads\/main/);
+			match(out.stdout, new RegExp(`${box.head}\trefs/heads/main`));
 		}
-		const authed = forge.requests.filter((r) => r.authorization !== null);
+		const authed = forge.requests.filter((r) =>
+			r.authorization?.startsWith("Basic ")
+		);
 		ok(authed.length >= 2);
 		ok(
 			authed.every((r) =>
 				r.authorization === `Basic ${btoa(`agent:${TOKEN}`)}`
 			),
 		);
-		ok(forge.requests.some((r) => r.authorization === null), "401 first");
-	} finally {
-		await forge.close();
-		await Deno.remove(box.dir, { recursive: true });
-	}
+		ok(
+			forge.requests.some((r) =>
+				r.authorization === null && r.path.endsWith("/info/refs")
+			),
+			"401 first",
+		);
+	});
 });
 
-Deno.test("credential install: the helper is set for the forge only, and another host gets nothing", async () => {
-	const forge = startFakeForge({ token: TOKEN });
-	const box = await sandbox({ TARTAN_TOKEN: TOKEN });
-	try {
-		forge.refs.set("refs/heads/main", "2".repeat(40));
-		await gitOk(box.git, ["init", "-q"]);
+Deno.test("auth setup-git sets the global helper for the forge only; another host gets nothing", async () => {
+	await withForge(async (forge, box) => {
+		await login(forge, box);
 		const io = ioFor(box);
-		await Deno.writeTextFile(
-			box.env.TARTAN_CONFIG,
-			JSON.stringify({
-				default: forge.origin,
-				forges: { [forge.origin]: { token: TOKEN } },
-			}),
-		);
-		await credential(io, args(["install"]));
-		match(io.lines[0], /credential/);
-		const ok1 = await box.git(["ls-remote", `${forge.origin}/acme/shop.git`]);
-		equal(ok1.code, 0, ok1.stderr);
+		equal(await run(io, ["auth", "setup-git"]), 0, io.errors.join("\n"));
+		match(io.lines[0], /auth git-credential/);
+		const key = `credential.${forge.origin}.helper`;
+		deepStrictEqual(await helpers(box.git, "--global", key), [
+			"",
+			helperValue(),
+		]);
+		// Idempotent: a second run leaves one reset and one helper.
+		equal(await run(io, ["auth", "setup-git"]), 0);
+		equal((await helpers(box.git, "--global", key)).length, 2);
+		const good = await box.git(["ls-remote", `${forge.origin}/acme/shop.git`]);
+		equal(good.code, 0, good.stderr);
 		// The same server under another host name is not a known forge.
 		const other = forge.origin.replace("127.0.0.1", "localhost");
 		const refused = await box.git(["ls-remote", `${other}/acme/shop.git`]);
-		notOk(refused.code === 0);
-	} finally {
-		await forge.close();
-		await Deno.remove(box.dir, { recursive: true });
-	}
-});
-
-const notOk = (value: boolean) => ok(!value);
-
-// ---------------------------------------------------------------------------
-// The pre-push hook with stock git
-// ---------------------------------------------------------------------------
-
-const pushFixture = async () => {
-	const forge = startFakeForge({ token: TOKEN });
-	const box = await sandbox({ TARTAN_TOKEN: TOKEN, TARTAN_URL: forge.origin });
-	const git = box.git;
-	await gitOk(git, ["init", "-q", "-b", "main"]);
-	await Deno.writeTextFile(`${box.dir}/work/README.md`, "# shop\n");
-	await gitOk(git, ["add", "README.md"]);
-	await gitOk(git, ["commit", "-q", "-m", "trunk"]);
-	const trunk = await gitOk(git, ["rev-parse", "HEAD"]);
-	forge.refs.set("refs/heads/main", trunk);
-	await gitOk(git, [
-		"remote",
-		"add",
-		"origin",
-		`${forge.origin}/acme/shop.git`,
-	]);
-	await gitOk(git, ["update-ref", "refs/remotes/origin/main", trunk]);
-	await gitOk(git, [
-		"symbolic-ref",
-		"refs/remotes/origin/HEAD",
-		"refs/remotes/origin/main",
-	]);
-	await gitOk(git, ["config", "credential.helper", ""]);
-	await gitOk(git, ["config", "--add", "credential.helper", helperCommand()]);
-	const installed = await installGitHook(git, { force: false });
-	equal(installed.forge, forge.origin);
-	equal(installed.defaultBranch, "main");
-	equal(installed.maxPushBytes, 95_000_000);
-	await recordLane(git, {
-		laneId: MINE,
-		repo: "acme/shop",
-		mode: "branch",
-		remote: `${forge.origin}/acme/shop.git`,
-		ref: `refs/heads/lanes/${MINE}`,
-		branch: `lanes/${MINE}`,
+		ok(refused.code !== 0);
 	});
-	forge.setTools((name, a) => {
-		if (name === "whoami") return { principal: { id: ME } };
-		if (name === "lanes_get") {
-			return {
-				lane: {
-					id: a.laneId,
-					owner: a.laneId === MINE ? ME : OTHER_AGENT,
-					delegates: [],
-				},
-			};
-		}
-		return { error: "not_found" };
-	});
-	const posts = () =>
-		forge.requests.filter((r) =>
-			r.method === "POST" && r.path.endsWith("git-receive-pack")
-		).length;
-	return { forge, box, git, trunk, posts };
-};
-
-Deno.test("pre-push: a 32 MiB blob, the canonical main and another agent's lane remote are refused before any upload; the own lane pushes", async () => {
-	const { forge, box, git, posts } = await pushFixture();
-	try {
-		// A 32 MiB blob on the own lane.
-		await gitOk(git, ["switch", "-q", "-c", `lanes/${MINE}`]);
-		const big = await Deno.open(`${box.dir}/work/big.bin`, {
-			write: true,
-			create: true,
-		});
-		await big.truncate(32 * 1024 * 1024);
-		big.close();
-		await gitOk(git, ["add", "big.bin"]);
-		await gitOk(git, ["commit", "-q", "-m", "big"]);
-		const tooBig = await git([
-			"push",
-			"origin",
-			`HEAD:refs/heads/lanes/${MINE}`,
-		]);
-		notOk(tooBig.code === 0);
-		match(tooBig.stderr, /object-too-large: big\.bin is 32\.0 MiB/);
-		equal(posts(), 0, "nothing uploaded");
-		await gitOk(git, ["reset", "-q", "--hard", "HEAD~1"]);
-
-		// A small change: main is refused, the other lane remote too.
-		await Deno.writeTextFile(`${box.dir}/work/fix.txt`, "fix\n");
-		await gitOk(git, ["add", "fix.txt"]);
-		await gitOk(git, ["commit", "-q", "-m", "fix"]);
-		const toMain = await git(["push", "origin", "HEAD:refs/heads/main"]);
-		notOk(toMain.code === 0);
-		match(toMain.stderr, /refs\/heads\/main: woven-by-tartan/);
-		const other = await git([
-			"push",
-			`${forge.origin}/acme/shop/-/lanes/${OTHERS}.git`,
-			"HEAD:refs/heads/main",
-		]);
-		notOk(other.code === 0);
-		match(other.stderr, /not-your-lane/);
-		const branch = await git(["push", "origin", "HEAD:refs/heads/feature"]);
-		notOk(branch.code === 0);
-		match(branch.stderr, /agents-lanes-only/);
-		equal(posts(), 0, "still nothing uploaded");
-
-		// The own lane goes through (and the forge receives the pack).
-		const own = await git(["push", "origin", `HEAD:refs/heads/lanes/${MINE}`]);
-		equal(own.code, 0, own.stderr);
-		equal(posts(), 1);
-	} finally {
-		await forge.close();
-		await Deno.remove(box.dir, { recursive: true });
-	}
-});
-
-Deno.test("pre-push: the estimated pack is checked against the forge's push limit", async () => {
-	const { forge, box, git, posts } = await pushFixture();
-	try {
-		await gitOk(git, ["config", "tartan.maxPushBytes", "2000"]);
-		await gitOk(git, ["switch", "-q", "-c", `lanes/${MINE}`]);
-		const random = new Uint8Array(8192);
-		crypto.getRandomValues(random);
-		await Deno.writeFile(`${box.dir}/work/noise.bin`, random);
-		await gitOk(git, ["add", "noise.bin"]);
-		await gitOk(git, ["commit", "-q", "-m", "noise"]);
-		const out = await git(["push", "origin", `HEAD:refs/heads/lanes/${MINE}`]);
-		notOk(out.code === 0);
-		match(out.stderr, /push-too-large/);
-		equal(posts(), 0);
-	} finally {
-		await forge.close();
-		await Deno.remove(box.dir, { recursive: true });
-	}
-});
-
-Deno.test("hooks install refuses to replace a foreign pre-push hook without --force", async () => {
-	const box = await sandbox();
-	try {
-		await gitOk(box.git, ["init", "-q"]);
-		const hooksDir = await gitOk(box.git, [
-			"rev-parse",
-			"--path-format=absolute",
-			"--git-path",
-			"hooks",
-		]);
-		await Deno.mkdir(hooksDir, { recursive: true });
-		await Deno.writeTextFile(`${hooksDir}/pre-push`, "#!/bin/sh\nexit 0\n");
-		let refused = false;
-		try {
-			await installGitHook(box.git, { force: false });
-		} catch (error) {
-			refused = String(error).includes("--force");
-		}
-		ok(refused);
-		const forced = await installGitHook(box.git, { force: true });
-		match(await Deno.readTextFile(forced.path), /tartan pre-push hook/);
-	} finally {
-		await Deno.remove(box.dir, { recursive: true });
-	}
 });
 
 // ---------------------------------------------------------------------------
-// login, lane open
+// repo clone
 // ---------------------------------------------------------------------------
 
-Deno.test("login stores the token 0600 after whoami; lane open waits for an opening lane and adds lane-<n> for a repo lane", async () => {
-	const forge = startFakeForge({ token: TOKEN });
-	const box = await sandbox();
-	try {
-		let polls = 0;
-		const remote = `${forge.origin}/acme/shop/-/lanes/${MINE}.git`;
-		const handle = (state: string) => ({
-			id: MINE,
-			mode: "repo",
-			state,
-			remote,
-			ref: "refs/heads/main",
-			branch: `lanes/${MINE}`,
-			base: "3".repeat(40),
-			...(state === "open"
-				? {
-					git: {
-						start:
-							`git fetch ${remote} main && git switch -c lanes/${MINE} FETCH_HEAD`,
-						push: `git push ${remote} HEAD:refs/heads/main`,
-					},
-				}
-				: {}),
-		});
-		forge.setTools((name) => {
-			if (name === "whoami") {
-				return { principal: { id: ME, handle: "claude-1" } };
-			}
-			if (name === "lanes_open") return { lane: handle("opening") };
-			if (name === "lanes_get") {
-				polls += 1;
-				return { lane: handle(polls < 2 ? "opening" : "open") };
-			}
-			return { error: "not_found" };
-		});
-		const io = ioFor(box, `${TOKEN}\n`);
+Deno.test("repo clone without setup-git: the clone gets the helper in its own config and can fetch", async () => {
+	await withForge(async (forge, box) => {
+		await login(forge, box);
+		const io = ioFor(box);
+		equal(await run(io, ["repo", "clone", "acme/shop"]), 0);
+		const clone = `${box.dir}/work/shop`;
+		equal(await Deno.readTextFile(`${clone}/README.md`), "# shop\n");
+		const git = createGit(clone, box.env);
 		equal(
-			await login(io, args([forge.origin, "--token-stdin"])).then(() => 0),
-			0,
+			await gitOk(git, ["remote", "get-url", "origin"]),
+			`${forge.origin}/acme/shop.git`,
 		);
-		const stat = await Deno.stat(box.env.TARTAN_CONFIG);
-		equal((stat.mode ?? 0) & 0o777, 0o600);
-		match(io.lines[0], /logged in to .* as claude-1/);
-
-		await gitOk(box.git, ["init", "-q"]);
-		await laneOpen(
-			io,
-			args(["--repo", "acme/shop", "--purpose", "fix", "--prefix", "src/"]),
+		equal(await gitOk(git, ["rev-parse", "HEAD"]), box.head);
+		deepStrictEqual(
+			await helpers(git, "--local", `credential.${forge.origin}.helper`),
+			["", helperValue()],
 		);
-		equal(polls, 2);
-		const out = io.lines.at(-1)!;
-		match(out, new RegExp(`start: git fetch ${remote} main`));
-		match(out, /remote lane-1 added/);
-		equal(await gitOk(box.git, ["remote", "get-url", "lane-1"]), remote);
-		const [record] = await readLanes(box.git);
-		equal(record.laneId, MINE);
-		equal(record.remoteName, "lane-1");
-		const open = forge.toolCalls.find((c) => c.name === "lanes_open")!;
-		equal(open.scope, "acme/shop");
-		deepStrictEqual(open.args, {
-			repo: "acme/shop",
-			purpose: "fix",
-			footprint: { prefixes: ["src/"], projects: [] },
-		});
+		const fetched = await git(["fetch", "origin"]);
+		equal(fetched.code, 0, fetched.stderr);
 		ok(
-			io.errors.some((e) => e.startsWith("```tartan-notices")),
-			"notices shown",
+			forge.requests.some((r) =>
+				r.path === "/acme/shop.git/git-upload-pack" &&
+				r.authorization === `Basic ${btoa(`agent:${TOKEN}`)}`
+			),
 		);
+	});
+});
+
+Deno.test("repo clone after setup-git: plain git clone, into <dir>, with -- flags", async () => {
+	await withForge(async (forge, box) => {
+		await login(forge, box);
+		equal(await run(ioFor(box), ["auth", "setup-git"]), 0);
+		const io = ioFor(box);
+		equal(
+			await run(io, [
+				"repo",
+				"clone",
+				`${forge.origin}/acme/platform/router.git`,
+				"router",
+				"--",
+				"--depth",
+				"1",
+			]),
+			0,
+			io.errors.join("\n"),
+		);
+		const git = createGit(`${box.dir}/work/router`, box.env);
+		equal(await gitOk(git, ["rev-parse", "HEAD"]), box.head);
+		equal(await gitOk(git, ["rev-parse", "--is-shallow-repository"]), "true");
+		const local = await git([
+			"config",
+			"--local",
+			"--get-all",
+			`credential.${forge.origin}.helper`,
+		]);
+		equal(local.code, 1, "no helper in the clone's own config");
+	});
+});
+
+Deno.test("repo clone fails when not logged in, without running git", async () => {
+	const box = await sandbox();
+	try {
+		const io = ioFor(box);
+		equal(await run(io, ["repo", "clone", "acme/shop"]), 2);
+		match(io.errors[0], /not logged in/);
 	} finally {
-		await forge.close();
 		await Deno.remove(box.dir, { recursive: true });
 	}
 });

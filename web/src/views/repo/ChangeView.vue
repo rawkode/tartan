@@ -2,9 +2,8 @@
 // Change page: a slot host. `change.gate` results on top, the
 // `change.tab` tabs (static contributions; the selected one renders its
 // dynamic page), `change.panel` sections and the `change.sidebar`. Every
-// section is an extension's server-driven UI (the first-party ones: work,
-// changes, radar, ci, review and weave); this page only arranges them, and
-// each slot refreshes from `/-/live` on its own `refreshOn` patterns. The
+// section is an extension's server-driven UI; this page only arranges them,
+// and each slot refreshes from `/-/live` on its own `refreshOn` patterns. The
 // sidebar also holds one kernel component, the repository-config card
 // (K13.3; `slots/hosts.ts` KERNEL_HOST_COMPONENTS), shown to members when
 // the change touches a root `.cue` file.

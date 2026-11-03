@@ -136,7 +136,7 @@ The post-claim self-test names this cause when it fails.
 ## The runner image
 
 CI jobs and kernel git jobs (composing candidates, notes, lease pushes) run in a Sandbox container built from
-`containers/runner/Dockerfile`: the sandbox base image pinned by digest, plus pinned git (2.55.0), pnpm and `cue`
+`containers/runner/Dockerfile`: the sandbox base image pinned by digest, plus pinned git (2.56.0), pnpm and `cue`
 (v0.17.1, the repository config evaluator). The image is
 about 300 MB; `wrangler deploy` builds it with your local engine and pushes it to Cloudflare's registry in about two
 minutes.

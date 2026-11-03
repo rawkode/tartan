@@ -1,10 +1,12 @@
-// The extension import boundary.
+// The extension import boundary, on specifiers and on temporary extension
+// trees (none of the repository's own extensions is read).
 
-import { equal, ok } from "node:assert/strict";
-import { classify } from "./check-imports.ts";
+import { deepStrictEqual, equal, ok } from "node:assert/strict";
+import * as path from "node:path";
+import { checkRoot, classify } from "./check-imports.ts";
 
-const ROOT = "extensions/work";
-const FILE = "extensions/work/src/index.ts";
+const ROOT = "extensions/issues";
+const FILE = "extensions/issues/src/index.ts";
 const verdict = (specifier: string) => classify(ROOT, FILE, specifier);
 
 Deno.test("check-imports: the portable contract, ext-api and local files are allowed", () => {
@@ -45,7 +47,7 @@ Deno.test("check-imports: other packages, kernel paths and sibling extensions ar
 			"zod",
 			"node:crypto",
 			"cloudflare:workers",
-			"../../changes/src/index.ts",
+			"../../other/src/index.ts",
 			"../../../src/router.ts",
 			"https://example.com/x.ts",
 		]
@@ -54,8 +56,8 @@ Deno.test("check-imports: other packages, kernel paths and sibling extensions ar
 	}
 });
 
-const TEST = "extensions/work/test/work.test.ts";
-const WORKERS_TEST = "extensions/work/test/host.workers.test.ts";
+const TEST = "extensions/issues/test/issues.test.ts";
+const WORKERS_TEST = "extensions/issues/test/host.workers.test.ts";
 
 Deno.test("check-imports: test files may also import the test tooling", () => {
 	for (const file of [TEST, WORKERS_TEST]) {
@@ -92,7 +94,7 @@ Deno.test("check-imports: production files may not, and test files keep every ot
 			"node:assert",
 			"zod",
 			"@tartan/contract/kernel.ts",
-			"../../changes/src/index.ts",
+			"../../other/src/index.ts",
 			"../../../src/kernel/exthost/host/do.ts",
 			"@tartan/testkitx",
 		]
@@ -100,7 +102,69 @@ Deno.test("check-imports: production files may not, and test files keep every ot
 		ok(classify(ROOT, WORKERS_TEST, specifier) !== undefined, specifier);
 	}
 	ok(
-		classify(ROOT, "extensions/work/src/test.ts", "vitest") !== undefined,
+		classify(ROOT, "extensions/issues/src/test.ts", "vitest") !== undefined,
 		"a production file named test.ts",
 	);
+});
+
+Deno.test("check-imports: a missing root or an empty one has nothing to check", async () => {
+	const root = await Deno.makeTempDir({ prefix: "tartan-check-imports-" });
+	try {
+		equal(await checkRoot(path.join(root, "extensions")), null);
+		await Deno.mkdir(path.join(root, "extensions"));
+		deepStrictEqual(await checkRoot(path.join(root, "extensions")), {
+			extensions: 0,
+			violations: [],
+		});
+	} finally {
+		await Deno.remove(root, { recursive: true });
+	}
+});
+
+Deno.test("check-imports: a fixture tree reports each forbidden import by file", async () => {
+	const root = await Deno.makeTempDir({ prefix: "tartan-check-imports-" });
+	const ext = path.join(root, "extensions");
+	const write = async (file: string, text: string) => {
+		await Deno.mkdir(path.dirname(path.join(ext, file)), { recursive: true });
+		await Deno.writeTextFile(path.join(ext, file), text);
+	};
+	try {
+		await write(
+			"good/src/index.ts",
+			[
+				'import { parseManifest } from "@tartan/contract";',
+				'import type { Ui } from "@tartan/ext-api";',
+				'import manifest from "../tartan.json" with { type: "json" };',
+				'// import "zod" in a comment never counts',
+				"const s = \"import 'node:fs'\";",
+				"",
+			].join("\n"),
+		);
+		await write(
+			"good/test/good.test.ts",
+			'import { equal } from "node:assert/strict";\n',
+		);
+		await write(
+			"bad/src/index.ts",
+			[
+				'import { z } from "zod";',
+				'export * from "../../good/src/index.ts";',
+				'const k = await import("@tartan/contract/kernel.ts");',
+				"",
+			].join("\n"),
+		);
+		await write("bad/dist/main.js", 'import "zod";\n');
+		const result = await checkRoot(ext);
+		equal(result?.extensions, 2);
+		deepStrictEqual(
+			result?.violations.map((v) => [path.relative(ext, v.file), v.specifier]),
+			[
+				["bad/src/index.ts", "zod"],
+				["bad/src/index.ts", "../../good/src/index.ts"],
+				["bad/src/index.ts", "@tartan/contract/kernel.ts"],
+			],
+		);
+	} finally {
+		await Deno.remove(root, { recursive: true });
+	}
 });

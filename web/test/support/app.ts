@@ -1,5 +1,6 @@
 // Mounts the real router + views with the real API client over the mock
-// kernel (or a custom fetch), recording every request.
+// kernel with the sample extension catalog (or a custom fetch), recording
+// every request.
 
 import { type Component, h } from "vue";
 import { createMemoryHistory, type Router, RouterView } from "vue-router";
@@ -21,6 +22,7 @@ import {
 	createProjectsClient,
 	PROJECTS,
 } from "../../src/views/project/client.ts";
+import { SAMPLE_CATALOG } from "./catalog.ts";
 import { type FakeClock, fakeClock } from "./fakes.ts";
 import { flush, mount, type TestElement } from "./renderer.ts";
 
@@ -86,7 +88,10 @@ export const mountApp = async (
 	} = {},
 ): Promise<AppHarness> => {
 	const recorder = recordingFetch(
-		options.fetch ?? withMockProjects(createMockFetch(options.mock)),
+		options.fetch ??
+			withMockProjects(
+				createMockFetch({ catalog: SAMPLE_CATALOG, ...options.mock }),
+			),
 	);
 	const http = createHttp(recorder.fetch);
 	const api = createApi(http);

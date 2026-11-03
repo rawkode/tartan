@@ -22,9 +22,9 @@ import type {
 	RepoInternals,
 	TimerHandler,
 } from "@tartan/contract/kernel.ts";
-import { settingsCue as ciSettings } from "../../../../extensions/ci/src/settings-cue.ts";
-import { settingsCue as reviewSettings } from "../../../../extensions/review/src/settings-cue.ts";
-import { settingsCue as weaveSettings } from "../../../../extensions/weave/src/settings-cue.ts";
+import { settingsCue as ciSettings } from "./fixtures/ci-settings-cue.ts";
+import { settingsCue as reviewSettings } from "./fixtures/review-settings-cue.ts";
+import { settingsCue as weaveSettings } from "./fixtures/weave-settings-cue.ts";
 import type { Env } from "../../../env.ts";
 import { createRegistry } from "../../exthost/registry/module.ts";
 import { REGISTRY_MIGRATIONS } from "../../exthost/registry/schema.ts";

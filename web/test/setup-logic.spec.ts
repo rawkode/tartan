@@ -52,14 +52,12 @@ describe("wizard steps", () => {
 	it("offers the root-key step only on the button path", () => {
 		expect(postClaimSteps(false)).toEqual([
 			"selftest",
-			"pack",
 			"content",
 			"people",
 			"finished",
 		]);
 		expect(postClaimSteps(true)).toEqual([
 			"selftest",
-			"pack",
 			"content",
 			"people",
 			"secret",

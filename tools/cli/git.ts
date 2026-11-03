@@ -1,4 +1,4 @@
-// Running stock git from the `tartan` CLI (WP11). Every call passes its
+// Running stock git from `tt`. Every call passes its
 // arguments as an argv array (no shell) and never puts a credential in a URL
 // or an argument.
 
@@ -10,7 +10,12 @@ export type GitResult = {
 
 export type Git = (
 	args: readonly string[],
-	options?: { readonly stdin?: string; readonly cwd?: string },
+	options?: {
+		readonly stdin?: string;
+		readonly cwd?: string;
+		/** Hand git the terminal (progress, prompts); stdout and stderr stay empty. */
+		readonly inherit?: boolean;
+	},
 ) => Promise<GitResult>;
 
 const decoder = new TextDecoder();
@@ -20,20 +25,26 @@ export const createGit = (
 	env?: Record<string, string>,
 ): Git =>
 async (args, options = {}) => {
+	const io = options.inherit ? "inherit" : "piped";
 	const child = new Deno.Command("git", {
 		args: [...args],
 		cwd: options.cwd ?? cwd,
 		...(env ? { env } : {}),
-		stdin: options.stdin === undefined ? "null" : "piped",
-		stdout: "piped",
-		stderr: "piped",
+		stdin: options.inherit
+			? "inherit"
+			: options.stdin === undefined
+			? "null"
+			: "piped",
+		stdout: io,
+		stderr: io,
 	}).spawn();
-	if (options.stdin !== undefined) {
+	if (options.stdin !== undefined && !options.inherit) {
 		const writer = child.stdin.getWriter();
 		await writer.write(new TextEncoder().encode(options.stdin));
 		await writer.close();
 	}
 	const out = await child.output();
+	if (options.inherit) return { code: out.code, stdout: "", stderr: "" };
 	return {
 		code: out.code,
 		stdout: decoder.decode(out.stdout),
@@ -52,13 +63,4 @@ export const gitOk = async (
 		throw new Error(`git ${args[0]} failed: ${result.stderr.trim()}`);
 	}
 	return result.stdout.trim();
-};
-
-/** A `git config` value, or null when unset. */
-export const gitConfig = async (
-	git: Git,
-	key: string,
-): Promise<string | null> => {
-	const result = await git(["config", "--get", key]);
-	return result.code === 0 ? result.stdout.trim() : null;
 };

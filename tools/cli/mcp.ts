@@ -1,4 +1,4 @@
-// A minimal MCP client for the `tartan` CLI (WP11): one stateless JSON-RPC
+// A minimal MCP client for `tt`: one stateless JSON-RPC
 // `tools/call` POST per command to `/-/mcp[/<scope>]` with the token as a
 // Bearer (agent tokens carry `mcp`, not `api`), answered as JSON or as a
 // one-event SSE stream. The notices block of the result is printed to

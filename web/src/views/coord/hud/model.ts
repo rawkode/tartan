@@ -1,15 +1,11 @@
-// The HUD page's model (WP19 view hosting WP20's `tartan.hud`; WP19
+// The HUD page's model (WP19 view hosting `hud.metric` contributors; WP19
 // acceptance "every judge question has a screen reachable in ≤ 2 clicks
 // from the HUD"). Pure: which nodes the page shows, which repositories the
 // "Where to look" table lists (a bounded walk of the hierarchy), and the
 // link each judge question takes for a repository. No DOM, no fetching of
 // its own: callers pass the API's `children` reader.
 
-import type {
-	NodeDto,
-	NodesResponse,
-	StaticContributionDto,
-} from "@tartan/contract/api.ts";
+import type { NodeDto, NodesResponse } from "@tartan/contract/api.ts";
 import { nodeHref } from "../../../router/params.ts";
 
 /** Top-level namespaces whose HUD the forge home shows. */
@@ -104,7 +100,7 @@ export type JudgeQuestion = {
 	readonly answer: string;
 };
 
-/** The five questions and where Tartan answers each. */
+/** The five questions and the kernel view that answers each. */
 export const JUDGE_QUESTIONS: readonly JudgeQuestion[] = [
 	{
 		id: "q1",
@@ -114,9 +110,9 @@ export const JUDGE_QUESTIONS: readonly JudgeQuestion[] = [
 	{
 		id: "q2",
 		question: "What happens when changes conflict?",
-		answer: "Radar",
+		answer: "Lanes",
 	},
-	{ id: "q3", question: "How do you review everything?", answer: "Changes" },
+	{ id: "q3", question: "How do you review everything?", answer: "Advances" },
 	{
 		id: "q4",
 		question: "How do you track why a change was made?",
@@ -135,42 +131,15 @@ export type QuestionLink = {
 	readonly href: string;
 };
 
-const tabHref = (
-	repo: string,
-	tabs: readonly StaticContributionDto[],
-	route: string,
-): string | null => {
-	const tab = tabs.find((t) =>
-		t.slot === "repo.tab" && (t.route ?? "").split("/")[0] === route
-	);
-	return tab ? `${nodeHref(repo)}/-/${route}` : null;
-};
-
-/**
- * One click from the HUD for each question. Kernel views (Lanes, Advances)
- * always exist; extension tabs (Radar, Weave, Changes) only when the repo's
- * view lists them, with a kernel view as the fallback.
- */
-export const questionLinks = (
-	repo: string,
-	tabs: readonly StaticContributionDto[],
-): readonly QuestionLink[] => {
+/** One click from the HUD for each question, to a kernel view. */
+export const questionLinks = (repo: string): readonly QuestionLink[] => {
 	const base = nodeHref(repo);
 	const lanes = `${base}/-/lanes`;
 	const advances = `${base}/-/advances`;
-	const radar = tabHref(repo, tabs, "radar");
-	const weave = tabHref(repo, tabs, "weave");
-	const changes = tabHref(repo, tabs, "changes");
 	return [
 		{ id: "q1", text: "Lanes", href: lanes },
-		radar
-			? { id: "q2", text: "Radar", href: radar }
-			: weave
-			? { id: "q2", text: "Weave", href: weave }
-			: { id: "q2", text: "Lanes", href: lanes },
-		changes
-			? { id: "q3", text: "Changes", href: changes }
-			: { id: "q3", text: "Advances", href: advances },
+		{ id: "q2", text: "Lanes", href: lanes },
+		{ id: "q3", text: "Advances", href: advances },
 		{ id: "q4", text: "Advances", href: advances },
 		{ id: "q5", text: "Policies", href: "/-/extensions" },
 	];

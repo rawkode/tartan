@@ -4,10 +4,13 @@ A third-party extension gets the same contract as the first-party ones: a manife
 echo hooks, slots, tools and its own SQLite. It runs on one of two runtimes:
 
 - **wasm**: a WebAssembly component on the `tartan:ext@0.1.0` WIT world (`packages/contract/wit/tartan.wit`), written
-  in Rust with the `tartan-ext` SDK ([rust.md](rust.md)). The demo is `extensions/acme-no-secrets`, a credential
-  scanner that vetoes advances.
+  in Rust with the `tartan-ext` SDK ([rust.md](rust.md)).
 - **js**: one ES module (bundled, no imports) whose default export implements the hooks of `ExtensionModule`
   (`@tartan/ext-api`'s `defineExtension`).
+
+On the `spike/strip-down` branch the only package in `extensions/` is [`rawkode.issues`](../../extensions/issues/)
+(`extensions/issues/`), the Issues extension: a Rust crate on this contract with tools, a `repo.tab` page with a form,
+its own SQLite and no permissions. It is the worked example for everything below.
 
 Both run as a Dynamic Worker **facet** of the installation's own Durable Object (the ExtensionDO): one Dynamic Worker
 per installation and package version, no network (`globalOutbound: null`), an empty `env`, and a database of its own.
@@ -85,7 +88,7 @@ let through. Manifest `limits` (CPU per hook) are passed to the facet as defence
 
 - Rust: `cargo test` for the pure logic (the SDK's types work natively; host imports only exist in the component).
 - The component itself, end to end in Deno: `src/kernel/exthost/host/facet/wasm.test.ts` builds the Worker code the
-  host would load (shim, glue, core modules) from `extensions/acme-no-secrets/dist/` and drives it through the real host
-  (gates, echo, renders, tools, migrations, replay); it is skipped until the package is built.
+  host would load (shim, glue, core modules) from a built package's `dist/` and drives it through the real host (gates,
+  echo, renders, tools, migrations, replay); it is skipped while no package is built (on this branch, none exists).
 - On workerd: `deno task test:workers --project exthost` runs a js package and the built component as real Dynamic
   Worker facets (Worker Loader, R2, the capability bridge).

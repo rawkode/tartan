@@ -1,24 +1,15 @@
 // The `wasm` and `wasm-bundled` runtimes end to end in Deno, with the real
-// build of `acme.no-secrets` (`deno task build:ext acme-no-secrets`): the
-// host builds the facet's Worker code from the package files (shim, jco
-// glue, core modules), the shim is evaluated as the facet would load it, and
-// every call goes through the real component against in-memory SQLite.
+// build of `rawkode.issues` (`deno task build:ext issues`): the host builds
+// the facet's Worker code from the package files (shim, jco glue, core
+// modules), the shim is evaluated as the facet would load it, and every call
+// goes through the real component against in-memory SQLite.
 // Ignored (not passed) when the package has not been built: building needs
 // cargo, wasm-tools and jco.
 
-import { deepStrictEqual, ok, strictEqual } from "node:assert/strict";
-import {
-	createUlid,
-	type Envelope,
-	type GateDecision,
-	type Manifest,
-	parseManifest,
-	type RefAdvanceGateInput,
-} from "@tartan/contract";
+import { deepStrictEqual, ok, rejects, strictEqual } from "node:assert/strict";
+import { createUlid, type Manifest, parseManifest } from "@tartan/contract";
 import { createMemoryStorage } from "@tartan/ext-api/testing.ts";
 import { checkBundle } from "../../api/packages.ts";
-import { runGateReplay } from "../../api/replay.ts";
-import type { GateReplayRow } from "@tartan/contract/kernel.ts";
 import { createExtensionHost, type HostStorage } from "../host.ts";
 import { builtinPackageLoader, packageLoader } from "../runtime.ts";
 import { builtins } from "../../../../builtins.ts";
@@ -27,7 +18,6 @@ import { createShimFacet } from "../testing/facet.ts";
 import {
 	createFakeInstallations,
 	createFakeKernel,
-	LANE_ID,
 	NODES,
 	PRINCIPALS,
 	userActor,
@@ -38,7 +28,7 @@ import { createBundledWasmLoader } from "./bundled.ts";
 import { createDynamicLoader, loaderIdOf } from "./dynamic.ts";
 
 const DIST = new URL(
-	"../../../../../extensions/acme-no-secrets/dist/",
+	"../../../../../extensions/issues/dist/",
 	import.meta.url,
 );
 
@@ -71,7 +61,7 @@ const built = files !== null;
 const ignore = !built;
 if (!built) {
 	console.warn(
-		"acme-no-secrets is not built: run `deno task build:ext acme-no-secrets` (cargo, wasm-tools, jco)",
+		"rawkode.issues is not built: run `deno task build:ext issues` (cargo, wasm-tools, jco)",
 	);
 }
 
@@ -83,55 +73,44 @@ const manifestOf = (f: Map<string, Uint8Array>): Manifest => {
 	return parsed.manifest;
 };
 
-// AWS's documented example credentials (not real keys).
-const ACCESS = "AKIAIOSFODNN7EXAMPLE";
-const SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
-const CHANGE = "ch_01k60000000000000000000901";
+const REPO = NODES.router.id;
 
-const gateInput = (
-	lines: { path: string; line: number; text: string }[],
-	extra: Partial<RefAdvanceGateInput> = {},
-): RefAdvanceGateInput => ({
-	point: "ref.advance",
-	repo: NODES.router.id,
-	ref: "refs/heads/main",
-	base: "a".repeat(40),
-	head: "b".repeat(40),
-	changeId: CHANGE,
-	changedPaths: [...new Set(lines.map((l) => l.path))],
-	addedLines: lines,
-	truncated: false,
-	workRefs: [],
-	actor: userActor(PRINCIPALS.dev),
-	...extra,
+const toolCtx = (actor: string = PRINCIPALS.dev) => ({
+	node: REPO,
+	repo: REPO,
+	scope: NODES.router.path,
+	actor: userActor(actor),
+	mode: "enforce" as const,
 });
 
-const LEAKY = [
-	{ path: "config/prod.env", line: 1, text: `AWS_ACCESS_KEY_ID=${ACCESS}` },
-	{ path: "config/prod.env", line: 2, text: `AWS_SECRET_ACCESS_KEY=${SECRET}` },
-	{ path: "src/app.ts", line: 9, text: "export const x = 1;" },
-];
-
-const GATE_CTX = {
-	node: NODES.router.id,
-	repo: NODES.router.id,
-	mode: "enforce" as const,
+const bounds = {
+	maxRole: 30 as const,
+	scopes: null,
+	nodeId: REPO,
+	laneId: null,
 };
 
-const changeCtx = {
-	slot: "change.sidebar" as const,
-	node: NODES.router.id,
-	repo: NODES.router.id,
-	entity: { kind: "change", id: CHANGE },
+const tabCtx = {
+	slot: "repo.tab" as const,
+	node: REPO,
+	repo: REPO,
+	viewer: userActor(PRINCIPALS.dev),
 	mode: "enforce" as const,
+	extra: { route: "issues" },
+};
+
+type IssueOut = {
+	number: number;
+	title: string;
+	body?: string;
+	state: string;
+	author: { kind: string; id: string };
+	closedAt: number | null;
 };
 
 type Runtime = "wasm" | "wasm-bundled";
 
-const setup = async (
-	runtime: Runtime,
-	config: Record<string, unknown> = {},
-) => {
+const setup = async (runtime: Runtime) => {
 	const f = files!;
 	const manifest = manifestOf(f);
 	const clock = manualClock();
@@ -143,7 +122,7 @@ const setup = async (
 			[...f].map(([p, b]) => [p, b64(b)]),
 		),
 	});
-	const installations = createFakeInstallations(manifest, { config });
+	const installations = createFakeInstallations(manifest);
 	installations.set((s) => ({ ...s, sha256: checked.sha256 }));
 	const facet = createShimFacet();
 	const dynamic = createDynamicLoader({
@@ -192,59 +171,93 @@ const setup = async (
 	const ext = runtime === "wasm" ? facet.storage : storage;
 	const rows = (sql: string) => ext.sql.exec(sql).toArray();
 	const snapshot = () => installations.snapshot!;
-	return { host, kernel, facet, storage, ext, rows, manifest, clock, snapshot };
+	const tool = (
+		name: string,
+		args: Record<string, unknown>,
+		actor: string = PRINCIPALS.dev,
+	) => host.callTool(name, args, toolCtx(actor), bounds);
+	return { host, facet, storage, rows, clock, snapshot, tool };
 };
 
 for (const runtime of ["wasm", "wasm-bundled"] as const) {
 	Deno.test({
 		name:
-			`${runtime}: the ref.advance gate vetoes added credentials and records them`,
+			`${runtime}: tools create, list, get, close and reopen numbered issues`,
 		ignore,
 		fn: async () => {
 			const t = await setup(runtime);
-			const decision = await t.host.gate(
-				"ref.advance",
-				gateInput(LEAKY),
-				GATE_CTX,
-			);
-			strictEqual(decision.decision, "veto");
-			ok(
-				decision.message.startsWith(
-					"3 credentials added: .env file at config/prod.env:1",
-				),
-				decision.message,
-			);
-			strictEqual(decision.fullScan, true);
+			t.clock.set(1_762_128_000_000);
+			const first = await t.tool("create", {
+				title: "  Push hangs on large packs ",
+				body: "Steps: push 2 GB.",
+			}) as { issue: IssueOut };
+			deepStrictEqual(first.issue, {
+				number: 1,
+				title: "Push hangs on large packs",
+				body: "Steps: push 2 GB.",
+				state: "open",
+				author: { kind: "user", id: PRINCIPALS.dev },
+				createdAt: 1_762_128_000_000,
+				updatedAt: 1_762_128_000_000,
+				closedAt: null,
+			});
+			// A Reporter may open issues; numbers are per repository.
+			const second = await t.tool(
+				"create",
+				{ title: "Docs typo" },
+				PRINCIPALS.reporter,
+			) as { issue: IssueOut };
+			strictEqual(second.issue.number, 2);
+			strictEqual(second.issue.author.id, PRINCIPALS.reporter);
+			const closed = await t.tool("close", { number: 1 }) as {
+				issue: IssueOut;
+				changed: boolean;
+			};
+			strictEqual(closed.changed, true);
+			strictEqual(closed.issue.state, "closed");
+			ok(closed.issue.closedAt !== null);
+			const again = await t.tool("close", { number: 1 }) as {
+				changed: boolean;
+			};
+			strictEqual(again.changed, false, "closing twice is idempotent");
+			const open = await t.tool("list", {}) as {
+				state: string;
+				issues: IssueOut[];
+				open: number;
+				closed: number;
+			};
+			strictEqual(open.state, "open");
+			deepStrictEqual(open.issues.map((i) => i.number), [2]);
+			strictEqual(open.issues[0].body, undefined, "list has no bodies");
+			deepStrictEqual([open.open, open.closed], [1, 1]);
+			const all = await t.tool("list", { state: "all", limit: 1 }) as {
+				issues: IssueOut[];
+			};
+			deepStrictEqual(all.issues.map((i) => i.number), [2]);
+			await t.tool("reopen", { number: 1 });
+			const got = await t.tool("get", { number: 1 }) as { issue: IssueOut };
+			strictEqual(got.issue.state, "open");
+			strictEqual(got.issue.closedAt, null);
+			strictEqual(got.issue.body, "Steps: push 2 GB.");
 			deepStrictEqual(
-				decision.annotations?.map((a) => `${a.path}:${a.line}`),
-				["config/prod.env:1", "config/prod.env:1", "config/prod.env:2"],
-			);
-			ok(!JSON.stringify(decision).includes(ACCESS), "masked");
-			const findings = t.rows(
-				"SELECT kind, masked, source, change_id FROM findings ORDER BY line, kind",
-			);
-			deepStrictEqual(findings.map((r) => r.kind), [
-				"aws-access-key",
-				"env-file",
-				"aws-secret-key",
-			]);
-			ok(findings.every((r) => r.change_id === CHANGE && r.source === "gate"));
-			deepStrictEqual(
-				t.rows("SELECT point, verdict FROM decisions"),
-				[{ point: "ref.advance", verdict: "veto" }],
+				t.rows("SELECT number, state, author_id FROM issues ORDER BY number"),
+				[
+					{ number: 1, state: "open", author_id: PRINCIPALS.dev },
+					{ number: 2, state: "open", author_id: PRINCIPALS.reporter },
+				],
 			);
 			if (runtime === "wasm") {
 				// The facet's own database; the host's holds no extension table.
 				strictEqual(
 					t.storage.sql.exec(
-						"SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'findings'",
+						"SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'issues'",
 					).one().n,
 					0,
 				);
 				// One loader id per installation and package.
 				strictEqual(t.facet.gets[0], loaderIdOf(t.snapshot()));
 				ok(
-					/^x:acme\.no-secrets@0\.1\.0#[0-9a-f]{16}:i_[0-9a-z]{26}$/.test(
+					/^x:rawkode\.issues@0\.1\.0#[0-9a-f]{16}:i_[0-9a-z]{26}$/.test(
 						t.facet.gets[0],
 					),
 				);
@@ -265,212 +278,88 @@ for (const runtime of ["wasm", "wasm-bundled"] as const) {
 
 	Deno.test({
 		name:
-			`${runtime}: a clean change is allowed; truncated and clean is left to onTruncated`,
+			`${runtime}: tools refuse bad input, unknown issues and a Reporter closing`,
 		ignore,
 		fn: async () => {
 			const t = await setup(runtime);
-			const clean = await t.host.gate(
-				"ref.advance",
-				gateInput([{ path: "README.md", line: 1, text: "hello" }]),
-				GATE_CTX,
+			const code = (want: string) => (e: unknown) =>
+				(e as { code?: string }).code === want;
+			await rejects(t.tool("create", { title: "   " }), code("invalid"));
+			await rejects(
+				t.tool("create", { title: "x".repeat(201) }),
+				code("invalid"),
 			);
-			deepStrictEqual(
-				clean,
-				{
-					decision: "allow",
-					message: "no credentials in 1 added line",
-				} satisfies GateDecision,
+			await rejects(t.tool("get", { number: 0 }), code("invalid"));
+			await rejects(t.tool("list", { state: "merged" }), code("invalid"));
+			await rejects(t.tool("get", { number: 9 }), code("not_found"));
+			await rejects(t.tool("reopen", { number: 9 }), code("not_found"));
+			await t.tool("create", { title: "Mine" }, PRINCIPALS.reporter);
+			await rejects(
+				t.tool("close", { number: 1 }, PRINCIPALS.reporter),
+				code("denied"),
+				"close needs Developer",
 			);
-			const truncated = await t.host.gate(
-				"ref.advance",
-				gateInput([{ path: "README.md", line: 1, text: "hello" }], {
-					truncated: true,
-				}),
-				GATE_CTX,
-			);
-			strictEqual(truncated.decision, "allow");
-			strictEqual(truncated.fullScan, undefined);
-		},
-	});
-
-	Deno.test({
-		name: `${runtime}: a gate replay is advisory and writes nothing`,
-		ignore,
-		fn: async () => {
-			const t = await setup(runtime);
-			const d = await t.host.gate(
-				"ref.advance",
-				gateInput(LEAKY, { advisory: true }),
-				GATE_CTX,
-			);
-			strictEqual(d.decision, "veto");
-			strictEqual(t.rows("SELECT * FROM findings").length, 0);
-			strictEqual(t.rows("SELECT * FROM decisions").length, 0);
+			strictEqual(t.rows("SELECT * FROM issues").length, 1);
 		},
 	});
 
 	Deno.test({
 		name:
-			`${runtime}: the push echo warns with remote: lines and stores the lane's findings`,
+			`${runtime}: the Issues tab lists issues and its form opens one as the viewer`,
 		ignore,
 		fn: async () => {
 			const t = await setup(runtime);
-			const ev = t.kernel.addEvent(NODES.router.id, {
-				type: "push.accepted",
-				data: {
-					pushId: "p_01k60000000000000000000001",
-					target: LANE_ID,
-					ref: `refs/heads/lanes/${LANE_ID}`,
-					before: "a".repeat(40),
-					after: "b".repeat(40),
-					via: "gateway",
-				},
-			}) as Envelope;
-			const echo = await t.host.echo(ev, {
-				addedLines: LEAKY,
-				truncated: false,
-			});
-			strictEqual(echo.timedOut, false);
-			strictEqual(echo.lines.length, 4);
-			ok(
-				echo.lines[0].startsWith(
-					"[no-secrets] .env file at config/prod.env:1 (prod.env)",
-				),
-				echo.lines[0],
+			const empty = await t.host.render(
+				"issues",
+				tabCtx,
+				viewer(PRINCIPALS.dev),
 			);
-			ok(echo.lines.every((l) => !l.includes(ACCESS) && !l.includes(SECRET)));
+			const emptyJson = JSON.stringify(empty);
+			ok(emptyJson.includes("No issues yet"), emptyJson);
+			ok(emptyJson.includes('"t":"form"'), emptyJson);
+			const result = await t.host.action(
+				"issues",
+				"create",
+				{ title: "From the tab", body: "**bold**" },
+				tabCtx,
+				userActor(PRINCIPALS.dev),
+				bounds,
+			);
+			deepStrictEqual(result, {
+				v: 1,
+				toast: { tone: "success", text: "Opened #1" },
+				refresh: ["issues"],
+			});
+			const refused = await t.host.action(
+				"issues",
+				"create",
+				{ title: "" },
+				tabCtx,
+				userActor(PRINCIPALS.dev),
+				bounds,
+			);
+			deepStrictEqual(refused, {
+				v: 1,
+				toast: { tone: "danger", text: "title is required" },
+			});
 			deepStrictEqual(
-				t.rows("SELECT DISTINCT lane_id, source FROM findings"),
-				[{ lane_id: LANE_ID, source: "echo" }],
+				t.rows("SELECT number, title, author_kind, author_id FROM issues"),
+				[{
+					number: 1,
+					title: "From the tab",
+					author_kind: "user",
+					author_id: PRINCIPALS.dev,
+				}],
 			);
-			// The same push again stores each finding once.
-			await t.host.echo(ev, { addedLines: LEAKY, truncated: false });
-			strictEqual(t.rows("SELECT * FROM findings").length, 3);
-			const quiet = await t.host.echo(ev, {
-				addedLines: [{ path: "a.ts", line: 1, text: "ok" }],
-				truncated: false,
-			});
-			deepStrictEqual(quiet.lines, []);
-		},
-	});
-
-	Deno.test({
-		name:
-			`${runtime}: the sidebar, the gate chip and the repo tab render from the records`,
-		ignore,
-		fn: async () => {
-			const t = await setup(runtime);
-			const pending = await t.host.render(
-				"no-secrets",
-				{ ...changeCtx, slot: "change.gate" },
-				viewer(PRINCIPALS.dev),
-			);
-			deepStrictEqual(pending.root, {
-				t: "badge",
-				text: "no-secrets: pending",
-				tone: "muted",
-			});
-			await t.host.gate("ref.advance", gateInput(LEAKY), GATE_CTX);
-			const sidebar = await t.host.render(
-				"findings",
-				changeCtx,
-				viewer(PRINCIPALS.dev),
-			);
-			strictEqual(sidebar.root.t, "section");
-			const json = JSON.stringify(sidebar);
-			ok(json.includes("Advance vetoed"), json);
-			ok(json.includes("AKIA…MPLE"), json);
-			deepStrictEqual(sidebar.refreshOn, ["gate.decided"]);
-			const chip = await t.host.render(
-				"no-secrets",
-				{ ...changeCtx, slot: "change.gate" },
-				viewer(PRINCIPALS.dev),
-			);
-			deepStrictEqual(chip.root, {
-				t: "badge",
-				text: "no-secrets: 3 credentials",
-				tone: "danger",
-			});
 			const tab = await t.host.render(
-				"secrets",
-				{
-					slot: "repo.tab",
-					node: NODES.router.id,
-					repo: NODES.router.id,
-					mode: "enforce",
-					extra: { route: "secrets" },
-				},
+				"issues",
+				tabCtx,
 				viewer(PRINCIPALS.dev),
 			);
-			ok(JSON.stringify(tab).includes("config/prod.env"));
-			ok(!JSON.stringify(tab).includes("error-chip"));
-		},
-	});
-
-	Deno.test({
-		name:
-			`${runtime}: the scan tool reports a change's findings and scans snippets`,
-		ignore,
-		fn: async () => {
-			const t = await setup(runtime);
-			await t.host.gate("ref.advance", gateInput(LEAKY), GATE_CTX);
-			const ctx = {
-				node: NODES.router.id,
-				repo: NODES.router.id,
-				scope: "acme/router",
-				actor: userActor(PRINCIPALS.dev),
-				mode: "enforce" as const,
-			};
-			const bounds = {
-				maxRole: 30 as const,
-				scopes: null,
-				nodeId: NODES.router.id,
-				laneId: null,
-			};
-			const stored = await t.host.callTool(
-				"scan",
-				{ changeId: CHANGE },
-				ctx,
-				bounds,
-			) as { clean: boolean; verdict: string; findings: unknown[] };
-			strictEqual(stored.clean, false);
-			strictEqual(stored.verdict, "veto");
-			strictEqual(stored.findings.length, 3);
-			const snippet = await t.host.callTool(
-				"scan",
-				{ changeId: CHANGE, text: `key: ${ACCESS}\n`, path: "deploy.yaml" },
-				ctx,
-				bounds,
-			) as { findings: { path: string; line: number; value: string }[] };
-			deepStrictEqual(snippet.findings, [{
-				path: "deploy.yaml",
-				line: 1,
-				kind: "aws-access-key",
-				value: "AKIA…MPLE",
-			}]);
-		},
-	});
-
-	Deno.test({
-		name: `${runtime}: allow globs from the installation config skip fixtures`,
-		ignore,
-		fn: async () => {
-			const fixture = [{
-				path: "fixtures/aws.env",
-				line: 1,
-				text: `KEY=${ACCESS}`,
-			}];
-			const strict = await setup(runtime);
-			strictEqual(
-				(await strict.host.gate("ref.advance", gateInput(fixture), GATE_CTX))
-					.decision,
-				"veto",
-			);
-			const allowing = await setup(runtime, { allow: ["fixtures/**"] });
-			deepStrictEqual(
-				await allowing.host.gate("ref.advance", gateInput(fixture), GATE_CTX),
-				{ decision: "allow", message: "no credentials in 1 added line" },
-			);
+			const json = JSON.stringify(tab);
+			ok(json.includes("From the tab"), json);
+			ok(json.includes('"#1"'), json);
+			ok(!json.includes("error-chip"), json);
 		},
 	});
 }
@@ -480,17 +369,19 @@ Deno.test({
 	ignore,
 	fn: async () => {
 		const t = await setup("wasm");
-		await t.host.gate("ref.advance", gateInput(LEAKY), GATE_CTX);
-		await t.host.gate("ref.advance", gateInput(LEAKY), GATE_CTX);
+		await t.tool("create", { title: "one" });
+		await t.tool("create", { title: "two" });
 		deepStrictEqual(
 			t.rows("SELECT n, name FROM _ext_migrations"),
 			[{ n: 1, name: "init" }],
 		);
 		strictEqual(t.facet.loads(), 1);
 		await t.host.abort("upgrade");
-		await t.host.gate("ref.advance", gateInput(LEAKY), GATE_CTX);
+		const third = await t.tool("create", { title: "three" }) as {
+			issue: IssueOut;
+		};
 		strictEqual(t.facet.loads(), 2, "a fresh facet after abort");
-		strictEqual(t.rows("SELECT * FROM decisions").length, 3);
+		strictEqual(third.issue.number, 3, "the data outlives the component");
 	},
 });
 
@@ -523,83 +414,5 @@ Deno.test({
 				JSON.stringify(issues),
 			);
 		}
-	},
-});
-
-Deno.test({
-	name:
-		"wasm: a shadow replay of acme.no-secrets over 41 seeded advances would have vetoed 2",
-	ignore,
-	fn: async () => {
-		const t = await setup("wasm");
-		const repo = NODES.router.id;
-		const advances = Array.from({ length: 41 }, (_, i) => ({
-			id: `adv_${i}`,
-			batchId: `lb_01k6${String(i).padStart(22, "0")}`,
-			attempt: 0,
-			ref: "refs/heads/main",
-			expectOld: i.toString(16).padStart(40, "0"),
-			newSha: (i + 1).toString(16).padStart(40, "0"),
-			ownerInstance: "w",
-			leaseUntil: 0,
-			step: "refs-pushed" as const,
-			state: "done" as const,
-			evidenceReused: false,
-			createdAt: i,
-		})).reverse();
-		const leaky = new Set([12, 33]);
-		const linesOf = (head: string) => {
-			const i = parseInt(head, 16) - 1;
-			return leaky.has(i)
-				? [{
-					path: "deploy/prod.env",
-					line: 4,
-					text: `AWS_ACCESS_KEY_ID=${ACCESS}`,
-				}]
-				: [{ path: `src/m${i}.ts`, line: 1, text: "export const ok = true;" }];
-		};
-		const replays = new Map<string, GateReplayRow>();
-		const installation = t.snapshot().installation;
-		const out = await runGateReplay({
-			land: () => ({
-				advances: () => Promise.resolve({ advances }),
-				recordReplay: (r) => {
-					replays.set(r.id, {
-						id: r.id,
-						installation_id: r.installationId,
-						advances_json: "[]",
-						results_json: JSON.stringify(r.results),
-						state: r.state,
-						created_at: 0,
-					});
-					return Promise.resolve();
-				},
-				replay: (id) => Promise.resolve(replays.get(id) ?? null),
-			}),
-			probe: () => ({
-				addedLines: (_s, _b, head) =>
-					Promise.resolve({ lines: linesOf(head), truncated: false }),
-				diffPaths: (_s, _b, head) =>
-					Promise.resolve({
-						paths: linesOf(head).map((l) => ({ path: l.path })),
-						truncated: false,
-					} as never),
-			}),
-			ext: () => t.host,
-		}, {
-			installation: { ...installation, mode: "shadow" },
-			manifest: t.manifest,
-			repoId: repo,
-			n: 41,
-			replayId: "gr_01k60000000000000000000001",
-		});
-		deepStrictEqual(out.summary, { vetoed: 2, of: 41 });
-		deepStrictEqual(
-			out.results.filter((r) => r.decision === "veto").map((r) => r.advanceId),
-			["adv_33", "adv_12"],
-		);
-		// Advisory: the replay recorded nothing in the extension's own tables.
-		strictEqual(t.rows("SELECT * FROM decisions").length, 0);
-		strictEqual(replays.get("gr_01k60000000000000000000001")?.state, "done");
 	},
 });

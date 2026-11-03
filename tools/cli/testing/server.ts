@@ -1,13 +1,12 @@
-// Test-only: a local stand-in for a Tartan forge that stock git and the
-// `tartan` CLI talk to (WP11 CLI tests). It answers git smart HTTP v0
-// advertisements behind Basic auth (401 first, as the gateway does), records
-// every request, accepts receive-pack with a plain report-status, and serves
-// a scripted MCP `tools/call` and `/.well-known/tartan.json`.
+// Test-only: a local stand-in for a Tartan forge that stock git and `tt` talk
+// to (the CLI tests). It serves one bare repository at every git path over
+// smart HTTP (stock `git upload-pack --stateless-rpc`) behind Basic auth (401
+// first, as the gateway does), records every request, and answers a scripted
+// MCP `tools/call`.
 
 export type Recorded = {
 	readonly method: string;
 	readonly path: string;
-	readonly query: string;
 	readonly authorization: string | null;
 };
 
@@ -20,8 +19,6 @@ export type ToolScript = (
 export type FakeForgeServer = {
 	readonly origin: string;
 	readonly requests: Recorded[];
-	/** Refs the "upstream" advertises. */
-	readonly refs: Map<string, string>;
 	readonly toolCalls: { name: string; args: unknown; scope: string }[];
 	setTools(script: ToolScript): void;
 	close(): Promise<void>;
@@ -29,49 +26,37 @@ export type FakeForgeServer = {
 
 const encoder = new TextEncoder();
 
-export const pkt = (line: string): string =>
+const pkt = (line: string): string =>
 	`${(encoder.encode(line).length + 4).toString(16).padStart(4, "0")}${line}`;
-const FLUSH = "0000";
-const ZERO = "0".repeat(40);
 
-const advertisement = (
-	service: string,
-	refs: Map<string, string>,
-): string => {
-	const caps = service === "git-receive-pack"
-		? "report-status delete-refs ofs-delta agent=tartan-test"
-		: "multi_ack thin-pack ofs-delta shallow no-progress include-tag agent=tartan-test";
-	const entries = [...refs.entries()];
-	const lines = entries.length === 0
-		? [`${ZERO} capabilities^{}\0${caps}\n`]
-		: entries.map(([ref, sha], i) =>
-			i === 0 ? `${sha} ${ref}\0${caps}\n` : `${sha} ${ref}\n`
-		);
-	return pkt(`# service=${service}\n`) + FLUSH + lines.map(pkt).join("") +
-		FLUSH;
-};
-
-/** The ref names in a receive-pack request's command section. */
-const commandRefs = (body: Uint8Array): string[] => {
-	const text = new TextDecoder("latin1").decode(body);
-	const refs: string[] = [];
-	let at = 0;
-	while (at + 4 <= text.length) {
-		const len = parseInt(text.slice(at, at + 4), 16);
-		if (len === 0) break;
-		const line = text.slice(at + 4, at + len).split("\0")[0].trim();
-		const ref = line.split(" ")[2];
-		if (ref) refs.push(ref);
-		at += len;
-	}
-	return refs;
+const uploadPack = async (
+	bare: string,
+	input?: ReadableStream<Uint8Array>,
+): Promise<Uint8Array<ArrayBuffer>> => {
+	const child = new Deno.Command("git", {
+		args: [
+			"upload-pack",
+			"--stateless-rpc",
+			...(input === undefined ? ["--advertise-refs"] : []),
+			bare,
+		],
+		stdin: input === undefined ? "null" : "piped",
+		stdout: "piped",
+		stderr: "null",
+	}).spawn();
+	if (input !== undefined) await input.pipeTo(child.stdin);
+	return new Uint8Array((await child.output()).stdout);
 };
 
 export const startFakeForge = (
-	options: { readonly token: string; readonly username?: string },
+	options: {
+		readonly token: string;
+		/** The bare repository served at every git path (none: git gets 404). */
+		readonly bare?: string;
+		readonly username?: string;
+	},
 ): FakeForgeServer => {
 	const requests: Recorded[] = [];
-	const refs = new Map<string, string>();
 	const toolCalls: { name: string; args: unknown; scope: string }[] = [];
 	let tools: ToolScript = () => ({});
 	const expected = `Basic ${
@@ -81,18 +66,7 @@ export const startFakeForge = (
 	const handler = async (req: Request): Promise<Response> => {
 		const url = new URL(req.url);
 		const authorization = req.headers.get("authorization");
-		requests.push({
-			method: req.method,
-			path: url.pathname,
-			query: url.search,
-			authorization,
-		});
-		if (url.pathname === "/.well-known/tartan.json") {
-			return Response.json({
-				product: "Tartan",
-				limits: { maxPushBytes: 95_000_000, maxObjectBytes: 31 * 1024 * 1024 },
-			});
-		}
+		requests.push({ method: req.method, path: url.pathname, authorization });
 		if (url.pathname.startsWith("/-/mcp")) {
 			if (authorization !== `Bearer ${options.token}`) {
 				return Response.json({ error: "unauthenticated" }, { status: 401 });
@@ -135,22 +109,32 @@ export const startFakeForge = (
 			await req.body?.cancel();
 			return new Response("bad credentials\n", { status: 403 });
 		}
-		if (url.pathname.endsWith("/info/refs")) {
-			const service = url.searchParams.get("service") ?? "git-upload-pack";
-			return new Response(advertisement(service, refs), {
+		const bare = options.bare;
+		if (
+			bare !== undefined && url.pathname.endsWith("/info/refs") &&
+			url.searchParams.get("service") === "git-upload-pack"
+		) {
+			const refs = await uploadPack(bare);
+			const head = encoder.encode(`${pkt("# service=git-upload-pack\n")}0000`);
+			const body = new Uint8Array(head.length + refs.length);
+			body.set(head);
+			body.set(refs, head.length);
+			return new Response(body, {
 				headers: {
-					"content-type": `application/x-${service}-advertisement`,
+					"content-type": "application/x-git-upload-pack-advertisement",
 					"cache-control": "no-cache",
 				},
 			});
 		}
-		if (url.pathname.endsWith("/git-receive-pack")) {
-			const body = new Uint8Array(await req.arrayBuffer());
-			const pushed = commandRefs(body);
-			const report = pkt("unpack ok\n") +
-				pushed.map((ref) => pkt(`ok ${ref}\n`)).join("") + FLUSH;
-			return new Response(report, {
-				headers: { "content-type": "application/x-git-receive-pack-result" },
+		if (
+			bare !== undefined && url.pathname.endsWith("/git-upload-pack") &&
+			req.body !== null
+		) {
+			const input = req.headers.get("content-encoding") === "gzip"
+				? req.body.pipeThrough(new DecompressionStream("gzip"))
+				: req.body;
+			return new Response(await uploadPack(bare, input), {
+				headers: { "content-type": "application/x-git-upload-pack-result" },
 			});
 		}
 		await req.body?.cancel();
@@ -165,7 +149,6 @@ export const startFakeForge = (
 	return {
 		origin: `http://127.0.0.1:${addr.port}`,
 		requests,
-		refs,
 		toolCalls,
 		setTools: (script) => {
 			tools = script;

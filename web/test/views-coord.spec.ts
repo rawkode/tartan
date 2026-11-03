@@ -18,6 +18,7 @@ import {
 import { createMockFetch } from "../src/api/mock/server.ts";
 import { MOCK_NOW, REPO_ID } from "../src/api/mock/fixtures.ts";
 import { fakeClock, fakeSockets } from "./support/fakes.ts";
+import { SAMPLE_CATALOG } from "./support/catalog.ts";
 import { mountApp } from "./support/app.ts";
 import {
 	findAll,
@@ -217,7 +218,7 @@ describe("Lanes view from the live feed", () => {
 
 	it("fetches a lane it hears about but has not read", async () => {
 		const fresh = { ...LANES[1]!, id: "ln_01k6g000000000000000008888" };
-		const mock = createMockFetch();
+		const mock = createMockFetch({ catalog: SAMPLE_CATALOG });
 		const fetch: FetchLike = (input, init) =>
 			input.startsWith(`/-/api/lanes/${fresh.id}`)
 				? Promise.resolve(Response.json(fresh))
@@ -286,7 +287,7 @@ describe("lane page", () => {
 		const slots = findAll(detail, (el) => el.attrs["data-slot"] !== undefined)
 			.map((el) => el.attrs["data-slot"]);
 		expect(slots).toEqual(["lane.badge", "lane.sidebar"]);
-		expect(text(detail)).toContain("1 predicted conflict");
+		expect(text(detail)).toContain("sample lane badge");
 		// The selected row is marked.
 		expect(rowFor(app.root, LANE_IDS.web).attrs["aria-current"]).toBe("true");
 	});

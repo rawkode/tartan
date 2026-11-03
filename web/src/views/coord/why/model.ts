@@ -2,9 +2,8 @@
 // Each commit that touched the file is a row; its gutter colour is its work
 // item (the `Tartan-Work` trailer), so the commits of one intent read as one
 // band. The provenance drawer reads the commit's why note (`GET /-/api/why`)
-// and shows the kernel section plus the sections extensions contributed
-// (work: why and acceptance; changes: title and summary; review: route and
-// risk). Pure: no DOM, no API.
+// and shows the kernel section plus the ids of the sections extensions
+// contributed. Pure: no DOM, no API.
 
 import type { Envelope } from "@tartan/contract/events.ts";
 import type { CommitMeta } from "@tartan/contract/git.ts";
@@ -89,99 +88,9 @@ export const workLegend = (
 	return [...out.values()];
 };
 
-const record = (value: unknown): Record<string, unknown> | null =>
-	typeof value === "object" && value !== null && !Array.isArray(value)
-		? value as Record<string, unknown>
-		: null;
-
-const str = (value: unknown): string | undefined =>
-	typeof value === "string" && value !== "" ? value : undefined;
-
-const num = (value: unknown): number | undefined =>
-	typeof value === "number" && Number.isFinite(value) ? value : undefined;
-
-const strings = (value: unknown): string[] =>
-	Array.isArray(value)
-		? value.filter((v): v is string => typeof v === "string")
-		: [];
-
-/** An extension section of a why note, keyed by extension id (with or without `@version`). */
-const section = (
-	note: WhyNote,
-	extId: string,
-): Record<string, unknown> | null => {
-	for (const [key, value] of Object.entries(note.ext)) {
-		if (key === extId || key.startsWith(`${extId}@`)) return record(value);
-	}
-	return null;
-};
-
-export type Provenance = {
-	readonly work?: {
-		readonly ref?: string;
-		readonly title?: string;
-		readonly why?: string;
-		readonly acceptance: readonly string[];
-		readonly plan?: string;
-		readonly agent?: string;
-	};
-	readonly change?: {
-		readonly title?: string;
-		readonly summary?: string;
-		readonly revision?: number;
-	};
-	readonly review?: {
-		readonly route?: string;
-		readonly risk?: number;
-		readonly decidedBy?: string;
-	};
-	/** Sections from other extensions, by id (shown as their keys only). */
-	readonly others: readonly string[];
-};
-
-const KNOWN = ["tartan.work", "tartan.changes", "tartan.review"];
-
-/** The sections a drawer shows; missing or malformed sections are left out. */
-export const provenanceOf = (note: WhyNote): Provenance => {
-	const work = section(note, "tartan.work");
-	const change = section(note, "tartan.changes");
-	const review = section(note, "tartan.review");
-	return {
-		...(work
-			? {
-				work: {
-					ref: str(work["ref"]),
-					title: str(work["title"]),
-					why: str(work["why"]),
-					acceptance: strings(work["acceptance"]),
-					plan: str(work["plan"]),
-					agent: str(work["agent"]),
-				},
-			}
-			: {}),
-		...(change
-			? {
-				change: {
-					title: str(change["title"]),
-					summary: str(change["summary"]),
-					revision: num(change["revision"]),
-				},
-			}
-			: {}),
-		...(review
-			? {
-				review: {
-					route: str(review["route"]),
-					risk: num(review["risk"]),
-					decidedBy: str(review["decidedBy"]),
-				},
-			}
-			: {}),
-		others: Object.keys(note.ext).filter((key) =>
-			!KNOWN.some((k) => key === k || key.startsWith(`${k}@`))
-		).sort(),
-	};
-};
+/** The extension sections of a why note, by key (`<extId>[@<version>]`), sorted. */
+export const noteSections = (note: WhyNote): readonly string[] =>
+	Object.keys(note.ext).sort();
 
 /** The reason events a note names, in log order, with the ones the answer carried. */
 export const reasonEvents = (

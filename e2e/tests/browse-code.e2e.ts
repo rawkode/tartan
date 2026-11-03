@@ -1,4 +1,4 @@
-// Browsing code in a Swarm repo (the fixture history, constant
+// Browsing code in a fixture repo (the fixture history, constant
 // SHAs). Tree, blob, commit and compare pages render from the kernel's
 // browse API; every slot on them settles without an error chip;
 // the repository sidebar column shows only when the view lists a

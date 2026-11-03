@@ -4,6 +4,7 @@ import { deepStrictEqual, equal, ok, rejects } from "node:assert/strict";
 import type { AgentCreatedResponse } from "@tartan/contract/api.ts";
 import {
 	HANDOFF_GROUP,
+	HANDOFF_GROUPS,
 	HANDOFF_MAX_ROLE,
 	HANDOFF_NODE,
 	HANDOFF_SCOPES,
@@ -12,8 +13,7 @@ import {
 	handoffText,
 	mintHandoff,
 } from "./handoff.ts";
-import { PACK_AT, runIdTime } from "./provision.ts";
-import { INTERFACE_TOOLS } from "@tartan/contract/interfaces.ts";
+import { GROUPS, runIdTime } from "./provision.ts";
 
 const NOW = Date.UTC(2026, 9, 5, 12, 0);
 const DAY = 86_400_000;
@@ -69,7 +69,7 @@ const fake = (fail = false) => {
 
 const keep = () => Promise.resolve();
 
-Deno.test("the handoff agent is a developer agent on e2e with the MCP URL of the Swarm pack group", async () => {
+Deno.test("the handoff agent is a developer agent on e2e with the MCP URL of an e2e group", async () => {
 	const f = fake();
 	const h = await mintHandoff(f.deps, { ttlDays: 2, persist: keep });
 	equal(f.created.length, 1);
@@ -125,32 +125,8 @@ Deno.test("the handoff file is JSON under .private/e2e/agent/", async () => {
 	equal(handoffPath("/repo"), "/repo/.private/e2e/agent/agent.json");
 });
 
-Deno.test("the MCP URL names a pack group, whose scope serves the work and lanes tools", async () => {
-	// The e2e group carries no pack: a work_* call at /-/mcp/e2e answers
-	// protocol_mismatch. Every pack group the provisioning installs serves
-	// the tools the M1 loop's agents call.
-	equal(PACK_AT[HANDOFF_NODE], undefined, "the e2e group carries no pack");
-	equal(PACK_AT[HANDOFF_GROUP], "tartan.pack.swarm");
-	const read = async (file: string) =>
-		JSON.parse(
-			await Deno.readTextFile(
-				new URL(`../../extensions/${file}`, import.meta.url),
-			),
-		);
-	const pack = await read("packs/swarm/tartan.json");
-	const provided = new Set<string>();
-	for (const member of pack.members as { id: string }[]) {
-		const dir = member.id.replace(/^tartan\./, "");
-		const manifest = await read(`${dir}/tartan.json`).catch(() => null);
-		for (const id of manifest?.provides ?? []) provided.add(id);
-	}
-	for (const tool of ["work_get", "work_claim", "changes_submit"]) {
-		const iface = INTERFACE_TOOLS[tool]?.iface;
-		ok(
-			iface !== undefined && provided.has(iface),
-			`${tool} (${iface}) is served`,
-		);
-	}
+Deno.test("the MCP URL names one of the e2e groups", async () => {
+	deepStrictEqual([...HANDOFF_GROUPS], [...GROUPS]);
 	const classic = await mintHandoff(fake().deps, {
 		ttlDays: 1,
 		group: "e2e/classic",
@@ -158,8 +134,13 @@ Deno.test("the MCP URL names a pack group, whose scope serves the work and lanes
 	});
 	equal(classic.mcpUrl, `${ORIGIN}/-/mcp/e2e/classic`);
 	await rejects(
-		() => mintHandoff(fake().deps, { ttlDays: 1, group: "e2e", persist: keep }),
-		/pack group/,
+		() =>
+			mintHandoff(fake().deps, {
+				ttlDays: 1,
+				group: "elsewhere",
+				persist: keep,
+			}),
+		/an e2e group/,
 	);
 });
 

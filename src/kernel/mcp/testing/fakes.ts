@@ -3,7 +3,8 @@
 // - Nodes, grants (an agent's owner user folded in, as the tree does) and
 //   principals; WP3's `authorize` modelled with the contract's `boundRole`
 //   and `scopesAllow`.
-// - Installations from the real bundled manifests (`src/builtins.ts`), the
+// - Installations from the removed first-party manifests (exthost testing
+//   `legacy-builtins.ts`), the
 //   protocol cards given per installation, and WP7b's real
 //   `createExtDispatchWith` for tool listing and routing.
 // - ExtensionDO tool calls answered by scripted handlers (recorded).
@@ -41,7 +42,7 @@ import type {
 	PrincipalRow,
 	ResolvedPath,
 } from "@tartan/contract/kernel.ts";
-import { builtins } from "../../../builtins.ts";
+import { legacyBuiltins as builtins } from "../../exthost/host/testing/legacy-builtins.ts";
 import { createExtDispatchWith } from "../../exthost/host/fanout.ts";
 import {
 	acting,

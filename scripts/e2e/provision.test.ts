@@ -26,9 +26,6 @@ type Node = {
 
 const createFakeForge = () => {
 	const nodes = new Map<string, Node>();
-	const installs = new Map<string, string>();
-	/** `repoOverrides` by installation id; `i_weave` is the Swarm group's Weave. */
-	const overrides = new Map<string, boolean>();
 	const accounts = new Set<PersonaName>(["owner"]);
 	const tokens: {
 		id: string;
@@ -63,41 +60,6 @@ const createFakeForge = () => {
 				createdAt: NOW,
 			});
 			return Promise.resolve(nodes.get(path));
-		},
-		installations: (_c: unknown, node: string) =>
-			Promise.resolve({
-				installations: installs.has(node)
-					? [
-						{
-							installation: {
-								nodePath: node,
-								pack: installs.get(node),
-								extId: "tartan.work",
-							},
-						},
-						...(node === "e2e/swarm"
-							? [{
-								installation: {
-									id: "i_weave",
-									nodePath: node,
-									pack: installs.get(node),
-									extId: "tartan.weave",
-									repoOverrides: overrides.get("i_weave") ?? false,
-								},
-							}]
-							: []),
-					]
-					: [],
-			}),
-		repoOverrides: (_c: unknown, installation: string, on: boolean) => {
-			calls.push(`repoOverrides ${installation} ${on}`);
-			overrides.set(installation, on);
-			return Promise.resolve();
-		},
-		install: (_c: unknown, input: { node: string; extId: string }) => {
-			calls.push(`install ${input.extId} ${input.node}`);
-			installs.set(input.node, input.extId);
-			return Promise.resolve();
 		},
 		me: (c: { cookie: string }) =>
 			Promise.resolve({
@@ -192,15 +154,10 @@ const createFakeForge = () => {
 		},
 		now: () => NOW,
 		log: () => {},
-		packVersions: {
-			"tartan.pack.swarm": "0.1.0",
-			"tartan.pack.classic": "0.1.0",
-		},
 	};
 	return {
 		api,
 		deps,
-		overrides,
 		nodes,
 		tokens,
 		agents,
@@ -228,10 +185,6 @@ Deno.test("provisioning builds the baseline once and mints the run's credentials
 		"createGroup e2e",
 		"createGroup e2e/swarm",
 		"createGroup e2e/classic",
-	]);
-	deepStrictEqual(f.calls.filter((c) => c.startsWith("install")), [
-		"install tartan.pack.swarm e2e/swarm",
-		"install tartan.pack.classic e2e/classic",
 	]);
 	deepStrictEqual(f.calls.filter((c) => c.startsWith("invite")), [
 		"invite 30",
@@ -264,7 +217,7 @@ Deno.test("provisioning builds the baseline once and mints the run's credentials
 	f.calls.length = 0;
 	await provision(f.deps, "r202610031300abcd");
 	equal(
-		f.calls.filter((c) => /^(createGroup|install|invite)/.test(c)).length,
+		f.calls.filter((c) => /^(createGroup|invite)/.test(c)).length,
 		0,
 	);
 });
@@ -365,12 +318,8 @@ Deno.test("teardown revokes, disables and archives the run's items and signs out
 		archived: false,
 		createdAt: NOW,
 	});
-	// The compose test let the Swarm group's repos overlay its Weave.
-	f.overrides.set("i_weave", true);
 	f.calls.length = 0;
 	const report = await teardown(f.deps, creds, { keepData: false });
-	equal(report.restored, 1, "the baseline's repo overrides are off again");
-	equal(f.overrides.get("i_weave"), false);
 	equal(report.revoked, 3);
 	equal(report.disabled, 3);
 	equal(report.archived, 3);
@@ -385,7 +334,6 @@ Deno.test("teardown revokes, disables and archives the run's items and signs out
 	ok(f.signedOut.includes("owner"));
 	const kept = await teardown(f.deps, creds, { keepData: true });
 	equal(kept.archived, 0);
-	equal(kept.restored, 0, "nothing to restore when the overrides are off");
 });
 
 Deno.test("a provisioning that fails half-way revokes what it minted and signs everyone out", async () => {

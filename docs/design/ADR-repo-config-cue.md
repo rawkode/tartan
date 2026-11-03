@@ -11,6 +11,11 @@
 - **Sources of truth:** the [design summary](README.md) for the kernel and its invariants, and `packages/contract` for
   names and signatures. Where this ADR and the code disagree, the maintainers decide.
 
+> **Spike branch (`spike/strip-down`).** This branch removed the first-party extensions this ADR uses as examples
+> (`tartan.ci`, `tartan.review`, `tartan.weave` and the rest) and the `acme.no-secrets` demo. Repository config in CUE
+> stays; with no extension installed, a repository's package `tartan` holds only the kernel's keys (`projects`,
+> `global`) until an extension such as Issues adds its own.
+
 ## Context
 
 Extensions are installed on nodes of the hierarchy by people with the right role, through the install sheet. Teams
@@ -183,7 +188,7 @@ builds for each job, so package `tartan` may import only the CUE standard librar
 - `cue export .:tartan` in the repository root gives the same values on a laptop, with or without the repository's
   own `cue.mod/`, but without the forge's schema. A file that imports `tartan.dev/ext` evaluates locally only through
   the next command.
-- `tartan config schema --out <dir>` writes the forge's module and binding file. With the root `*.cue` files copied
+- `tt config schema --repo <path> --out <dir>` writes the forge's module and binding file. With the root `*.cue` files copied
   into `<dir>`, `cue export -E --out json .:tartan` there gives byte-identical output.
 
 ## What repository config may do
@@ -662,7 +667,8 @@ in the slot host.
 - Repositories that use config add one line to the protocol card: "Root `*.cue` files are Tartan policy; a change to
   any of them needs a human sign-off. Call `repo_config_preview` before you submit."
 
-**CLI:** `tartan config show [repo]`, `tartan config vet [--lane <id>]` and `tartan config schema --out <dir>`.
+**CLI:** `tt config show --repo <path>`, `tt config vet --repo <path> [--lane <id>]` and
+`tt config schema --repo <path> --out <dir>`.
 
 **HTTP:**
 

@@ -1,9 +1,15 @@
 # Writing an extension
 
-Everything people think of as "the forge" is an extension on one public contract: work items (issues), changes (pull
-requests), the Kanban board, conflict radar, CI, review, the Weave and FIFO, epics and the HUD. First-party extensions
-use exactly the contract that third-party ones use. This page explains the model, walks through a small JavaScript
-extension and introduces the Rust SDK. `packages/contract` is the source of truth for every name below;
+Everything beyond the forge itself (git over HTTPS, lanes, the Advance, MCP, projects and repository config) is an
+extension on one public contract, and first-party extensions use exactly the contract that third-party ones use.
+
+> **Spike branch (`spike/strip-down`).** This branch removed every first-party extension and pack (`tartan.work`,
+> `tartan.changes`, `tartan.board`, `tartan.radar`, `tartan.ci`, `tartan.review`, `tartan.weave`, `tartan.fifo`,
+> `tartan.epics`, `tartan.hud`, `tartan.pack.swarm`, `tartan.pack.classic`), the `acme.no-secrets` WASM demo and
+> `packages/pipeline`. No extension is bundled. The first extension is Issues (`rawkode.issues`,
+> [`extensions/issues/`](../extensions/issues/)), a third-party WASM package on the contract below.
+
+This page explains the model, walks through a small JavaScript extension and introduces the Rust SDK. `packages/contract` is the source of truth for every name below;
 `@tartan/ext-api` has the helpers. [`ext/README.md`](ext/README.md) covers the build, publish and test details, and
 [`ext/rust.md`](ext/rust.md) the Rust SDK.
 
@@ -13,13 +19,12 @@ An extension is a **package** (a manifest, code, migrations) published to the fo
 it is **installed** on a node: a user, a group or a repository. An installation applies to that node's subtree.
 
 - **Nearest wins.** For each interface (`work@1`, `changes@1`, `conflicts@1`, `checks@1`, `review@1`, `queue@1`) the
-  installation nearest to a repository provides it there. So `acme/platform/**` can run the Weave while `acme/docs`
-  runs FIFO, and the protocol an agent sees depends on where it works. Context sections for agents
+  installation nearest to a repository provides it there. So `acme/platform/**` can run one `queue@1` provider while
+  `acme/docs` runs another, and the protocol an agent sees depends on where it works. Context sections for agents
   (`contributes.context`) are different: every installation in force can add one.
 - **Gates add up.** Every `ref.advance` gate on the path from the root to the repository runs on every Advance, and a
   gate cannot be removed below the node that installed it. Any enforcing veto blocks.
-- **A pack** is a package whose members are other packages: installing it installs a whole protocol (`Swarm`,
-  `Classic`).
+- **A pack** is a package whose members are other packages: installing it installs a whole protocol.
 - **Isolation.** Each installation scope has its own Durable Object (`ExtensionDO`) with its own SQLite database, so a
   slow or failing extension stalls only itself. It reaches the kernel only through capabilities (`KernelCaps`) that are
   checked on every call against its granted permissions, the acting principal and its node.
@@ -34,8 +39,8 @@ it is **installed** on a node: a user, a group or a repository. An installation 
 | `js`      | one bundled ES module whose default export implements the hooks, run as a Dynamic Worker (Worker Loader)    | any package                      |
 | `wasm`    | a WebAssembly component on the `tartan:ext@0.1.0` WIT world (`packages/contract/wit/`), loaded the same way | any package                      |
 
-Every first-party extension runs on `builtin`. The `js` and `wasm` runtimes are built and tested with unit and workerd
-tests.
+No `builtin` package is bundled on this branch (`BUILTIN_SOURCES` in `src/builtins.ts` is empty). The `js` and `wasm`
+runtimes are built and tested with unit and workerd tests.
 
 On `js` and `wasm`, each installation runs as a Dynamic Worker facet of its own Durable Object, one per installation and
 package version, with no network access and an empty environment. It gets its capabilities per call, and they stop
@@ -336,37 +341,21 @@ curl -X POST https://git.example.com/-/api/installations \
 **Extensions** in the web UI shows each installation's mode, details, approved permissions, settings and breaker, and
 changes its mode (`enforce`, `shadow` or `disabled`).
 
-## Rust and WebAssembly: `tartan-ext` and `acme.no-secrets`
+## Rust and WebAssembly: `tartan-ext`
 
 `sdk/rust/tartan-ext` is the Rust SDK for the `tartan:ext@0.1.0` world: it supplies a default for every export, UI
 builders, an SQL helper and gate decisions. Today it is a path dependency in this repository, not a published crate.
 [`ext/rust.md`](ext/rust.md) has a minimal extension and the module reference.
 
-`extensions/acme-no-secrets` is the worked example: a third-party Rust → WASM gate that vetoes an Advance adding AWS
-keys, PEM private keys or a `.env` file, shows masked findings in the change sidebar and a gate chip, has a **Secrets**
-repository tab and an MCP tool (`no_secrets_scan`), and keeps its own tables. It is not installed by default:
+A Rust extension lives in `extensions/<name>/` as a crate beside its `tartan.json`:
 
 ```sh
-cargo test --manifest-path extensions/acme-no-secrets/Cargo.toml
-deno task build:ext acme-no-secrets       # or: deno task deploy -- --stage <stage> --build-ext
+cargo test --manifest-path extensions/<name>/Cargo.toml
+deno task build:ext <name>                # or: deno task deploy -- --stage <stage> --build-ext
 ```
 
-The build needs `cargo` with the `wasm32-unknown-unknown` target, `wasm-tools` and jco. An admin then publishes
+The build needs `cargo` with the `wasm32-unknown-unknown` target, `wasm-tools` 1.248.0 (the version CI pins; newer
+releases name the component's internal fixup imports differently, which the import check rejects) and jco. An admin then publishes
 `dist/publish.json`, installs it in shadow mode on a group or repository, replays it over that repository's history on
-the Policy compare page, and promotes it. Its component runs through the real host in the Deno and workerd tests
-described in [`ext/README.md`](ext/README.md#testing).
-
-## First-party extensions
-
-| Extension                                  | Provides                                                                                            |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `tartan.work`                              | `work@1`: work items (issues and intents) with claims and footprints                                |
-| `tartan.changes`                           | `changes@1`: changes (the pull-request equivalent) and their revisions                              |
-| `tartan.board`                             | the Kanban board, rebuilt from history when installed on an existing node                           |
-| `tartan.radar`                             | `conflicts@1`: conflict prediction between lanes and trunk                                          |
-| `tartan.ci`                                | `checks@1`: affected-only CI in Workflows and Sandbox containers                                    |
-| `tartan.review`                            | `review@1`: review by exception (or a person for every change), and the gate that enforces it       |
-| `tartan.weave`, `tartan.fifo`              | `queue@1`: the Weave (batches composed with `git merge-tree`) or first in, first out                |
-| `tartan.epics`                             | epics that roll up work items across repositories                                                   |
-| `tartan.hud`                               | the HUD: active lanes, predicted and avoided conflicts, landings per hour, changes needing a person |
-| `tartan.pack.swarm`, `tartan.pack.classic` | the Swarm and Classic packs                                                                         |
+the Policy compare page, and promotes it. `deploy --build-ext` builds the packages listed in `EXT_PACKAGES`
+(`scripts/deploy.ts`): today `issues`.

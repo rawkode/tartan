@@ -2,21 +2,20 @@
 // A why answer (`WhyResponse`, WP10 `GET /-/api/why`): the landed commit,
 // the reason the queue gave, who landed which change from which lane, the
 // gate decisions, the checks and the hash-chain position, then the
-// sections extensions wrote into the note (the work item's why and
-// acceptance, the change, the review route) and the reason events in log
-// order. Text only.
+// ids of the sections extensions wrote into the note and the reason events
+// in log order. Text only.
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import type { WhyResponse } from "@tartan/contract/api.ts";
 import { changeHref, commitHref } from "../../../router/params.ts";
 import { formatTime, isoTime, shortSha } from "../../../ui/format.ts";
 import { batchHref, gateTone, laneHref, runHref, runTone } from "../landing.ts";
-import { provenanceOf, reasonEvents } from "../why/model.ts";
+import { noteSections, reasonEvents } from "../why/model.ts";
 
 const props = defineProps<{ why: WhyResponse }>();
 
 const kernel = computed(() => props.why.note?.kernel ?? null);
-const provenance = computed(() => (props.why.note ? provenanceOf(props.why.note) : null));
+const sections = computed(() => (props.why.note ? noteSections(props.why.note) : []));
 const reasons = computed(() =>
 	props.why.note ? reasonEvents(props.why.note, props.why.events) : []
 );
@@ -62,37 +61,8 @@ const reasons = computed(() =>
 					<span v-else-if="why.chainVerified === false" class="chip chip--danger">chain mismatch</span>
 				</dd>
 			</dl>
-			<section v-if="provenance?.work" class="why__section" data-why-section="work">
-				<h4 class="why__subtitle">
-					Work item <code v-if="provenance.work.ref">{{ provenance.work.ref }}</code>
-					<template v-if="provenance.work.title"> · {{ provenance.work.title }}</template>
-				</h4>
-				<p v-if="provenance.work.why" class="why__reason">{{ provenance.work.why }}</p>
-				<ul v-if="provenance.work.acceptance.length > 0" class="why__list" aria-label="Acceptance">
-					<li v-for="a in provenance.work.acceptance" :key="a">{{ a }}</li>
-				</ul>
-				<p v-if="provenance.work.plan" class="tt-hint">Plan: {{ provenance.work.plan }}</p>
-				<p v-if="provenance.work.agent" class="tt-hint">Claimed by <code>{{ provenance.work.agent }}</code></p>
-			</section>
-			<section v-if="provenance?.change" class="why__section" data-why-section="change">
-				<h4 class="why__subtitle">
-					Change<template v-if="provenance.change.title"> · {{ provenance.change.title }}</template>
-					<span v-if="provenance.change.revision" class="chip chip--muted">r{{ provenance.change.revision }}</span>
-				</h4>
-				<p v-if="provenance.change.summary" class="why__reason">{{ provenance.change.summary }}</p>
-			</section>
-			<section v-if="provenance?.review" class="why__section" data-why-section="review">
-				<h4 class="why__subtitle">Review</h4>
-				<p class="tt-row why__line">
-					<span class="chip" :class="provenance.review.route === 'human' ? 'chip--warning' : 'chip--info'">
-						{{ provenance.review.route === "human" ? "routed to a human" : `${provenance.review.route ?? "auto"} review` }}
-					</span>
-					<span v-if="provenance.review.risk !== undefined" class="chip chip--muted">risk {{ provenance.review.risk.toFixed(2) }}</span>
-					<span v-if="provenance.review.decidedBy" class="tt-hint">approved by <code>{{ provenance.review.decidedBy }}</code></span>
-				</p>
-			</section>
-			<p v-if="provenance && provenance.others.length > 0" class="tt-hint">
-				Also in the note: {{ provenance.others.join(", ") }}
+			<p v-if="sections.length > 0" class="tt-hint">
+				Also in the note: {{ sections.join(", ") }}
 			</p>
 			<section class="why__section" data-why-section="reasons">
 				<h4 class="why__subtitle">Reasons ({{ reasons.length }} {{ reasons.length === 1 ? "event" : "events" }})</h4>
@@ -164,10 +134,6 @@ const reasons = computed(() =>
 	font-size: var(--tt-text-sm);
 	margin: 0;
 	overflow-wrap: anywhere;
-}
-
-.why__line {
-	margin: 0;
 }
 
 .why__list {

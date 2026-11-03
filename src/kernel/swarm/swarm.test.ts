@@ -349,13 +349,25 @@ Deno.test("an agent handed over mid-lane continues from its head with fresh cach
 });
 
 /** Wall time sped up 2,000×: one simulated minute is 30 ms. */
+/**
+ * Virtual time that moves only when an agent sleeps (to its wake time), so
+ * the work between sleeps costs no simulated time and the tick counts do not
+ * depend on how fast the machine runs the fake forge. Real timers, scaled by
+ * `speed`, still order the wake-ups of concurrent agents.
+ */
 const fastClock = (speed = 2000) => {
-	const start = 1_790_000_000_000;
-	const t0 = performance.now();
+	let virtual = 1_790_000_000_000;
 	return {
-		now: () => start + (performance.now() - t0) * speed,
-		sleep: (ms: number) =>
-			new Promise<void>((resolve) => setTimeout(resolve, ms / speed)),
+		now: () => virtual,
+		sleep: (ms: number) => {
+			const wake = virtual + ms;
+			return new Promise<void>((resolve) =>
+				setTimeout(() => {
+					virtual = Math.max(virtual, wake);
+					resolve();
+				}, ms / speed)
+			);
+		},
 	};
 };
 
@@ -378,7 +390,10 @@ Deno.test("a paced round: concurrent agents, bounded by the round, probe refused
 	const took = clock.now() - started;
 	assertEquals(result.stats.errors, 0, result.stats.lastError);
 	assertEquals(result.probe, "refused");
-	assert(took >= 50_000 && took < 120_000, `the round took ${took} ms`);
+	// Virtual time never reaches the round's end (no sleep crosses it), and an
+	// agent stops only when its next wait (at most 1.5 paces) would, so the
+	// last wake is within 15 s of the end.
+	assert(took >= 45_000 && took < 60_000, `the round took ${took} ms`);
 	for (const agent of result.agents) {
 		// One action every 5–15 s for 60 s, after a start spread over 10 s.
 		assert(

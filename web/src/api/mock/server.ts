@@ -30,7 +30,8 @@ import { checkSlotCtxHint, slotCtxRefusal } from "@tartan/contract/slot-ctx.ts";
 import { isKnownSlot } from "@tartan/contract/slots.ts";
 import type { FetchLike } from "../http.ts";
 import { EVENTS, LANES, lanesPage } from "./coord.ts";
-import { answerLandApi, mockActionResult } from "./land.ts";
+import { EMPTY_CATALOG, type MockCatalog } from "./catalog.ts";
+import { answerLandApi } from "./land.ts";
 import { createRepoConfigMock } from "./repoconfig.ts";
 import {
 	AGENTS,
@@ -43,17 +44,14 @@ import {
 	FILES,
 	FORGE_SETTINGS,
 	HEALTH,
-	INSTALLATIONS,
 	LANE_SETTINGS,
 	MOCK_NOW,
 	mockUlid,
 	NODES,
 	OWNER_ID,
 	OWNER_VIEWER,
-	PACKAGES,
 	SETUP_CHECKS,
 	SHAS,
-	SLOT_DOCS,
 	treeEntries,
 	viewFor,
 } from "./fixtures.ts";
@@ -79,6 +77,8 @@ export type MockOptions = {
 	readonly timeShiftMs?: number;
 	/** Artificial latency per request (ms). */
 	readonly latencyMs?: number;
+	/** The extensions in the registry and installed (default: none). */
+	readonly catalog?: MockCatalog;
 };
 
 type MockState = {
@@ -208,7 +208,7 @@ export const createMockState = (options: MockOptions = {}): MockState => {
 			...a,
 			tokens: a.tokens.map((t) => ({ ...t })),
 		})),
-		installations: [...INSTALLATIONS],
+		installations: [...(options.catalog ?? EMPTY_CATALOG).installations],
 		nodes: [...NODES],
 		laneSettings: { ...LANE_SETTINGS },
 		lastSelfTest: done
@@ -220,8 +220,12 @@ export const createMockState = (options: MockOptions = {}): MockState => {
 	};
 };
 
-const permissionSheet = (request: InstallRequest): PermissionSheet => {
-	const pkg = PACKAGES.find((p) => p.extId === request.extId);
+const permissionSheet = (
+	request: InstallRequest,
+	catalog: MockCatalog,
+	installations: readonly InstallationDto[],
+): PermissionSheet => {
+	const pkg = catalog.packages.find((p) => p.extId === request.extId);
 	const perms = pkg?.manifest.permissions;
 	const lines = [
 		perms?.repo === "read"
@@ -233,20 +237,35 @@ const permissionSheet = (request: InstallRequest): PermissionSheet => {
 		...(perms?.notify ? ["Send notices to people and agents"] : []),
 		...(perms?.notes ? ["Write why notes"] : []),
 	];
+	// The installation in force above the node that provides an interface
+	// this package provides too (the nearest one).
+	const provided = pkg?.manifest.provides ?? [];
+	const replaced = provided.flatMap((iface) =>
+		installations
+			.filter((i) =>
+				i.mode !== "disabled" &&
+				(request.node === i.nodePath ||
+					request.node.startsWith(`${i.nodePath}/`)) &&
+				(catalog.packages.find((p) => p.extId === i.extId)?.manifest
+					.provides ?? []).includes(iface)
+			)
+			.sort((x, y) => y.nodePath.length - x.nodePath.length)
+			.slice(0, 1)
+			.map((i) => ({ iface, installation: i }))
+	)[0];
 	return {
 		lines,
 		needsOwner: (request.backgroundRole ?? 20) > 20 || request.locked === true,
 		warnings: pkg?.runtime === "wasm"
 			? ["Runs a WASM gate; it can veto advances when in enforce mode."]
 			: [],
-		...(request.extId === "tartan.weave"
+		...(replaced
 			? {
 				replaces: {
-					iface: "queue@1",
-					installation:
-						INSTALLATIONS.find((i) => i.extId === "tartan.weave")?.id ?? "",
-					ext: "tartan.weave",
-					node: "acme",
+					iface: replaced.iface,
+					installation: replaced.installation.id,
+					ext: replaced.installation.extId,
+					node: replaced.installation.nodePath,
 				},
 			}
 			: {}),
@@ -258,6 +277,10 @@ export const createMockFetch = (
 	options: MockOptions = {},
 	state: MockState = createMockState(options),
 ): FetchLike => {
+	const catalog = options.catalog ?? EMPTY_CATALOG;
+	const packages = catalog.packages;
+	const sheet = (request: InstallRequest): PermissionSheet =>
+		permissionSheet(request, catalog, state.installations);
 	const repoConfig = createRepoConfigMock();
 	const handle = (input: string, init?: RequestInit): Response => {
 		const url = new URL(input, "https://forge.test");
@@ -605,7 +628,7 @@ export const createMockFetch = (
 
 		// View and slots.
 		if (path === "/-/api/view") {
-			const view = viewFor(q("path"), q("view"));
+			const view = viewFor(q("path"), q("view"), catalog);
 			if (!view) return notFound(`node ${q("path")}`);
 			return json({
 				...view,
@@ -622,7 +645,7 @@ export const createMockFetch = (
 			const slotId = decodeURIComponent(slot[2] ?? "");
 			// Keys are `<ext>/<catalogue slot>/<contribution id>`; the route
 			// carries only the id, unique within a manifest (WP7a).
-			const found = Object.entries(SLOT_DOCS).find(([key]) =>
+			const found = Object.entries(catalog.docs).find(([key]) =>
 				key.startsWith(`${inst.extId}/`) && key.endsWith(`/${slotId}`)
 			);
 			const catalogueSlot = found?.[0].split("/")[1] ?? "";
@@ -648,11 +671,7 @@ export const createMockFetch = (
 				: null;
 			if (refusal !== null) return error(400, "invalid", refusal);
 			if (body) {
-				const mirrored = mockActionResult(
-					inst.extId,
-					body.action,
-					checked.hint,
-				);
+				const mirrored = catalog.act?.(inst.extId, body.action, checked.hint);
 				if (mirrored) return json(mirrored);
 				return json({
 					v: 1,
@@ -835,7 +854,7 @@ export const createMockFetch = (
 		}
 
 		// Extensions.
-		if (path === "/-/api/packages") return json({ packages: PACKAGES });
+		if (path === "/-/api/packages") return json({ packages });
 		if (path === "/-/api/installations" && method === "GET") {
 			// WP7a: what is in force at `node`, inherited too; without `node`, at
 			// the viewer's start node (here the mock viewer's own root).
@@ -848,27 +867,31 @@ export const createMockFetch = (
 					i.mode !== "disabled" &&
 					(at.path === i.nodePath || at.path.startsWith(`${i.nodePath}/`))
 				)
-				.map((i) => ({
-					installation: i,
-					manifest: (PACKAGES.find((p) => p.extId === i.extId) ?? PACKAGES[0]!)
-						.manifest,
-					depth: i.nodePath.split("/").length - 1,
-				}));
+				.flatMap((i) => {
+					const pkg = packages.find((p) => p.extId === i.extId);
+					return pkg
+						? [{
+							installation: i,
+							manifest: pkg.manifest,
+							depth: i.nodePath.split("/").length - 1,
+						}]
+						: [];
+				});
 			return json({ node: at, installations: inForce });
 		}
 		if (path === "/-/api/installations/sheet" && method === "POST") {
-			return json(permissionSheet(readBody(init) as InstallRequest));
+			return json(sheet(readBody(init) as InstallRequest));
 		}
 		if (path === "/-/api/installations/replace" && method === "POST") {
 			const body = readBody(init) as ReplaceProviderRequest;
 			const at = state.nodes.find((n) => n.path === body.node);
 			if (!at) return notFound("node");
-			const target = PACKAGES.find((p) =>
+			const target = packages.find((p) =>
 				p.extId === body.extId && p.version === body.version
 			);
 			if (!target) return notFound(`package ${body.extId}@${body.version}`);
 			const provides = (extId: string) =>
-				(PACKAGES.find((p) => p.extId === extId)?.manifest.provides ?? [])
+				(packages.find((p) => p.extId === extId)?.manifest.provides ?? [])
 					.includes(body.iface);
 			if (!provides(target.extId)) {
 				return error(
@@ -894,7 +917,7 @@ export const createMockFetch = (
 						from,
 						provider: from,
 						steps: [],
-						lines: permissionSheet({ ...body, mode: "enforce" }).lines,
+						lines: sheet({ ...body, mode: "enforce" }).lines,
 						needsOwner: ["checks@1", "review@1", "queue@1"].includes(
 							body.iface,
 						),
@@ -956,14 +979,14 @@ export const createMockFetch = (
 					from,
 					provider,
 					steps,
-					lines: permissionSheet({ ...body, mode: "enforce" }).lines,
+					lines: sheet({ ...body, mode: "enforce" }).lines,
 					needsOwner: ["checks@1", "review@1", "queue@1"].includes(body.iface),
 				} satisfies ReplaceProviderResponse,
 			);
 		}
 		if (path === "/-/api/installations" && method === "POST") {
 			const body = readBody(init) as InstallRequest;
-			const pkg = PACKAGES.find((p) => p.extId === body.extId);
+			const pkg = packages.find((p) => p.extId === body.extId);
 			if (!pkg) return notFound(`package ${body.extId}`);
 			const created: InstallationDto = {
 				id: `i_${mockUlid(600 + state.installations.length)}`,
@@ -1022,16 +1045,14 @@ export const createMockFetch = (
 				) {
 					return notFound("repo");
 				}
-				// The demo's seeded history: two of the last 41 carry a fake key.
+				// The seeded history: the gate vetoes two of the last 41.
 				const of = Math.min(body.n ?? 50, 41);
 				const results = Array.from({ length: of }, (_, i) => {
 					const veto = i === 10 || i === 29;
 					return {
 						advanceId: `adv_${mockUlid(800 + i)}_1`,
 						decision: veto ? "veto" as const : "allow" as const,
-						message: veto
-							? "AWS access key at seeded.env:2 (AKIA…MPLE)"
-							: "no secrets found",
+						message: veto ? "seeded.env:2 is not allowed" : "allowed",
 					};
 				});
 				return json({

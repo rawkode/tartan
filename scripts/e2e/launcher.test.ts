@@ -98,11 +98,11 @@ Deno.test("the drift guard compares the deployed commit with this checkout's for
 
 	const changed = gitRun({
 		code: 0,
-		stdout: "extensions/weave/tartan.json\nsrc/router.ts\n",
+		stdout: "packages/contract/src/api.ts\nsrc/router.ts\n",
 	});
 	const drift = await driftOf({ run: changed.run, root: "/repo" }, commit);
 	deepStrictEqual(drift.paths, [
-		"extensions/weave/tartan.json",
+		"packages/contract/src/api.ts",
 		"src/router.ts",
 	]);
 	let error: unknown = null;
@@ -114,7 +114,7 @@ Deno.test("the drift guard compares the deployed commit with this checkout's for
 	ok(error instanceof GuardError);
 	match(
 		(error as Error).message,
-		/cccccccccccc.*extensions\/weave\/tartan\.json.*--allow-drift/,
+		/cccccccccccc.*packages\/contract\/src\/api\.ts.*--allow-drift/,
 	);
 	const warned: string[] = [];
 	assertNoDrift(drift, { allow: true, log: (l) => warned.push(l) });
@@ -140,20 +140,20 @@ const REPORT = {
 			{ status: "passed", file: "tests/a.e2e.ts", titlePath: ["a"] },
 			{
 				status: "skipped",
-				file: "tests/loop/m1-loop.e2e.ts",
-				titlePath: ["M1 loop", "5. CI runs in containers and goes green"],
+				file: "tests/cue/cue-config.e2e.ts",
+				titlePath: ["CUE config", "a lane is previewed"],
 				skip: {
 					cause: "explicit",
-					reason: "the M1 loop needs containers | off",
+					reason: "the CUE evaluator needs containers | off",
 				},
 			},
 			{
 				status: "skipped",
-				file: "tests/loop/m1-loop.e2e.ts",
-				titlePath: ["M1 loop", "7. the Weave lands both"],
+				file: "tests/cue/cue-config.e2e.ts",
+				titlePath: ["CUE config", "an invalid lane shows its error"],
 				skip: {
 					cause: "explicit",
-					reason: "the M1 loop needs containers | off",
+					reason: "the CUE evaluator needs containers | off",
 				},
 			},
 			{
@@ -171,10 +171,10 @@ Deno.test("the run summary lists every skipped test, grouped by reason", () => {
 	const skipped = skippedOf(REPORT);
 	equal(skipped.length, 4);
 	deepStrictEqual(skipped[0], {
-		file: "tests/loop/m1-loop.e2e.ts",
-		title: "M1 loop › 5. CI runs in containers and goes green",
+		file: "tests/cue/cue-config.e2e.ts",
+		title: "CUE config › a lane is previewed",
 		cause: "explicit",
-		reason: "the M1 loop needs containers | off",
+		reason: "the CUE evaluator needs containers | off",
 	});
 	equal(skipped[3].reason, "(no reason given)");
 	equal(skipped[3].cause, "unknown");
@@ -182,16 +182,19 @@ Deno.test("the run summary lists every skipped test, grouped by reason", () => {
 	equal(groups[0].tests.length, 2);
 	deepStrictEqual(skippedLines(skipped), [
 		"skipped: 4 test(s)",
-		"  2 × the M1 loop needs containers | off [explicit]",
+		"  2 × the CUE evaluator needs containers | off [explicit]",
 		"  1 × (no reason given) [unknown]",
 		"  1 × carries an excluded tag [filtered]",
 	]);
 	const md = skippedMarkdown("r202610051200abcd", skipped);
 	match(md, /^### Skipped in r202610051200abcd: 4/);
-	match(md, /\*\*the M1 loop needs containers \\\| off\*\* \(explicit, 2\)/);
 	match(
 		md,
-		/- `tests\/loop\/m1-loop\.e2e\.ts` M1 loop › 7\. the Weave lands both/,
+		/\*\*the CUE evaluator needs containers \\\| off\*\* \(explicit, 2\)/,
+	);
+	match(
+		md,
+		/- `tests\/cue\/cue-config\.e2e\.ts` CUE config › an invalid lane shows its error/,
 	);
 	deepStrictEqual(skippedOf(null), []);
 	deepStrictEqual(skippedOf({ run: {} }), []);

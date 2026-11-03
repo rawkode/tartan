@@ -1,7 +1,7 @@
 // Where the SPA renders each catalogue slot: the page
 // components that mount a `SlotOutlet` for it. Slots no page renders are
 // listed with the reason, never silently missing. `test/slot-hosts.spec.ts`
-// checks this table against the components and the manifests; the slot
+// checks this table against the catalogue and the components; the slot
 // conformance workers test renders every hosted contribution through the
 // real routes (src/kernel/exthost/api/slot-conformance.workers.test.ts).
 

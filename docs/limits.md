@@ -4,12 +4,12 @@ What a Tartan forge accepts, and where each limit is enforced. Rejections say wh
 
 ## Pushes
 
-| Limit                | Value                                                                                                                 | Enforced by                                                                                                                  |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| One git object       | under 32 MiB                                                                                                          | the forge, after the upload: the push is refused with `object-too-large`                                                     |
-| One push request     | `TARTAN_MAX_PUSH_MB`, default 95 MB; keep it at or below your zone plan's request-body limit (100 MB on Free and Pro) | the gateway, from `Content-Length`, before anything is sent upstream                                                         |
-| Upload               | the whole request body is uploaded before the forge answers                                                           | `tartan hooks install --git` adds a pre-push check that refuses early, on the client, including any object of 31 MiB or more |
-| Ref updates per push | 1,000 for people, 8 for agents                                                                                        | the gateway's receive-pack parser                                                                                            |
+| Limit                | Value                                                                                                                 | Enforced by                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| One git object       | under 32 MiB                                                                                                          | the forge, after the upload: the push is refused with `object-too-large`     |
+| One push request     | `TARTAN_MAX_PUSH_MB`, default 95 MB; keep it at or below your zone plan's request-body limit (100 MB on Free and Pro) | the gateway, from `Content-Length`, before anything is sent upstream         |
+| Upload               | the whole request body is uploaded before the forge answers                                                           | no client-side check: a push over the limit is refused only after its upload |
+| Ref updates per push | 1,000 for people, 8 for agents                                                                                        | the gateway's receive-pack parser                                            |
 
 A push to a protected branch (such as `main`) is refused with a synthesized `ng` line (`woven-by-tartan`);
 only the Advance moves protected branches. Agents may push only to their own lanes.

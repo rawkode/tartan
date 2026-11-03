@@ -931,7 +931,7 @@ export const warmUp = async (input: {
  * The WASM extension packages `--build-ext` builds (`extensions/<name>/`,
  * a Rust crate; `scripts/build-ext.ts` writes `dist/`).
  */
-export const EXT_PACKAGES = ["acme-no-secrets"] as const;
+export const EXT_PACKAGES = ["issues"] as const;
 
 /** The WASM target the extension crates build for. */
 const WASM_TARGET = "wasm32-unknown-unknown";

@@ -6,8 +6,8 @@
 // RpcTarget capability bridge, `facets.abort` on a host timeout. Kernel
 // ports and the registry are fakes (`ExtensionDO.rewire`).
 //
-// The wasm case uses the built `acme.no-secrets` (`deno task build:ext
-// acme-no-secrets`) and is skipped when it has not been built.
+// The wasm case uses the built `rawkode.issues` (`deno task build:ext
+// issues`) and is skipped when it has not been built.
 
 import { runInDurableObject } from "cloudflare:test";
 import {
@@ -257,15 +257,15 @@ declare global {
 }
 
 const built = import.meta.glob(
-	"../../../../../extensions/acme-no-secrets/dist/publish.json",
+	"../../../../../extensions/issues/dist/publish.json",
 	{ query: "?raw", import: "default", eager: true },
 ) as Record<string, string>;
 const publish = Object.values(built)[0];
 
 describe.skipIf(publish === undefined)(
-	"wasm runtime: acme.no-secrets (Rust) in a facet",
+	"wasm runtime: rawkode.issues (Rust) in a facet",
 	() => {
-		it("vetoes an advance that adds an AWS key and renders the sidebar", async () => {
+		it("migrates in the facet, opens and closes issues by tool and renders the tab", async () => {
 			const body = JSON.parse(publish!) as {
 				manifest: unknown;
 				files: Record<string, string>;
@@ -282,47 +282,54 @@ describe.skipIf(publish === undefined)(
 				),
 			);
 			const w = await wire(m);
-			const change = "ch_01k60000000000000000000901";
-			const decision = await w.stub.gate("ref.advance", {
-				point: "ref.advance",
-				repo: NODES.router.id,
-				ref: "refs/heads/main",
-				base: "a".repeat(40),
-				head: "b".repeat(40),
-				changeId: change,
-				changedPaths: ["config/prod.env"],
-				addedLines: [{
-					path: "config/prod.env",
-					line: 3,
-					text: "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE",
-				}],
-				truncated: false,
-				workRefs: [],
-				actor: userActor(PRINCIPALS.dev),
-			}, { node: NODES.router.id, repo: NODES.router.id, mode: "enforce" });
-			expect(decision.decision).toBe("veto");
-			expect(decision.message).toContain(
-				"AWS access key at config/prod.env:3 (AKIA…MPLE)",
-			);
-			const sidebar = await w.stub.render("findings", {
-				slot: "change.sidebar",
+			const call = (name: string, args: Record<string, unknown>) =>
+				w.stub.callTool(name, args, toolCtx, SESSION_BOUNDS);
+			const created = await call("create", {
+				title: "Clone fails over HTTP/1.1",
+				body: "Seen with git 2.50.",
+			}) as { issue: { number: number; author: { id: string } } };
+			expect(created.issue.number).toBe(1);
+			expect(created.issue.author.id).toBe(PRINCIPALS.dev);
+			await call("create", { title: "Second" });
+			const closed = await call("close", { number: 1 }) as {
+				issue: { state: string };
+				changed: boolean;
+			};
+			expect(closed).toMatchObject({
+				issue: { state: "closed" },
+				changed: true,
+			});
+			const open = await call("list", {}) as {
+				issues: { number: number }[];
+				open: number;
+				closed: number;
+			};
+			expect(open.issues.map((i) => i.number)).toEqual([2]);
+			expect([open.open, open.closed]).toEqual([1, 1]);
+			const got = await call("get", { number: 1 }) as {
+				issue: { body: string };
+			};
+			expect(got.issue.body).toBe("Seen with git 2.50.");
+			const tab = await w.stub.render("issues", {
+				slot: "repo.tab",
 				node: NODES.router.id,
 				repo: NODES.router.id,
-				entity: { kind: "change", id: change },
 				mode: "enforce",
+				extra: { route: "issues" },
 			}, viewer);
-			expect(JSON.stringify(sidebar)).toContain("Advance vetoed");
-			const scan = await w.stub.callTool(
-				"scan",
-				{
-					changeId: change,
-					text:
-						"aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-				},
-				toolCtx,
-				SESSION_BOUNDS,
-			) as { findings: { kind: string }[] };
-			expect(scan.findings.map((f) => f.kind)).toEqual(["aws-secret-key"]);
+			const json = JSON.stringify(tab);
+			expect(json).toContain("Clone fails over HTTP/1.1");
+			expect(json).toContain('"t":"form"');
+			expect(json).not.toContain("error-chip");
+			// The extension's table is the facet's: the host DB has none.
+			const tables = await runInDurableObject(
+				w.stub,
+				(_i, state) =>
+					state.storage.sql.exec(
+						"SELECT name FROM sqlite_master WHERE name = 'issues'",
+					).toArray(),
+			);
+			expect(tables).toEqual([]);
 		});
 	},
 );

@@ -14,9 +14,9 @@ import {
 	type EvalRequest,
 	forgeModuleFile,
 } from "@tartan/contract";
-import { settingsCue as ciSettings } from "../../../../extensions/ci/src/settings-cue.ts";
-import { settingsCue as reviewSettings } from "../../../../extensions/review/src/settings-cue.ts";
-import { settingsCue as weaveSettings } from "../../../../extensions/weave/src/settings-cue.ts";
+import { settingsCue as ciSettings } from "./fixtures/ci-settings-cue.ts";
+import { settingsCue as reviewSettings } from "./fixtures/review-settings-cue.ts";
+import { settingsCue as weaveSettings } from "./fixtures/weave-settings-cue.ts";
 import { generateSchema } from "../../exthost/registry/repoconfig/schemagen.ts";
 import { freshModulePath } from "../evaluators/cli.ts";
 

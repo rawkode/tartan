@@ -12,7 +12,6 @@ import type {
 	AgentCreatedResponse,
 	AgentsResponse,
 	HealthResponse,
-	InstallationsResponse,
 	InviteCreated,
 	MeResponse,
 	NodeDto,
@@ -170,26 +169,6 @@ export const createForgeApi = (fetchFn: FetchLike, origin: string) => {
 				caller,
 				body: { node },
 			}),
-		installations: async (caller: Caller, node: string) =>
-			(await request<InstallationsResponse>(
-				"GET",
-				`/-/api/installations?${q({ node })}`,
-				{ caller },
-			)).body,
-		install: async (caller: Caller, input: Record<string, unknown>) =>
-			void await request("POST", "/-/api/installations", {
-				caller,
-				body: input,
-			}),
-		/** The Owner's repo-overrides opt-in of one installation (WP23). */
-		repoOverrides: async (caller: Caller, installation: string, on: boolean) =>
-			void await request(
-				"PUT",
-				`/-/api/installations/${
-					encodeURIComponent(installation)
-				}/repo-overrides`,
-				{ caller, body: { on } },
-			),
 		createInvite: async (
 			caller: Caller,
 			input: { node: string; role: 10 | 20 | 30 | 40; note?: string },

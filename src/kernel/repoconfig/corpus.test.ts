@@ -24,20 +24,18 @@ import {
 	REPO_CONFIG_POSITION_RE,
 } from "@tartan/contract";
 import { MONOREPO_TARTAN_FILES } from "@tartan/testkit";
-import { settingsCue as ciSettings } from "../../../extensions/ci/src/settings-cue.ts";
-import ciManifest from "../../../extensions/ci/tartan.json" with {
+import { settingsCue as ciSettings } from "./testing/fixtures/ci-settings-cue.ts";
+import ciManifest from "./testing/fixtures/ci-manifest.json" with {
 	type: "json",
 };
-import { settingsCue as reviewSettings } from "../../../extensions/review/src/settings-cue.ts";
-import reviewManifest from "../../../extensions/review/tartan.json" with {
+import { settingsCue as reviewSettings } from "./testing/fixtures/review-settings-cue.ts";
+import reviewManifest from "./testing/fixtures/review-manifest.json" with {
 	type: "json",
 };
-import { settingsCue as weaveSettings } from "../../../extensions/weave/src/settings-cue.ts";
-import weaveManifest from "../../../extensions/weave/tartan.json" with {
+import { settingsCue as weaveSettings } from "./testing/fixtures/weave-settings-cue.ts";
+import weaveManifest from "./testing/fixtures/weave-manifest.json" with {
 	type: "json",
 };
-import { validatePipeline } from "../../../extensions/ci/src/pipeline/schema.ts";
-import { validateOwners } from "../../../extensions/review/src/owners.ts";
 import { checkResolved } from "../exthost/registry/repoconfig/check.ts";
 import {
 	generateSchema,
@@ -161,14 +159,6 @@ cliTest(
 				"tartan.weave": { settings: { batch: 2 } },
 			},
 		});
-		// The extensions' own validators accept what CUE exported (CUE is
-		// never the boundary; they check again).
-		const ext = value.extensions as Record<
-			string,
-			{ settings: Record<string, unknown> }
-		>;
-		ok(validatePipeline(ext["tartan.ci"].settings.pipeline).ok);
-		ok(validateOwners(ext["tartan.review"].settings.owners).ok);
 	},
 );
 
@@ -853,14 +843,6 @@ const DEMO_EXPECTED = {
 		},
 	},
 };
-
-Deno.test("the demo config's values pass tartan.ci's and tartan.review's own validators", () => {
-	const ext = DEMO_EXPECTED.extensions;
-	const pipeline = validatePipeline(ext["tartan.ci"].settings.pipeline);
-	ok(pipeline.ok, JSON.stringify(pipeline));
-	const owners = validateOwners(ext["tartan.review"].settings.owners);
-	ok(owners.ok, JSON.stringify(owners));
-});
 
 cliTest(
 	"the demo monorepo's package tartan evaluates beside cuenv's env.cue, byte-equal to the oracle",

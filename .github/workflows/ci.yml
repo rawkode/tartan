@@ -79,20 +79,20 @@ jobs:
           test "$("$RUNNER_TEMP/cue/cue" version | sed -n '1p')" = "cue version ${CUE_VERSION}"
           echo "CUE_BIN=$RUNNER_TEMP/cue/cue" >> "$GITHUB_ENV"
 
-      # The Rust → WASM extension package (extensions/acme-no-secrets): its
+      # The Rust → WASM extension package (extensions/issues): its
       # wasm cases in the Deno and workerd suites skip without dist/.
       - name: Setup Rust with the wasm32 target
-        if: hashFiles('extensions/acme-no-secrets/Cargo.toml') != ''
+        if: hashFiles('extensions/issues/Cargo.toml') != ''
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
 
       - name: Build the Rust → WASM extension package
-        if: hashFiles('extensions/acme-no-secrets/Cargo.toml') != ''
+        if: hashFiles('extensions/issues/Cargo.toml') != ''
         run: |
           cargo install --locked wasm-tools@1.248.0
-          deno task build:ext acme-no-secrets
+          deno task build:ext issues
 
       - name: Unit tests (Deno)
         run: deno task test

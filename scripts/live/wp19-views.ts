@@ -54,7 +54,6 @@ const get = async (path: string, auth = true) => {
 for (
 	const page of [
 		"/",
-		`/-/hud?node=${q(ns)}`,
 		`/${repo}/-/lanes`,
 		`/${repo}/-/runs`,
 		`/${repo}/-/advances`,
@@ -74,11 +73,6 @@ const view = await get(`/-/api/view?path=${q(repo)}&view=`);
 check("repo view", view.status === 200, String(view.status));
 const repoId = (view.body as { repo?: { id: string } }).repo?.id ?? "";
 
-const hud = await get(`/-/api/view?path=${q(ns)}&view=hud`);
-check("HUD view (namespace)", hud.status === 200, String(hud.status));
-const metrics = ((hud.body as { slots?: { slot: string }[] }).slots ?? [])
-	.filter((s) => s.slot === "hud.metric");
-check("HUD metrics in force", metrics.length >= 5, `${metrics.length} metrics`);
 const home = await get(`/-/api/view?path=${q(ns)}&view=home`);
 check("home view (namespace)", home.status === 200, String(home.status));
 

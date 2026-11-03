@@ -14,7 +14,7 @@ import {
 	blameRows,
 	GUTTER_COLOURS,
 	gutterOf,
-	provenanceOf,
+	noteSections,
 	reasonEvents,
 	workLegend,
 } from "../src/views/coord/why/model.ts";
@@ -57,19 +57,16 @@ describe("why-blame page", () => {
 		const t = text(drawer);
 		expect(t).toContain("Provenance · the newest landing");
 		expect(t).toContain(
-			"Each team should own its routes without merge fights in one file.",
+			"Split the router config by service so each team owns its routes",
 		);
-		expect(t).toContain("routes load per service");
-		expect(t).toContain("api: split router into modules");
-		expect(t).toContain("auto review");
-		expect(t).toContain("risk 0.18");
+		expect(t).toContain("Also in the note: sample.notes@0.1.0");
 		expect(t).toContain("verified");
 		expect(byAttr(drawer, "data-reason")).toHaveLength(2);
 		expect(
 			byAttr(drawer, "data-why-section").map((s) =>
 				s.attrs["data-why-section"]
 			),
-		).toEqual(["work", "change", "review", "reasons"]);
+		).toEqual(["reasons"]);
 	});
 
 	it("selecting a commit asks for its why by sha; one not landed says so", async () => {
@@ -96,7 +93,7 @@ describe("why-blame page", () => {
 		const app = await mountApp(`${PAGE}?sha=${SHAS.c2}`);
 		await vi.waitFor(() =>
 			expect(text(byAttr(app.root, "data-drawer")[0]!)).toContain(
-				"Split router into modules",
+				"Split the router config by service",
 			)
 		);
 		expect(text(app.root)).toContain(
@@ -160,24 +157,13 @@ describe("why model", () => {
 		]);
 	});
 
-	it("reads note sections by extension id, with or without a version", () => {
-		const p = provenanceOf(WHY.note!);
-		expect(p.work?.why).toContain("Each team should own its routes");
-		expect(p.work?.acceptance).toHaveLength(2);
-		expect(p.change?.revision).toBe(2);
-		expect(p.review).toEqual({
-			route: "auto",
-			risk: 0.18,
-			decidedBy: undefined,
-		});
-		expect(p.others).toEqual([]);
+	it("lists the note's extension sections by key, sorted", () => {
+		expect(noteSections(WHY.note!)).toEqual(["sample.notes@0.1.0"]);
 		const odd: WhyNote = {
 			...WHY.note!,
-			ext: { "acme.no-secrets": { findings: 0 }, "tartan.work": "garbage" },
+			ext: { "sample.b": { n: 0 }, "sample.a@1.0.0": "garbage" },
 		};
-		const q = provenanceOf(odd);
-		expect(q.work).toBeUndefined();
-		expect(q.others).toEqual(["acme.no-secrets"]);
+		expect(noteSections(odd)).toEqual(["sample.a@1.0.0", "sample.b"]);
 	});
 
 	it("lists every reason event, marking those the answer did not carry", () => {

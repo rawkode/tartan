@@ -94,6 +94,9 @@ const miniflare = {
 	kvNamespaces: { OAUTH_KV: "tartan-oauth-kv" },
 	bindings: {
 		TARTAN_STAGE: "test",
+		// Test-only (not in wrangler.jsonc, never read by product code): "1" turns
+		// on the events micro-bench's 1,000 appends/s floor.
+		TARTAN_BENCH: process.env.TARTAN_BENCH ?? "0",
 		TARTAN_FEATURES: "echo,oauth",
 		TARTAN_DEV_TOOLS: "0",
 		TARTAN_MAX_PUSH_MB: "95",
@@ -119,7 +122,6 @@ const TARTAN_PACKAGES = [
 	"ext-api",
 	"monorepo",
 	"diff",
-	"pipeline",
 ];
 
 const alias = TARTAN_PACKAGES.flatMap((name) => [

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Runs of a repository (WP19; WP9's `GET /-/api/runs/<repoId>`): CI runs
-// started by `tartan.ci` and kernel git jobs, newest first, paged by the
+// started by CI extensions and kernel git jobs, newest first, paged by the
 // API cursor. `?subject=<kind>:<id>` narrows to one change or lane. Runs
 // need a signed-in caller with `read` on the repo; the kernel decides.
 import { computed } from "vue";

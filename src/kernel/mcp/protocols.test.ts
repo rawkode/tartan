@@ -7,8 +7,8 @@
 
 import { equal, notEqual, ok } from "node:assert/strict";
 import { ProtocolMismatchSchema, ROLE } from "@tartan/contract";
-import { protocol as CLASSIC_CARD } from "../../../extensions/packs/classic/src/index.ts";
-import { builtins } from "../../builtins.ts";
+import { protocol as CLASSIC_CARD } from "../exthost/host/testing/classic-pack.ts";
+import { legacyBuiltins as builtins } from "../exthost/host/testing/legacy-builtins.ts";
 import { agentsMarkdown } from "./agentsmd.ts";
 import { createMcpHost } from "./host.ts";
 import type { McpSession } from "./session.ts";

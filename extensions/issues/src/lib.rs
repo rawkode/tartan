@@ -1,0 +1,92 @@
+//! `rawkode.issues`: per-repository issues for Tartan, written in Rust and
+//! run as a WebAssembly component.
+//!
+//! - tools (`issues_<name>` over MCP): `list`, `get`, `create`, `close`,
+//!   `reopen`;
+//! - the `repo.tab` Issues page: counts, the newest issues and a form that
+//!   opens one (action `create`).
+//!
+//! It needs no permission: everything lives in its own SQLite, one database
+//! per repository (`storage.scope: "repo"`), and the author of an issue is
+//! the actor the host gives the call.
+
+pub mod issue;
+pub mod store;
+
+use serde_json::{json, Value};
+use tartan_ext::serde_json;
+use tartan_ext::{export, parse_json, Actor, Error, Extension, Json, SlotContext};
+
+use issue::{State, CREATE_ACTION, TAB_LIMIT};
+
+fn not_found(number: u32) -> Error {
+	Error::not_found(format!("issue #{number}"))
+}
+
+fn transition(args: &Value, state: State) -> Result<Value, Error> {
+	let number = issue::number_arg(args)?;
+	let (issue, changed) = store::set_state(number, state)?.ok_or_else(|| not_found(number))?;
+	Ok(json!({ "issue": issue::issue_json(&issue, false), "changed": changed }))
+}
+
+/// A tool call; `actor` is the caller.
+pub fn tool(name: &str, args: &Value, actor: Option<&Actor>) -> Result<Value, Error> {
+	match name {
+		"list" => {
+			let (filter, limit) = issue::list_args(args)?;
+			let issues = store::list(filter, limit)?;
+			let (open, closed) = store::counts()?;
+			Ok(json!({
+				"state": filter.as_str(),
+				"issues": issues.iter().map(|i| issue::issue_json(i, false)).collect::<Vec<_>>(),
+				"open": open,
+				"closed": closed,
+			}))
+		}
+		"get" => {
+			let number = issue::number_arg(args)?;
+			let found = store::get(number)?.ok_or_else(|| not_found(number))?;
+			Ok(json!({ "issue": issue::issue_json(&found, true) }))
+		}
+		"create" => {
+			let new = issue::new_issue(args)?;
+			let created = store::create(&new, &issue::author_of(actor)?)?;
+			Ok(json!({ "issue": issue::issue_json(&created, true) }))
+		}
+		"close" => transition(args, State::Closed),
+		"reopen" => transition(args, State::Open),
+		_ => Err(Error::not_found(format!("tool {name}"))),
+	}
+}
+
+struct Issues;
+
+impl Extension for Issues {
+	fn render(slot: String, _ctx: SlotContext, _props: Json) -> Result<Json, Error> {
+		if slot != "issues" {
+			return Err(Error::not_found(format!("slot {slot}")));
+		}
+		let (open, closed) = store::counts()?;
+		let issues = store::list(issue::Filter::All, TAB_LIMIT)?;
+		Ok(issue::tab_doc(&issues, open, closed).to_string())
+	}
+
+	fn on_action(action: String, payload: Json, ctx: SlotContext) -> Result<Json, Error> {
+		if action != CREATE_ACTION {
+			return Err(Error::not_found(format!("action {action}")));
+		}
+		let new = match issue::new_issue(&parse_json(&payload)?) {
+			Ok(new) => new,
+			Err(Error::Invalid(message)) => return Ok(issue::refused_result(&message).to_string()),
+			Err(e) => return Err(e),
+		};
+		let created = store::create(&new, &issue::author_of(ctx.viewer.as_ref())?)?;
+		Ok(issue::created_result(&created).to_string())
+	}
+
+	fn call_tool(name: String, args: Json, ctx: SlotContext) -> Result<Json, Error> {
+		Ok(tool(&name, &parse_json(&args)?, ctx.viewer.as_ref())?.to_string())
+	}
+}
+
+export!(Issues);

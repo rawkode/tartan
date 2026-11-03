@@ -25,7 +25,7 @@ const runner: UiActionRunner = {
 provide(UI_ACTIONS, runner);
 
 const extras: { label: string; node: unknown }[] = [
-	{ label: "error-chip (host only)", node: { t: "error-chip", text: "acme.radar: render failed" } },
+	{ label: "error-chip (host only)", node: { t: "error-chip", text: "sample.notes: render failed" } },
 	{ label: "invalid node", node: { t: "text", text: "x", innerHTML: "<img src=x>" } },
 	{ label: "unknown type", node: { t: "iframe", src: "https://evil.example" } },
 ];

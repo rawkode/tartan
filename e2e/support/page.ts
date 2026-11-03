@@ -6,7 +6,7 @@
 //   `section[data-slot]` hosts first, then for none to be busy or loading,
 //   then for no host error chip. Counting a known positive first stops a
 //   premature "zero chips" from passing before the slots mount. A failure
-//   lists the chips' text, e.g. `tartan.weave: invalid ctx`.
+//   lists the chips' text, e.g. `acme.example: invalid ctx`.
 // - `watchApi` / `expectApiClean`: every `/-/api/` request the page made,
 //   from Chromium's `PerformanceResourceTiming.responseStatus`; none may end
 //   in 404, 405 or 5xx unless the test declares it (admin routes 404/501).

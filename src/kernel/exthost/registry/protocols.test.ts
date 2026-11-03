@@ -9,8 +9,8 @@
 import { deepStrictEqual, equal, ok, rejects } from "node:assert/strict";
 import { fromRpcError, type InstallRequest } from "@tartan/contract";
 import type { InstallationInForce } from "@tartan/contract/kernel.ts";
-import * as classicPack from "../../../../extensions/packs/classic/src/index.ts";
-import { builtins } from "../../../builtins.ts";
+import * as classicPack from "../host/testing/classic-pack.ts";
+import { legacyBuiltins as builtins } from "../host/testing/legacy-builtins.ts";
 import { subscriberRows } from "../../events/subscribers.ts";
 import { createRegistry } from "./module.ts";
 import { REGISTRY_MIGRATIONS } from "./schema.ts";
