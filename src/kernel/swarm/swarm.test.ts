@@ -390,7 +390,10 @@ Deno.test("a paced round: concurrent agents, bounded by the round, probe refused
 	const took = clock.now() - started;
 	assertEquals(result.stats.errors, 0, result.stats.lastError);
 	assertEquals(result.probe, "refused");
-	assert(took >= 50_000 && took < 120_000, `the round took ${took} ms`);
+	// Virtual time never reaches the round's end (no sleep crosses it), and an
+	// agent stops only when its next wait (at most 1.5 paces) would, so the
+	// last wake is within 15 s of the end.
+	assert(took >= 45_000 && took < 60_000, `the round took ${took} ms`);
 	for (const agent of result.agents) {
 		// One action every 5–15 s for 60 s, after a start spread over 10 s.
 		assert(
