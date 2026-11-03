@@ -1,17 +1,16 @@
-// Forge administration. The extension pages, an installation's
-// page, the forge settings and a repo's lane settings render and call only
-// routes the kernel serves (the admin 404/501 regressions). The installation
-// console and dead letters are for Maintainers only. The Agents page creates
+// Forge administration. The extension pages, the forge settings and a repo's
+// lane settings render and call only routes the kernel serves (the admin
+// 404/501 regressions). This branch removed the first-party extensions, so
+// nothing is installed: the checks of an installation's page, console and
+// dead letters are pending until an extension is. The Agents page creates
 // an agent, shows its token once (in a password field, so its value never
 // reaches the test or the report) and disables it again.
 
 import { expect } from "e2e";
-import type { InstallationsResponse } from "@tartan/contract/api.ts";
 import { test } from "../support/fixtures.ts";
-import { type Api, ok, pageApi, query, tokenApi } from "../support/http.ts";
+import { tokenApi } from "../support/http.ts";
 import { agentNameOf, PACK_GROUP } from "../support/names.ts";
 import {
-	escapeRegExp,
 	expectApiClean,
 	expectSlotsSettled,
 	fetchMatching,
@@ -20,37 +19,11 @@ import {
 	watchApi,
 } from "../support/page.ts";
 import { fixtureRepo } from "../support/repos.ts";
-import {
-	AGENT_TOKEN_RE,
-	type Stage,
-	tokensOf,
-	usernameOf,
-} from "../support/stage.ts";
+import { AGENT_TOKEN_RE, tokensOf, usernameOf } from "../support/stage.ts";
 import { RENDERED } from "../support/view.ts";
 
-/** The owner's PAT from Node (installation ids are looked up with it). */
-const ownerApi = (stage: Stage): Api =>
-	tokenApi(stage.origin, tokensOf(stage).ownerPat);
-
-/** A node-scoped installation in force at `e2e/classic` (the pack itself). */
-const classicInstallation = async (
-	api: Api,
-): Promise<{ id: string; name: string; extId: string }> => {
-	const reply = await api.get<InstallationsResponse>(
-		`/-/api/installations?${query({ node: PACK_GROUP.classic })}`,
-	);
-	const found = ok("GET", "/-/api/installations", reply).installations.find(
-		(i) => i.installation.storageScope === "node",
-	);
-	if (found === undefined) {
-		throw new Error("no node-scoped installation in force at e2e/classic");
-	}
-	return {
-		id: found.installation.id,
-		name: found.manifest.name,
-		extId: found.installation.extId,
-	};
-};
+const NO_INSTALLATION =
+	"pending: no extension is installed on this branch (the first-party extensions were removed)";
 
 test.describe("administration as the owner", {
 	session: "owner",
@@ -69,56 +42,21 @@ test.describe("administration as the owner", {
 			.toBeVisible();
 		await screen.getByLabel("In force at").fill(PACK_GROUP.classic);
 		await screen.getByRole("button", "Show").tap();
-		await expect(screen.getByRole("link", "tartan.pack.classic")).toBeVisible();
-		await expect(screen.getByRole("link", "tartan.work")).toBeVisible();
 		await expect(screen.getByRole("alert")).toHaveCount(0);
 		await expectApiClean(browser);
 	});
 
-	test("an installation's page and its compare page render", {
-		tags: ["admin-routes"],
-	}, async ({ app, screen, browser, stage }) => {
-		await app.open("/-/extensions");
-		const installation = await classicInstallation(ownerApi(stage));
-		await app.open(`/-/extensions/${encodeURIComponent(installation.id)}`);
-		await watchApi(browser);
-		await expect(
-			screen.getByRole("heading", {
-				// The package name, or the extension id when it is not a listed package.
-				name: new RegExp(
-					`^(?:${escapeRegExp(installation.name)}|${
-						escapeRegExp(installation.extId)
-					})$`,
-				),
-				level: 1,
-			}),
-		).toBeVisible();
-		await expect(screen.getByRole("radiogroup", "Mode")).toBeVisible();
-		await expect(screen.getByRole("heading", { name: "Approved permissions" }))
-			.toBeVisible();
-		await expectApiClean(browser);
-
-		await app.open(
-			`/-/extensions/${encodeURIComponent(installation.id)}/compare`,
-		);
-		await expect(
-			screen.getByRole("heading", { name: "Policy compare", level: 1 }),
-		).toBeVisible();
-	});
-
-	test("the installation console and dead letters answer the owner", {
-		tags: ["extension-logs"],
-	}, async ({ app, browser, stage }) => {
-		await app.open("/-/extensions");
-		const api = pageApi(browser);
-		const installation = await classicInstallation(ownerApi(stage));
-		for (const part of ["console", "dead-letters"]) {
-			const reply = await api.get(
-				`/-/api/installations/${encodeURIComponent(installation.id)}/${part}`,
-			);
-			expect(reply.status, part).toBe(200);
-		}
-	});
+	for (
+		const title of [
+			"an installation's page and its compare page render",
+			"the installation console and dead letters answer the owner",
+		]
+	) {
+		test(title, {
+			tags: ["admin-routes", "pending"],
+			skip: NO_INSTALLATION,
+		}, async () => {});
+	}
 
 	test("the forge settings page renders without errors", {
 		tags: ["admin-routes"],
@@ -239,18 +177,9 @@ test.describe("administration as a Reporter", {
 	tags: ["admin", "regression", "reporter"],
 }, () => {
 	test("the installation console and dead letters are refused", {
-		tags: ["extension-logs"],
-	}, async ({ app, browser, stage }) => {
-		await app.open("/-/extensions");
-		const api = pageApi(browser);
-		const installation = await classicInstallation(ownerApi(stage));
-		for (const part of ["console", "dead-letters"]) {
-			const reply = await api.get(
-				`/-/api/installations/${encodeURIComponent(installation.id)}/${part}`,
-			);
-			expect(reply.status, part).toBe(403);
-		}
-	});
+		tags: ["extension-logs", "pending"],
+		skip: NO_INSTALLATION,
+	}, async () => {});
 
 	test("the Extensions page opens for a Reporter with no not-found error", {
 		// Fails while invited users have no namespace node: the page starts
@@ -282,8 +211,7 @@ test.describe("administration as a Reporter", {
 		await screen.getByLabel("In force at").fill(PACK_GROUP.classic);
 		await screen.getByRole("button", "Show").tap();
 		const installed = screen.getByRole("region", "Installed");
-		await expect(installed.getByRole("link", "tartan.pack.classic"))
-			.toBeVisible();
+		await expect(installed.getByText("Loading installations…")).toHaveCount(0);
 		await expect(installed.getByRole("alert")).toHaveCount(0);
 		await expectApiClean(browser, [
 			// The first answer for the Reporter's own handle (see the test above).

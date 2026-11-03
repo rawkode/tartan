@@ -1,5 +1,4 @@
-// `tartan` CLI configuration (WP11): the forges you
-// logged in to and their tokens, in `$TARTAN_CONFIG`, else
+// `tt` configuration: the forges you logged in to and their tokens, in `$TARTAN_CONFIG`, else
 // `$XDG_CONFIG_HOME/tartan/config.json`, else `~/.config/tartan/config.json`,
 // written with mode 0600. `TARTAN_TOKEN` and `TARTAN_URL` override it.
 
@@ -29,9 +28,14 @@ export const configPath = (env: CliEnv): string => {
 	return `${xdg ?? `${home}/.config`}/tartan/config.json`;
 };
 
-/** `https://host[:port]` of a URL or origin; throws for anything else. */
+/**
+ * `https://host[:port]` of a URL, an origin or a bare host name (taken as
+ * https); throws for anything else.
+ */
 export const originOf = (value: string): string => {
-	const url = new URL(value);
+	const url = new URL(
+		/^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `https://${value}`,
+	);
 	if (url.protocol !== "https:" && url.protocol !== "http:") {
 		throw new Error(`not an http(s) URL: ${value}`);
 	}
@@ -82,7 +86,7 @@ const envTokenOrigin = (config: CliConfig, env: CliEnv): string | null => {
 };
 
 /**
- * The forge and token to use: `--forge`, else `TARTAN_URL`, else the
+ * The forge and token to use: `--hostname`, else `TARTAN_URL`, else the
  * configured default; the token from `TARTAN_TOKEN` (only for its own
  * forge), else the config. The stored principal is returned only with the
  * token it was stored for.
@@ -109,6 +113,13 @@ export const resolveCredential = (
 			? { principal: entry.principal }
 			: {}),
 	};
+};
+
+/** Every forge with a token: the configured ones, then `TARTAN_TOKEN`'s. */
+export const knownOrigins = (config: CliConfig, env: CliEnv): string[] => {
+	const fromEnv = env.get("TARTAN_TOKEN") ? envTokenOrigin(config, env) : null;
+	const all = Object.keys(config.forges);
+	return fromEnv === null || all.includes(fromEnv) ? all : [...all, fromEnv];
 };
 
 /** `agent` for `tagt_`, `user` for `tpat_`. */

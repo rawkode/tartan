@@ -15,9 +15,9 @@ import {
 	type RepoConfigApplyInput,
 	type RepoConfigDenialCode,
 } from "@tartan/contract";
-import { settingsCue as ciSettings } from "../../../../../extensions/ci/src/settings-cue.ts";
-import { settingsCue as reviewSettings } from "../../../../../extensions/review/src/settings-cue.ts";
-import { settingsCue as weaveSettings } from "../../../../../extensions/weave/src/settings-cue.ts";
+import { settingsCue as ciSettings } from "../../../repoconfig/testing/fixtures/ci-settings-cue.ts";
+import { settingsCue as reviewSettings } from "../../../repoconfig/testing/fixtures/review-settings-cue.ts";
+import { settingsCue as weaveSettings } from "../../../repoconfig/testing/fixtures/weave-settings-cue.ts";
 import { NO_SECRETS_SETTINGS } from "../../../repoconfig/testing/corpus.ts";
 import { createRegistry } from "../module.ts";
 import { resolve } from "../resolve.ts";

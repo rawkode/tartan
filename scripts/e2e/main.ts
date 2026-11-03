@@ -15,7 +15,7 @@
 //   run [e2e run args] [--drop-traces] [--keep-data] [--allow-drift]
 //                                               provision → e2e run → teardown → trace sweep → leak scan
 //   evidence <runId>                            leak-scanned summary into .private/e2e/evidence/<runId>/
-//   agent [--ttl-days n] [--group g] [--out f]  one e2e-developer agent token and a pack group's MCP
+//   agent [--ttl-days n] [--group g] [--out f]  one e2e-developer agent token and an e2e group's MCP
 //                                               URL (e2e/swarm by default), in a 0600 file under
 //                                               .private/e2e/agent/ or --out (handoff.ts)
 //
@@ -607,7 +607,6 @@ const run = async (args: string[]): Promise<number> => {
 			signOut: (s) => signOut(bounded, record.origin, s),
 			now: Date.now,
 			log,
-			packVersions: await packVersions(),
 		}, runId);
 		secrets.push(
 			creds.ownerPat,
@@ -653,19 +652,6 @@ const run = async (args: string[]): Promise<number> => {
 	}
 	log(`run ${runId} finished with exit ${code}`);
 	return leaks > 0 && code === 0 ? 1 : code;
-};
-
-const packVersions = async (): Promise<Record<string, string>> => {
-	const out: Record<string, string> = {};
-	for (const name of ["swarm", "classic"]) {
-		const manifest = JSON.parse(
-			await Deno.readTextFile(
-				path.join(ROOT, "extensions", "packs", name, "tartan.json"),
-			),
-		) as { id: string; version: string };
-		out[manifest.id] = manifest.version;
-	}
-	return out;
 };
 
 const evidence = async (args: string[]): Promise<number> => {

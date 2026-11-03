@@ -35,7 +35,7 @@ describe("routes", () => {
 		);
 		expect((await resolve("/acme/r/-/work/w1")).name).toBe("work-item");
 		expect((await resolve("/acme/r/-/lanes")).name).toBe("lanes");
-		expect((await resolve("/acme/r/-/radar")).name).toBe("slot-tab");
+		expect((await resolve("/acme/r/-/notes")).name).toBe("slot-tab");
 		expect((await resolve("/acme/r/-/settings")).name).toBe("node-settings");
 		expect((await resolve("/acme/r/-/settings/extensions")).name).toBe(
 			"repo-config",

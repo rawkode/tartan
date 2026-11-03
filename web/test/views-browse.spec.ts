@@ -7,6 +7,7 @@ import type { FetchLike } from "../src/api/http.ts";
 import { CHANGE_ID, SHAS } from "../src/api/mock/fixtures.ts";
 import { withMockProjects } from "../src/api/mock/projects.ts";
 import { createMockFetch } from "../src/api/mock/server.ts";
+import { SAMPLE_CATALOG } from "./support/catalog.ts";
 import { mountApp } from "./support/app.ts";
 import {
 	byTag,
@@ -86,10 +87,8 @@ describe("node pages", () => {
 	it("shows a group's sections, tabs and children, with create forms for maintainers", async () => {
 		const app = await mountApp("/acme");
 		expect(text(app.root)).toContain("Acme Corp");
-		// node.tab contributions (tartan.board, tartan.epics); no first-party
-		// extension contributes a node.section.
-		expect(links(app.root)).toContain("/acme/-/board");
-		expect(links(app.root)).toContain("/acme/-/epics");
+		// The sample catalog's node.tab; it contributes no node.section.
+		expect(links(app.root)).toContain("/acme/-/notes");
 		expect(links(app.root)).toContain("/acme/platform");
 		expect(findAll(app.root, (el) => el.attrs["data-slot"] === "node.section"))
 			.toHaveLength(0);
@@ -131,7 +130,9 @@ describe("node pages", () => {
 	});
 
 	it("marks archived children, which stay listed", async () => {
-		const inner = withMockProjects(createMockFetch());
+		const inner = withMockProjects(
+			createMockFetch({ catalog: SAMPLE_CATALOG }),
+		);
 		const app = await mountApp("/acme", {
 			fetch: async (input, init) => {
 				const response = await inner(input, init);
@@ -173,21 +174,16 @@ describe("node pages", () => {
 		// README rendered by the safe markdown renderer.
 		expect(findAll(app.root, (el) => el.tag === "h3" && text(el) === "router"))
 			.toHaveLength(1);
-		// Repo sidebar slots (tartan.ci's projects).
+		// Repo sidebar slots (the sample catalog's summary).
 		expect(findAll(app.root, (el) => el.attrs["data-slot"] === "repo.sidebar"))
 			.toHaveLength(1);
-		expect(text(app.root)).toContain("packages/shared");
+		expect(text(app.root)).toContain("3 notes");
 		// Tabs: kernel views and static repo.tab contributions.
 		expect(links(app.root)).toEqual(expect.arrayContaining([
 			"/acme/platform/router/-/lanes",
 			"/acme/platform/router/-/runs",
 			"/acme/platform/router/-/advances",
-			"/acme/platform/router/-/work",
-			"/acme/platform/router/-/changes",
-			"/acme/platform/router/-/radar",
-			"/acme/platform/router/-/ci",
-			"/acme/platform/router/-/weave",
-			"/acme/platform/router/-/board",
+			"/acme/platform/router/-/notes",
 			"/acme/platform/router/-/settings",
 		]));
 	});
@@ -227,7 +223,7 @@ describe("repo code views", () => {
 		expect(byText(app.root, "a", "Raw")!.attrs["href"]).toBe(
 			"/-/raw/acme/platform/router/main/services/api/src/server.ts",
 		);
-		expect(text(app.root)).toContain("2 lanes are editing this file");
+		expect(text(app.root)).toContain("Sample banner on this file");
 		expect(findAll(app.root, (el) => el.attrs["data-slot"] === "file.banner"))
 			.toHaveLength(1);
 	});
@@ -307,9 +303,9 @@ describe("change page (slot host)", () => {
 			findAll(app.root, (el) => el.attrs["data-slot"] === slot);
 		expect(slots("change.gate")).toHaveLength(1);
 		expect(slots("change.tab")).toHaveLength(1);
-		expect(slots("change.panel")).toHaveLength(3);
-		expect(slots("change.sidebar")).toHaveLength(4);
-		// The first-party extensions all render on the change page.
+		expect(slots("change.panel")).toHaveLength(2);
+		expect(slots("change.sidebar")).toHaveLength(1);
+		// Every installation that contributes renders on the change page.
 		const exts = new Set(
 			findAll(
 				app.root,
@@ -317,20 +313,12 @@ describe("change page (slot host)", () => {
 			)
 				.map((el) => el.attrs["data-ext"]),
 		);
-		for (
-			const ext of [
-				"tartan.changes",
-				"tartan.radar",
-				"tartan.ci",
-				"tartan.review",
-				"tartan.weave",
-			]
-		) expect(exts).toContain(ext);
+		expect(exts).toEqual(new Set(["sample.notes", "sample.gate"]));
 		expect(text(app.root)).toContain(
 			"Rate limit the public API per token, not per IP.",
 		);
 		expect(text(app.root)).toContain("gate: allow");
-		expect(text(app.root)).toContain("No predicted conflicts");
+		expect(text(app.root)).toContain("No sample facts");
 		// The default tab is the first change.tab: the diff, fetched by the
 		// host with its patches, so its lines show.
 		expect(
@@ -345,7 +333,7 @@ describe("change page (slot host)", () => {
 		// One request per dynamic slot, each with its contribution id as the
 		// route's `<slotId>` (WP7a).
 		const renders = app.calls.filter((c) => c.path.startsWith("/-/api/slot/"));
-		expect(renders).toHaveLength(9);
+		expect(renders).toHaveLength(5);
 		expect(
 			new Set(
 				renders.map((c) =>
@@ -358,12 +346,8 @@ describe("change page (slot host)", () => {
 					"diff",
 					"overview",
 					"threads",
-					"evidence",
-					"checks",
-					"conflicts",
-					"findings",
-					"position",
-					"no-secrets",
+					"facts",
+					"gate",
 				]),
 			);
 	});
@@ -394,7 +378,7 @@ describe("change page (slot host)", () => {
 			app.root,
 			(el) =>
 				el.attrs["data-slot"] === "change.panel" &&
-				el.attrs["data-ext"] === "tartan.changes" &&
+				el.attrs["data-ext"] === "sample.notes" &&
 				findAll(el, (child) => child.tag === "form").length > 0,
 		)[0]!;
 		type(findAll(threads, (el) => el.tag === "textarea")[0]!, "LGTM");
@@ -407,7 +391,7 @@ describe("change page (slot host)", () => {
 		expect(action?.body).toMatchObject({
 			action: "comment",
 			// The form's fields at the top level, the action's payload over them.
-			payload: { body: "LGTM", path: "", line: "", changeId: CHANGE_ID },
+			payload: { body: "LGTM", path: "", changeId: CHANGE_ID },
 			// The page hint narrowed to change.panel: no tab route.
 			ctx: {
 				node: "acme/platform/router",
@@ -415,7 +399,7 @@ describe("change page (slot host)", () => {
 			},
 		});
 		expect(app.toasts.items.map((t) => t.text)).toContain(
-			"tartan.changes: comment done",
+			"sample.notes: comment done",
 		);
 	});
 });
@@ -430,7 +414,7 @@ describe("change overview", () => {
 		);
 		// Contribution order: the overview (order -10) before the threads.
 		const overview = panels[0]!;
-		expect(overview.attrs["data-ext"]).toBe("tartan.changes");
+		expect(overview.attrs["data-ext"]).toBe("sample.notes");
 		expect(text(overview)).toContain("api: rate limits on /n");
 		expect(text(overview)).toContain("submitted");
 		const abandon = byText(overview, "button", "Abandon");
@@ -454,7 +438,7 @@ describe("change overview", () => {
 
 describe("change tab without a page", () => {
 	it("says so instead of rendering nothing", async () => {
-		const mock = createMockFetch();
+		const mock = createMockFetch({ catalog: SAMPLE_CATALOG });
 		const withoutTabPages: FetchLike = async (input, init) => {
 			const res = await mock(input, init);
 			if (!input.startsWith("/-/api/view")) return res;
@@ -506,7 +490,7 @@ describe("in-view navigation", () => {
 
 	it("never mixes one repo's slots with another page's entity while the new view loads", async () => {
 		const other = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
-		const mock = createMockFetch();
+		const mock = createMockFetch({ catalog: SAMPLE_CATALOG });
 		let release = (): void => {};
 		const held = new Promise<void>((resolve) => (release = resolve));
 		// The billing repo's change view arrives late, and carries the change
@@ -560,25 +544,25 @@ describe("in-view navigation", () => {
 
 describe("extension tabs and work items", () => {
 	it("renders a repo.tab page from its contribution", async () => {
-		const app = await mountApp("/acme/platform/router/-/work");
+		const app = await mountApp("/acme/platform/router/-/notes");
 		await flush();
 		expect(findAll(app.root, (el) => el.attrs["data-slot"] === "repo.tab"))
 			.toHaveLength(1);
-		expect(text(app.root)).toContain("Add rate limits to /n");
+		expect(text(app.root)).toContain("Sample note one");
 		const nav = findAll(
 			app.root,
 			(el) => el.attrs["aria-label"] === "Repository",
 		)[0]!;
 		const current = findAll(nav, (el) => el.attrs["aria-current"] === "page");
-		expect(current.map(text)).toEqual(["Work"]);
+		expect(current.map(text)).toEqual(["Notes"]);
 	});
 
 	it("moves a board card through the slot action and refreshes the slot", async () => {
-		const app = await mountApp("/acme/platform/router/-/board");
+		const app = await mountApp("/acme/platform/router/-/notes");
 		await flush();
 		const select = findAll(app.root, (el) => el.tag === "select")[0]!;
 		select.value = "done";
-		select.selectedIndex = 3;
+		select.selectedIndex = 2;
 		for (
 			const fn of select.listeners["change"] ? [select.listeners["change"]] : []
 		) fn({ type: "change", target: select } as never);
@@ -586,7 +570,7 @@ describe("extension tabs and work items", () => {
 		const action = app.calls.find((c) => c.path.includes("/action"));
 		expect(action?.body).toMatchObject({
 			action: "move",
-			payload: { card: "w_18", from: "open", to: "done" },
+			payload: { card: "n_2", from: "open", to: "done" },
 			ctx: { node: "acme/platform/router" },
 		});
 	});
@@ -606,6 +590,7 @@ describe("extension tabs and work items", () => {
 		expect(findAll(app.root, (el) => el.attrs["data-slot"] === "work.sidebar"))
 			.toHaveLength(1);
 		expect(text(app.root)).toContain("Footprint");
+		expect(text(app.root)).toContain("Related notes");
 	});
 });
 

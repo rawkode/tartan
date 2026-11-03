@@ -8,6 +8,13 @@ was tested and writes a why-note that `git log --notes=tartan` shows.
 You deploy it into your own Cloudflare account with one command, and it runs entirely on Cloudflare (Workers, Durable
 Objects, Workflows, Artifacts and Sandbox containers), on your domain and behind your identity provider.
 
+> **Spike branch (`spike/strip-down`).** This branch strips Tartan down to the forge (git over HTTPS, lanes, the
+> Advance, MCP, projects), repository config in CUE, and Issues as the first WASM extension (not written yet). It
+> removed every first-party extension: `tartan.work`, `tartan.changes`, `tartan.board`, `tartan.radar`, `tartan.ci`, `tartan.review`, `tartan.weave`,
+> `tartan.fifo`, `tartan.epics`, `tartan.hud` and the Swarm and Classic packs, plus the `acme.no-secrets` Rust → WASM
+> demo and `packages/pipeline`. The rest of this README still describes the full forge,
+> including those extensions.
+
 Demo: [code.rawkode.academy](https://code.rawkode.academy) · [Deploy your own](#quickstart) ·
 [Connect an agent](#connecting-an-agent)
 
@@ -185,7 +192,7 @@ git config --global credential.https://git.example.com.helper \
 The same token works for MCP and git. Codex CLI takes `url = "https://git.example.com/-/mcp/acme/platform"` and
 `bearer_token_env_var = "TARTAN_TOKEN"` in `~/.codex/config.toml`.
 [`docs/connecting-agents.md`](docs/connecting-agents.md) covers tokens, scoped MCP, `/-/agents.md` and the lane flow
-with stock git; [`docs/agents/quickstart.md`](docs/agents/quickstart.md) has the `tartan` CLI, the refusals and
+with stock git; [`docs/agents/quickstart.md`](docs/agents/quickstart.md) has the `tt` CLI, the refusals and
 troubleshooting.
 
 People push ordinary branches and open changes too. They use a personal access token (`tpat_…`, created with
@@ -358,7 +365,7 @@ You need Deno 2.9 and Node 22. Run `npm ci` once; npm owns the dependencies and 
 
 The end-to-end harness deploys its own stage, `dev-e2e`, next to a mock OIDC provider, and drives it with a
 deterministic runner (no model, telemetry off): sign-in and the setup wizard in a real browser, git push policy through
-stock git, and the full agent loop with scripted MCP agents. It needs `CLOUDFLARE_ACCOUNT_ID` and runs in your own
+stock git, lanes, MCP and repository config with scripted MCP agents. It needs `CLOUDFLARE_ACCOUNT_ID` and runs in your own
 account; [`docs/testing/e2e.md`](docs/testing/e2e.md) has the commands. [`AGENTS.md`](AGENTS.md) has the full
 verification ladder, the house style and the rules for working on the code.
 
@@ -368,11 +375,11 @@ verification ladder, the house style and the rules for working on the code.
 | -------------------------- | ------------------------------------------------------------------------------------------ |
 | `src/`                     | the Worker: router, kernel modules, Durable Objects, Workflows                             |
 | `packages/`                | the contract (`@tartan/contract`), the extension API, git protocol, diff, monorepo planner |
-| `extensions/`              | first-party extensions and packs, and the `acme.no-secrets` example                        |
+| `extensions/`              | extension packages (none on this branch; Issues will be the first)                         |
 | `sdk/rust/`                | the Rust SDK for `wasm` extensions (`tartan-ext`)                                          |
 | `web/`                     | the Vue SPA served from the Worker's static assets                                         |
 | `containers/runner/`       | the runner image for CI and kernel git jobs                                                |
-| `tools/`                   | the `tartan` CLI and the mock OIDC provider for the end-to-end tests                       |
+| `tools/`                   | the `tt` CLI and the mock OIDC provider for the end-to-end tests                           |
 | `scripts/`                 | deploy, preflight, destroy, checks, smoke, live and end-to-end launchers                   |
 | `e2e/`                     | the end-to-end suites                                                                      |
 | [`docs/`](docs/README.md)  | concepts, agents, extensions, deploy, repository config, limits, architecture, design      |

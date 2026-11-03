@@ -2,8 +2,9 @@
 // the janitor, and the run teardown.
 //
 // Stable baseline (created once, kept): the private groups `e2e`,
-// `e2e/swarm` (Swarm pack) and `e2e/classic` (Classic pack), and the
-// personas `e2e-developer` (Developer on `e2e`) and `e2e-reporter` (Reporter
+// `e2e/swarm` and `e2e/classic` (named after the packs they carried before
+// this branch removed the first-party extensions; nothing is installed at
+// them now), and the personas `e2e-developer` (Developer on `e2e`) and `e2e-reporter` (Reporter
 // on `e2e`), invited by the owner and redeemed headless. `e2e-outsider` is
 // never invited.
 //
@@ -11,8 +12,8 @@
 // owner PAT, a reporter PAT (with `repo:write` on purpose: the role ceiling,
 // not the scope, must refuse its push), a read-only developer PAT
 // (`repo:read`: the scope, not the role, must refuse its push) and two
-// developer agent tokens (A and B: two agents for the M1 loop and the lane
-// rules), all minted by the persona's own session.
+// developer agent tokens (A and B: two agents for the lane rules), all
+// minted by the persona's own session.
 //
 // If provisioning fails half-way, everything it minted so far is revoked or
 // disabled before the error is raised, so nothing it made outlives a failed
@@ -20,9 +21,8 @@
 //
 // Teardown, whatever the run's outcome: revoke the run's tokens, disable its
 // agents (including the one a UI test made), archive the run's repos and
-// groups (a group's children first), put the stable baseline's settings
-// back (the Swarm group's Weave takes no repository overrides), and sign the
-// launcher's own sessions out.
+// groups (a group's children first), and sign the launcher's own sessions
+// out.
 
 import {
 	type PersonaName,
@@ -32,10 +32,8 @@ import type { Caller, ForgeApi } from "./forge-api.ts";
 import { SignInError } from "./oidc-client.ts";
 
 export const GROUPS = ["e2e", "e2e/swarm", "e2e/classic"] as const;
-export const PACK_AT: Readonly<Record<string, string>> = {
-	"e2e/swarm": "tartan.pack.swarm",
-	"e2e/classic": "tartan.pack.classic",
-};
+/** The groups under `e2e` that hold the run repos (and the janitor sweeps). */
+export const RUN_GROUPS: readonly string[] = ["e2e/swarm", "e2e/classic"];
 export const ROLE = { reporter: 20, developer: 30 } as const;
 const DAY = 86_400_000;
 /**
@@ -82,8 +80,6 @@ export type ProvisionDeps = {
 	readonly signOut: (session: string) => Promise<boolean>;
 	readonly now: () => number;
 	readonly log: (line: string) => void;
-	/** Pack id → version, read from extensions/packs/<name>/tartan.json. */
-	readonly packVersions: Readonly<Record<string, string>>;
 };
 
 export type RunCredentials = {
@@ -116,26 +112,6 @@ const ensureGroups = async (deps: ProvisionDeps, owner: Caller) => {
 			visibility: "private",
 		});
 		deps.log(`created group /${path}`);
-	}
-};
-
-const ensurePacks = async (deps: ProvisionDeps, owner: Caller) => {
-	for (const [node, pack] of Object.entries(PACK_AT)) {
-		const { installations } = await deps.api.installations(owner, node);
-		const present = installations.some((i) =>
-			i.installation.nodePath === node &&
-			(i.installation.pack === pack || i.installation.extId === pack)
-		);
-		if (present) continue;
-		const version = deps.packVersions[pack];
-		if (version === undefined) throw new Error(`no version for ${pack}`);
-		await deps.api.install(owner, {
-			extId: pack,
-			version,
-			node,
-			mode: "enforce",
-		});
-		deps.log(`installed ${pack} at /${node}`);
 	}
 };
 
@@ -207,11 +183,11 @@ const archiveTree = async (
 	return n + 1;
 };
 
-/** Archives run repos and groups (`r<…>-*`) older than `RUN_NODE_MAX_AGE_MS` under the pack groups. */
+/** Archives run repos and groups (`r<…>-*`) older than `RUN_NODE_MAX_AGE_MS` under the run groups. */
 const sweepRepos = async (deps: ProvisionDeps, owner: Caller) => {
 	const now = deps.now();
 	let n = 0;
-	for (const parent of Object.keys(PACK_AT)) {
+	for (const parent of RUN_GROUPS) {
 		for (const node of await deps.api.children(owner, parent)) {
 			if (node.archived || (node.kind !== "repo" && node.kind !== "group")) {
 				continue;
@@ -275,7 +251,6 @@ export const provision = async (
 			);
 		}
 		await ensureGroups(deps, owner);
-		await ensurePacks(deps, owner);
 		const developerCookie = await ensurePersona(deps, owner, "developer");
 		personas.push(developerCookie);
 		const reporterCookie = await ensurePersona(deps, owner, "reporter");
@@ -360,16 +335,8 @@ export type TeardownReport = {
 	readonly revoked: number;
 	readonly disabled: number;
 	readonly archived: number;
-	/** Baseline installations whose repository overrides were turned off again. */
-	readonly restored: number;
 	readonly failures: readonly string[];
 };
-
-/** The baseline installation a suite may let repositories overlay (and teardown restores). */
-export const BASELINE_OVERRIDES = {
-	node: "e2e/swarm",
-	extId: "tartan.weave",
-} as const;
 
 export const teardown = async (
 	deps: Pick<ProvisionDeps, "api" | "signOut" | "log">,
@@ -417,7 +384,7 @@ export const teardown = async (
 	}
 	if (!options.keepData) {
 		await attempt("archive the run's repos", async () => {
-			for (const parent of Object.keys(PACK_AT)) {
+			for (const parent of RUN_GROUPS) {
 				for (const node of await deps.api.children(owner, parent)) {
 					if (
 						(node.kind === "repo" || node.kind === "group") &&
@@ -429,30 +396,13 @@ export const teardown = async (
 			}
 		});
 	}
-	// The repo lanes' compose test lets the Swarm group's repos overlay its
-	// Weave (`repo-overrides`); the next run starts from the baseline.
-	let restored = 0;
-	await attempt("restore the baseline's repo overrides", async () => {
-		const at = (await deps.api.installations(owner, BASELINE_OVERRIDES.node))
-			.installations;
-		for (const { installation } of at) {
-			if (
-				installation.extId === BASELINE_OVERRIDES.extId &&
-				installation.nodePath === BASELINE_OVERRIDES.node &&
-				installation.repoOverrides === true
-			) {
-				await deps.api.repoOverrides(owner, installation.id, false);
-				restored++;
-			}
-		}
-	});
 	if (!(await deps.signOut(creds.ownerSession))) {
 		failures.push("sign the owner's launcher session out");
 	}
 	deps.log(
 		`teardown: ${revoked} token(s) revoked, ${disabled} agent(s) disabled, ${archived} repo(s) archived${
-			restored > 0 ? `, ${restored} repo override(s) turned off` : ""
-		}${failures.length > 0 ? `, ${failures.length} failure(s)` : ""}`,
+			failures.length > 0 ? `, ${failures.length} failure(s)` : ""
+		}`,
 	);
-	return { revoked, disabled, archived, restored, failures };
+	return { revoked, disabled, archived, failures };
 };

@@ -668,7 +668,7 @@ Deno.test("plan lines: pipeline, owners, projects and global against trunk's pol
 	);
 });
 
-Deno.test("retirement (ADR repo config): no runtime source under src, extensions or packages reads .tartan/pipeline.yaml or .tartan/owners.yaml", async () => {
+Deno.test("retirement (ADR repo config): no runtime source under src or packages reads .tartan/pipeline.yaml or .tartan/owners.yaml", async () => {
 	const root = new URL("../../../", import.meta.url);
 	// A quoted path literal or the retired constants; shipped migrations are
 	// forward-only history, and tests may name the old paths to prove them dead.
@@ -690,6 +690,6 @@ Deno.test("retirement (ADR repo config): no runtime source under src, extensions
 			}
 		}
 	};
-	for (const dir of ["src", "extensions", "packages"]) await walk(dir);
+	for (const dir of ["src", "packages"]) await walk(dir);
 	deepStrictEqual(offenders, []);
 });

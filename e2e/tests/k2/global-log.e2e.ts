@@ -1,38 +1,30 @@
 // Live: the global event log on Cloudflare K2. Every committed forge and
 // repo event is relayed, in
 // `seq` order per Durable Object, into the stage's stream
-// `tartan_<stage>_log`; the `workloads` consumer reads it and dispatches CI
+// `tartan_<stage>_log`; the `workloads` consumer reads it and dispatches
 // runs. The stage runs with `--k2` and the Secrets Store consume token, and
-// with `--workload-transport k2`, so a push's CI run is dispatched from the
-// log, with an inline backstop.
+// with `--workload-transport k2`, so a run is dispatched from the log, with
+// an inline backstop.
 //
 // - the relay: the forge's events reach the stream in order and the relay
 //   catches up after new events (`GET /-/api/log/status`, the Owner);
-// - a lane push's CI run is requested through the log and dispatched by the
-//   K2 consumer, and the run says so (API and the Run page);
+// - a run dispatched from the log: pending, as this branch removed the CI
+//   extension that requested a run for a submitted change;
 // - the Owner's Global log tile on Settings, and nobody else reads the log;
 // - no dead letters parked during the run;
 // - the inline backstop with the bus paused needs the dev key: pending.
 
-import { writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import * as path from "node:path";
 import { expect } from "e2e";
-import type { LaneHandle } from "@tartan/contract/interfaces.ts";
 import type {
 	LogDeadListResponse,
 	LogStatusResponse,
-	RunDto,
-	RunsResponse,
 } from "@tartan/contract/api.ts";
 import type { ErrorCode } from "@tartan/contract/errors.ts";
-import { scriptedAgent } from "../../support/agent.ts";
 import { sharedStore, test } from "../../support/fixtures.ts";
 import { ok, pageApi, tokenApi } from "../../support/http.ts";
-import { PACK_GROUP } from "../../support/names.ts";
 import { expectApiClean, watchApi } from "../../support/page.ts";
-import { fixtureRepo, importModeRepo } from "../../support/repos.ts";
-import { keyOf, sharedDirOf } from "../../support/shared.ts";
+import { importModeRepo } from "../../support/repos.ts";
+import { keyOf } from "../../support/shared.ts";
 import { type Stage, tokensOf } from "../../support/stage.ts";
 
 const K2 = "k2";
@@ -58,12 +50,6 @@ const skipUnlessK2 = (stage: Stage) =>
 		"the stage has no global log: deploy it with `stage up --k2 --k2-token-store … --k2-token-secret …`",
 	);
 
-const skipUnlessK2Dispatch = (stage: Stage) =>
-	test.skip(
-		stage.switches.workloadTransport !== K2 || !stage.switches.k2Token,
-		"runs dispatch inline on this stage: deploy it with `--workload-transport k2` and the consume token",
-	);
-
 /** The Owner's (browser session's) view of the log. */
 const statusOf = async (
 	browser: Parameters<typeof pageApi>[0],
@@ -74,89 +60,10 @@ const statusOf = async (
 		await pageApi(browser).get<LogStatusResponse>("/-/api/log/status"),
 	);
 
-type Dispatched = {
-	readonly repo: { readonly path: string; readonly id: string };
-	readonly changeId: string;
-	readonly runId: string;
-	readonly transport: string;
-	readonly via: string | null;
-	readonly lagMs: number | null;
-};
-
-/**
- * One lane push and submit on a Swarm repo whose package tartan runs CI on
- * submit, and the run it starts, once it has been dispatched.
- */
-const dispatchedOf = (stage: Stage, index: number): Promise<Dispatched> =>
-	sharedStore().once(`k2-${index}-dispatch`, async (): Promise<Dispatched> => {
-		const repo = await fixtureRepo(
-			stage,
-			"swarm",
-			index === 0 ? "k2" : `k2-${index}`,
-		);
-		const agent = scriptedAgent(stage, PACK_GROUP.swarm, "A");
-		const { lane: first } = await agent.mcp.call<{ lane: LaneHandle }>(
-			"lanes_open",
-			{ repo: repo.path, purpose: "global log: a run dispatched from K2" },
-		);
-		const lane = await agent.awaitOpen(repo.path, first);
-		const dir = path.join(
-			sharedDirOf(tmpdir(), stage.runId),
-			`scratch-k2-${index}`,
-		);
-		const clone = await agent.clone(dir, repo.remote);
-		await agent.runLane(lane.git.start, clone);
-		await writeFile(path.join(clone, "k2.txt"), `${stage.runId}\n`);
-		await agent.commit(clone, "global log: one file");
-		await agent.runLane(lane.git.push, clone);
-		const { changeId } = await agent.mcp.call<{ changeId: string }>(
-			"changes_submit",
-			{
-				repo: repo.path,
-				laneId: lane.id,
-				title: `global log ${stage.runId}/${index}`,
-				summary: "One file; its CI run is dispatched from the global log.",
-			},
-		);
-		const owner = tokenApi(stage.origin, tokensOf(stage).ownerPat);
-		let run: RunDto | undefined;
-		await expect.poll(async () => {
-			const runs = ok(
-				"GET",
-				"/-/api/runs/<repoId>",
-				await owner.get<RunsResponse>(
-					`/-/api/runs/${encodeURIComponent(repo.id)}`,
-				),
-			);
-			run = runs.runs.find((r) => r.subject?.id === changeId);
-			return run?.via !== undefined;
-		}, {
-			timeout: 5 * MIN,
-			interval: 2_000,
-			message: "the change's CI run to be created and dispatched",
-		}).toBe(true);
-		return {
-			repo: { path: repo.path, id: repo.id },
-			changeId,
-			runId: run!.runId,
-			transport: run!.transport ?? "",
-			via: run!.via ?? null,
-			lagMs: run!.dispatchedAt === undefined
-				? null
-				: run!.dispatchedAt - run!.createdAt,
-		};
-	});
-
-const dispatchedFor = async (stage: Stage, title: string) =>
-	dispatchedOf(
-		stage,
-		await sharedStore().claimIndex(`claim-k2-${keyOf(title)}`),
-	);
-
 const T = {
 	relay: "the forge's events are relayed to the K2 stream in sequence",
 	dispatch:
-		"a lane push's CI run is dispatched from the global log, with the transport recorded as k2",
+		"a run is dispatched from the global log, with the transport recorded as k2",
 	runPage: "the Run page says the run came through the global log",
 	tile:
 		"the Owner's Global log tile shows the stream, the relay and dispatches",
@@ -213,51 +120,13 @@ test.describe("the global log on K2", {
 		expect(after.sentRecords).toBeGreaterThan(relay!.sentRecords);
 	});
 
-	test(
-		T.dispatch,
-		{ tags: ["containers", "agent", "runs"], timeout: 10 * MIN },
-		async ({
-			app,
-			browser,
-			stage,
-		}) => {
-			skipUnlessK2(stage);
-			skipUnlessK2Dispatch(stage);
-			test.skip(!stage.containers, "CI runs need containers");
-			await app.open("/-/settings");
-			const before = await statusOf(browser);
-			const d = await dispatchedFor(stage, T.dispatch);
-			expect(d.transport, "the run's recorded transport").toBe(K2);
-			expect(d.via, "dispatched by the K2 consumer, not the backstop").toBe(K2);
-			expect(d.lagMs, "creation to dispatch").not.toBeNull();
-			// The consumer counted it: K2 dispatches in the last hour went up.
-			const after = await statusOf(browser);
-			expect(after.transport).toBe(K2);
-			expect(after.consumer?.consume).toBe(OK);
-			expect(after.lastHour.k2).toBeGreaterThanOrEqual(1);
-			expect(after.consumer!.records).toBeGreaterThanOrEqual(
-				before.consumer?.records ?? 0,
-			);
-		},
-	);
-
-	test(T.runPage, { tags: ["containers", "runs"], timeout: 10 * MIN }, async ({
-		app,
-		browser,
-		stage,
-	}) => {
-		skipUnlessK2(stage);
-		skipUnlessK2Dispatch(stage);
-		test.skip(!stage.containers, "CI runs need containers");
-		const d = await dispatchedFor(stage, T.runPage);
-		await app.open(`/${d.repo.path}/-/runs/${d.runId}`);
-		await watchApi(browser);
-		const fact = browser.locator(`dd[data-transport="${K2}"]`);
-		await expect(fact).toHaveText(
-			"Requested through the global log (K2); dispatched by the K2 consumer",
-		);
-		await expectApiClean(browser);
-	});
+	for (const title of [T.dispatch, T.runPage]) {
+		test(title, {
+			tags: ["runs", "pending"],
+			skip:
+				"pending: no extension on this branch requests a run (the CI extension was removed)",
+		}, async () => {});
+	}
 
 	test(T.tile, { tags: ["ui"], timeout: 5 * MIN }, async ({
 		app,

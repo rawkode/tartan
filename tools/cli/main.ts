@@ -1,44 +1,154 @@
-// `tartan`: the Tartan CLI (WP11). Run with
-// `deno run -A tools/cli/main.ts …` or compile it with
-// `deno compile -A -o tartan tools/cli/main.ts`.
+// `tt`: log in to a Tartan forge and clone its repositories over HTTPS with
+// stock git. Run with `deno run -A tools/cli/main.ts …` or compile it with
+// `deno compile -A -o tt tools/cli/main.ts`.
 
 import {
-	type Args,
-	credential,
-	hooks,
-	inbox,
-	type Io,
-	laneClose,
-	laneList,
-	laneOpen,
-	laneStatus,
-	login,
-	UsageError,
-	whoami,
-} from "./commands.ts";
+	authGitCredential,
+	authLogin,
+	authLogout,
+	authSetupGit,
+	authStatus,
+	authToken,
+} from "./auth.ts";
+import { type Args, has, type Io, UsageError } from "./commands.ts";
 import { createGit } from "./git.ts";
+import { repoClone } from "./repo.ts";
 import { configSchema, configShow, configVet } from "./repoconfig.ts";
 
-export const USAGE = `tartan: the Tartan forge CLI
+const ENVIRONMENT = `ENVIRONMENT
+  TARTAN_URL     the forge to use when --hostname is not given
+  TARTAN_TOKEN   a token for TARTAN_URL (else the default forge); wins over the stored one
+  TARTAN_CONFIG  the config file (default $XDG_CONFIG_HOME/tartan/config.json)`;
 
-  tartan login <forge URL> [--token-stdin]    store a tagt_/tpat_ token (TARTAN_TOKEN wins)
-  tartan whoami [--scope <path>]
-  tartan lane open --repo <path> --purpose <text> [--prefix <p>]… [--project <p>]… [--wait <s>] [--no-remote] [--json]
-  tartan lane status <laneId> [--repo <path>]
-  tartan lane list --repo <path> [--mine] [--json]
-  tartan lane close <laneId> --reason <text> [--repo <path>]
-  tartan inbox [--repo <path>] [--since <seq>] [--wait [<ms>]] [--ack] [--json]
-  tartan config show --repo <path> [--json]               Tartan config (root CUE package tartan)
-  tartan config vet [--repo <path>] [--lane <id>] [--wait <s>] [--json]   preview a lane's root *.cue files
-  tartan config schema --repo <path> --out <dir>          the forge's schema files, to run cue export locally
-  tartan credential install [--forge <URL>] [--global]   git credential helper for the forge
-  tartan credential get|store|erase                       (called by git)
-  tartan hooks install --git [--force]                    pre-push size and target check
-  tartan hooks pre-push <remote> <url>                    (called by the hook)
+export const USAGE = `Work with a Tartan forge from the command line.
 
-Every command takes --forge <URL> (else TARTAN_URL, else the login default).`;
+USAGE
+  tt <command> <subcommand> [flags]
 
-/** `--flag value`, `--flag=value`, bare `--flag` (true); repeats collect. */
+COMMANDS
+  auth:    Log in, log out and set git up to use tt for HTTPS
+  repo:    Clone repositories
+  config:  Show, preview and export a repository's CUE config
+
+FLAGS
+  --help   Show help for a command
+
+${ENVIRONMENT}
+
+Run \`tt <command> --help\` for more about a command.`;
+
+const HELP: Readonly<Record<string, string>> = {
+	auth: `Authenticate tt and git with a Tartan forge.
+
+USAGE
+  tt auth <subcommand> [flags]
+
+SUBCOMMANDS
+  login:           Log in to a forge
+  logout:          Log out of a forge
+  status:          Show the forges you are logged in to
+  token:           Print the token for a forge
+  setup-git:       Set git up to use tt as the credential helper
+  git-credential:  The credential helper git runs (not for people)`,
+	"auth login": `Log in to a forge.
+
+Without --with-token, tt prints where to create a token on the forge and
+asks for it. With --with-token, the token is read from standard input. The
+token is checked with the forge before it is stored, and the forge becomes
+the default one.
+
+USAGE
+  tt auth login [--hostname <forge URL>] [--with-token]
+
+FLAGS
+  --hostname <forge URL>  The forge (default TARTAN_URL, else the default forge)
+  --with-token            Read the token from standard input
+
+EXAMPLES
+  $ tt auth login --hostname https://code.example.com
+  $ tt auth login --hostname https://code.example.com --with-token < token.txt`,
+	"auth logout": `Remove a forge's stored token.
+
+USAGE
+  tt auth logout [--hostname <forge URL>]`,
+	"auth status": `Check the token of each forge you are logged in to.
+
+USAGE
+  tt auth status [--hostname <forge URL>]`,
+	"auth token": `Print the token tt uses for a forge.
+
+USAGE
+  tt auth token [--hostname <forge URL>]`,
+	"auth setup-git": `Set git up to use tt as the credential helper.
+
+For each forge (every one you are logged in to, or --hostname), the global
+credential.<forge>.helper list is reset and then set to
+\`tt auth git-credential\`.
+
+USAGE
+  tt auth setup-git [--hostname <forge URL>]`,
+	"auth git-credential": `The git credential helper (git runs it).
+
+USAGE
+  tt auth git-credential get|store|erase`,
+	repo: `Work with forge repositories.
+
+USAGE
+  tt repo <subcommand> [flags]
+
+SUBCOMMANDS
+  clone:  Clone a repository over HTTPS`,
+	"repo clone": `Clone a repository over HTTPS with git.
+
+A forge path (owner/…/repo) resolves against the default forge, or
+--hostname, to https://<forge>/<path>.git. When git does not yet ask tt for
+that forge (\`tt auth setup-git\`), the new clone gets the credential helper
+in its own config. Flags after -- go to \`git clone\`.
+
+USAGE
+  tt repo clone <owner/…/repo | URL> [<dir>] [-- <git clone flags>]
+
+FLAGS
+  --hostname <forge URL>  The forge for a forge path
+
+EXAMPLES
+  $ tt repo clone acme/shop
+  $ tt repo clone acme/platform/router router -- --depth 1`,
+	config: `Work with a repository's Tartan config (the root CUE package tartan).
+
+USAGE
+  tt config <subcommand> [flags]
+
+SUBCOMMANDS
+  show:    Show the repository's current config
+  vet:     Preview a lane's root *.cue files
+  schema:  Write the forge's schema files, to run cue export locally`,
+	"config show": `Show the repository's current config.
+
+USAGE
+  tt config show --repo <path> [--json] [--hostname <forge URL>]`,
+	"config vet":
+		`Preview a lane's root *.cue files (the current lanes/<id> branch by default).
+
+Exits 0 when the config is ok or unchanged, 1 on errors or denials, and 3
+when it is still evaluating after --wait seconds (default 60).
+
+USAGE
+  tt config vet --repo <path> [--lane <id>] [--wait <s>] [--json] [--hostname <forge URL>]`,
+	"config schema":
+		`Write the forge's schema files and a local module file into <dir>.
+
+USAGE
+  tt config schema --repo <path> --out <dir> [--hostname <forge URL>]`,
+};
+
+/** Flags that take a value when one follows. */
+const VALUED = new Set(["hostname", "repo", "lane", "wait", "out"]);
+
+/**
+ * `--flag value`, `--flag=value`, bare `--flag` (true); repeats collect; `-h`
+ * is `--help`; everything after `--` is passed through.
+ */
 export const parseArgs = (argv: readonly string[]): Args => {
 	const positional: string[] = [];
 	const flags: Record<string, string | true | string[]> = {};
@@ -53,8 +163,11 @@ export const parseArgs = (argv: readonly string[]): Args => {
 	for (let i = 0; i < argv.length; i++) {
 		const arg = argv[i];
 		if (arg === "--") {
-			positional.push(...argv.slice(i + 1));
-			break;
+			return { positional, flags, passthrough: argv.slice(i + 1) };
+		}
+		if (arg === "-h") {
+			put("help", true);
+			continue;
 		}
 		if (!arg.startsWith("--")) {
 			positional.push(arg);
@@ -67,7 +180,7 @@ export const parseArgs = (argv: readonly string[]): Args => {
 		}
 		const next = argv[i + 1];
 		if (
-			next !== undefined && !next.startsWith("--") && VALUED.has(arg.slice(2))
+			next !== undefined && !next.startsWith("-") && VALUED.has(arg.slice(2))
 		) {
 			put(arg.slice(2), next);
 			i += 1;
@@ -75,23 +188,8 @@ export const parseArgs = (argv: readonly string[]): Args => {
 			put(arg.slice(2), true);
 		}
 	}
-	return { positional, flags };
+	return { positional, flags, passthrough: [] };
 };
-
-/** Flags that take a value when one follows. */
-const VALUED = new Set([
-	"forge",
-	"repo",
-	"purpose",
-	"prefix",
-	"project",
-	"wait",
-	"reason",
-	"since",
-	"scope",
-	"lane",
-	"out",
-]);
 
 const readAll = async (): Promise<string> => {
 	const chunks: Uint8Array[] = [];
@@ -138,65 +236,50 @@ export const denoIo = (): Io => ({
 	sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
 });
 
+type Command = (io: Io, args: Args) => Promise<number | void>;
+
+const COMMANDS: Readonly<Record<string, Record<string, Command>>> = {
+	auth: {
+		login: authLogin,
+		logout: authLogout,
+		status: authStatus,
+		token: authToken,
+		"setup-git": authSetupGit,
+		"git-credential": authGitCredential,
+	},
+	repo: { clone: repoClone },
+	config: { show: configShow, vet: configVet, schema: configSchema },
+};
+
 /** Runs one command line; the exit code. */
 export const run = async (io: Io, argv: readonly string[]): Promise<number> => {
-	const [command, ...rest] = argv;
-	const args = parseArgs(rest);
-	const sub = { ...args, positional: args.positional.slice(1) };
+	const args = parseArgs(argv);
+	const [group, sub, ...positional] = args.positional;
 	try {
-		switch (command) {
-			case "login":
-				await login(io, args);
-				return 0;
-			case "whoami":
-				await whoami(io, args);
-				return 0;
-			case "lane":
-				switch (args.positional[0]) {
-					case "open":
-						await laneOpen(io, sub);
-						return 0;
-					case "status":
-						await laneStatus(io, sub);
-						return 0;
-					case "list":
-						await laneList(io, sub);
-						return 0;
-					case "close":
-						await laneClose(io, sub);
-						return 0;
-				}
-				throw new UsageError("usage: tartan lane open|status|list|close …");
-			case "inbox":
-				await inbox(io, args);
-				return 0;
-			case "config":
-				switch (args.positional[0]) {
-					case "show":
-						await configShow(io, sub);
-						return 0;
-					case "vet":
-						return await configVet(io, sub);
-					case "schema":
-						await configSchema(io, sub);
-						return 0;
-				}
-				throw new UsageError("usage: tartan config show|vet|schema …");
-			case "credential":
-				await credential(io, args);
-				return 0;
-			case "hooks":
-				return await hooks(io, args);
-			case undefined:
-			case "help":
-			case "--help":
-				io.out(USAGE);
-				return 0;
-			default:
-				throw new UsageError(`unknown command ${command}\n\n${USAGE}`);
+		if (group === undefined || group === "help") {
+			const topic = [sub, ...positional].join(" ");
+			io.out(topic === "" ? USAGE : HELP[topic] ?? USAGE);
+			return 0;
 		}
+		const subcommands = COMMANDS[group];
+		if (subcommands === undefined) {
+			throw new UsageError(`unknown command "${group}" for "tt"\n\n${USAGE}`);
+		}
+		const command = sub === undefined ? undefined : subcommands[sub];
+		if (has(args, "help")) {
+			io.out(HELP[command === undefined ? group : `${group} ${sub}`]);
+			return 0;
+		}
+		if (command === undefined) {
+			throw new UsageError(
+				sub === undefined
+					? HELP[group]
+					: `unknown command "${sub}" for "tt ${group}"\n\n${HELP[group]}`,
+			);
+		}
+		return (await command(io, { ...args, positional })) ?? 0;
 	} catch (error) {
-		io.err(`tartan: ${error instanceof Error ? error.message : String(error)}`);
+		io.err(error instanceof Error ? error.message : String(error));
 		return error instanceof UsageError ? 2 : 1;
 	}
 };

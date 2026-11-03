@@ -2,7 +2,7 @@
 // repo's receive-pack table with stock git and the run's
 // real tokens, hidden-namespace filtering, and the fail-closed parser.
 // Each row is its own test over one shared setup (support/shared.ts): a
-// Classic repo where agents A and B each opened a lane and pushed it once.
+// repo where agents A and B each opened a lane and pushed it once.
 // Every refusal is checked by its `ng` reason (contract `REF_POLICY_REASONS`)
 // and by the ref it must not have moved.
 //
@@ -21,7 +21,6 @@ import {
 	REF_POLICY_REASONS,
 	type RefPolicyReason,
 } from "@tartan/contract/security.ts";
-import type { LaneDto, LanesResponse } from "@tartan/contract/api.ts";
 import type { LaneHandle } from "@tartan/contract/interfaces.ts";
 import { type AgentName, scriptedAgent } from "../../support/agent.ts";
 import { sharedStore, test } from "../../support/fixtures.ts";
@@ -33,7 +32,7 @@ import {
 	refusedWithAny,
 } from "../../support/gateway.ts";
 import { git, gitDate, gitEnv, gitOk } from "../../support/git.ts";
-import { gitHttp, ok, query, tokenApi } from "../../support/http.ts";
+import { gitHttp } from "../../support/http.ts";
 import {
 	BRANCH_MODE,
 	repoLanesByDefault,
@@ -59,7 +58,6 @@ const R = {
 	caseCollision: "case-collision",
 	malformed: "malformed-push",
 } as const satisfies Readonly<Record<string, RefPolicyReason>>;
-const LANDING: LaneDto["state"] = "landing";
 
 type Lane = {
 	readonly id: string;
@@ -529,76 +527,10 @@ test.describe("Ref policy: the canonical receive-pack table (branch lanes)", {
 	});
 
 	test(T.landing, {
-		tags: ["containers", "agent", "land"],
-		timeout: 900_000,
-	}, async ({ stage, workdir }) => {
-		test.skip(
-			!stage.containers,
-			"landing needs CI and the Advance, which run in containers (the stage was deployed with --no-containers)",
-		);
-		// A Swarm repo with no owners rules or projects: a small change is
-		// approved by review on its own and the Weave lands it; while its
-		// candidate's checks run, the lane is landing and frozen.
-		const index = await sharedStore().claimIndex(
-			`claim-s2-${keyOf(T.landing)}`,
-		);
-		const suite = index === 0 ? "s2-landing" : `s2-landing-${index}`;
-		const repo = await fixtureRepo(stage, "swarm", suite);
-		if (repoLanesByDefault(stage)) {
-			await setLaneMode(stage, repo.id, BRANCH_MODE);
-		}
-		const agent = scriptedAgent(stage, PACK_GROUP.swarm, "A");
-		const { lane: first } = await agent.mcp.call<{ lane: LaneHandle }>(
-			"lanes_open",
-			{ repo: repo.path, purpose: "S2 landing freeze" },
-		);
-		const lane = await agent.awaitOpen(repo.path, first);
-		const clone = await agent.clone(workdir, repo.remote);
-		await agent.runLane(lane.git.start, clone);
-		await writeFile(path.join(clone, "landing.txt"), `${stage.runId}\n`);
-		await agent.commit(clone, "S2 landing");
-		await agent.runLane(lane.git.push, clone);
-		await agent.mcp.call("changes_submit", {
-			repo: repo.path,
-			laneId: lane.id,
-			title: `S2 landing ${stage.runId}`,
-			summary: "A one-line file.",
-		});
-		const owner = tokenApi(stage.origin, tokensOf(stage).ownerPat);
-		let state = "";
-		await expect.poll(async () => {
-			const lanes = ok(
-				"GET",
-				"/-/api/lanes",
-				await owner.get<LanesResponse>(
-					`/-/api/lanes?${query({ repo: repo.path })}`,
-				),
-			).lanes;
-			state = lanes.find((l) => l.id === lane.id)?.state ?? "";
-			if (state === "landed" || state === "closed") {
-				throw new Error(
-					`the lane went ${state} before a push could hit the landing window`,
-				);
-			}
-			return state;
-		}, {
-			timeout: 600_000,
-			interval: 500,
-			message: "the lane never started landing (review or the Weave held it)",
-		}).toBe(LANDING);
-		await appendFile(path.join(clone, "landing.txt"), "late\n");
-		await agent.commit(clone, "S2 landing (late)");
-		const pushed = await agent.gitResult(clone, [
-			"push",
-			"origin",
-			`HEAD:${lane.ref}`,
-		]);
-		expect(pushed.code).not.toBe(0);
-		expect(
-			refusedWith(pushed.stdout + pushed.stderr, lane.ref, R.landing),
-			pushed.stderr,
-		).toBe(true);
-	});
+		tags: ["land", "pending"],
+		skip:
+			"pending: landing a lane needs a change and a queue provider, and this branch has no extension that provides them",
+	}, async () => {});
 });
 
 test.describe("Ref policy: rows that are not on this stage", {

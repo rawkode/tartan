@@ -31,9 +31,7 @@
 			"@tartan/monorepo": ["./packages/monorepo/src/index.ts"],
 			"@tartan/monorepo/*": ["./packages/monorepo/src/*"],
 			"@tartan/diff": ["./packages/diff/src/index.ts"],
-			"@tartan/diff/*": ["./packages/diff/src/*"],
-			"@tartan/pipeline": ["./packages/pipeline/src/index.ts"],
-			"@tartan/pipeline/*": ["./packages/pipeline/src/*"]
+			"@tartan/diff/*": ["./packages/diff/src/*"]
 		}
 	},
 	"include": ["src", "packages", "extensions", "vitest.config.ts"],

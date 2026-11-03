@@ -22,11 +22,9 @@
 		"smoke": "deno run -A scripts/smoke/run.ts",
 		"live": "deno run -A scripts/live/run.ts",
 		"e2e": "deno run -A scripts/e2e/main.ts",
-		"seed": "deno run -A scripts/seed.ts",
-		"reset": "deno run -A scripts/reset.ts",
 		"cli": "deno run -A tools/cli/main.ts",
 		"dev": "deno run -A tools/dev/main.ts",
-		"build:cli": "deno compile -A -o dist/tartan tools/cli/main.ts",
+		"build:cli": "deno compile -A -o dist/tt tools/cli/main.ts",
 		"license:check": "deno run -A scripts/license-check.ts",
 		"verify": "deno task gen && deno task fmt:check && deno task lint && deno task check && deno task test && deno task license:check"
 	},
@@ -42,9 +40,7 @@
 		"@tartan/monorepo": "./packages/monorepo/src/index.ts",
 		"@tartan/monorepo/": "./packages/monorepo/src/",
 		"@tartan/diff": "./packages/diff/src/index.ts",
-		"@tartan/diff/": "./packages/diff/src/",
-		"@tartan/pipeline": "./packages/pipeline/src/index.ts",
-		"@tartan/pipeline/": "./packages/pipeline/src/"
+		"@tartan/diff/": "./packages/diff/src/"
 	},
 	"compilerOptions": {
 		"strict": true,

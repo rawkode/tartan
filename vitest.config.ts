@@ -119,7 +119,6 @@ const TARTAN_PACKAGES = [
 	"ext-api",
 	"monorepo",
 	"diff",
-	"pipeline",
 ];
 
 const alias = TARTAN_PACKAGES.flatMap((name) => [

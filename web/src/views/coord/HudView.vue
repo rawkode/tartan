@@ -1,9 +1,7 @@
 <script setup lang="ts">
 // The HUD (WP19; `/`, `/-/hud`, `/-/hud?node=<path>`). It hosts the
-// `hud.metric` and `home.section` slots:
-// WP20's tartan.hud counts active lanes, predicted and avoided conflicts,
-// landings per hour and the changes that needed a human for every repository
-// under the namespace it is installed on. `GET /-/api/view` needs a node
+// `hud.metric` and `home.section` slots of whatever extensions are installed
+// on each namespace. `GET /-/api/view` needs a node
 // path, so the forge home shows the HUD of each top-level namespace that has
 // one (its `hud` and `home` views), and `?node=` shows one node's HUD (a
 // namespace, a group or a repository with its own repo-scoped metrics).
@@ -86,9 +84,8 @@ const roots = computed(() => (boards.data.value ?? []).map((b) => b.node));
 			<section v-if="shown.length === 0" class="tt-panel tt-stack" aria-labelledby="hud-none">
 				<h2 id="hud-none" class="hud__heading">No HUD yet</h2>
 				<p class="tt-muted">
-					No namespace on this forge has a HUD. Install the HUD extension (tartan.hud) on a namespace from
-					<RouterLink to="/-/extensions">Extensions</RouterLink>
-					to count active lanes, predicted and avoided conflicts, landings per hour and the changes that needed a human across every repository below it.
+					No extension on this forge contributes HUD metrics or home sections yet. Install one on a namespace from
+					<RouterLink to="/-/extensions">Extensions</RouterLink>.
 				</p>
 			</section>
 			<HudGuide v-if="roots.length > 0" :roots="roots" :here="selected" />

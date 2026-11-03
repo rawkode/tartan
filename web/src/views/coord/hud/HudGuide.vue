@@ -1,12 +1,12 @@
 <script setup lang="ts">
 // "Where to look" (every judge question has a screen
 // reachable in ≤ 2 clicks from the HUD). For the repositories under the
-// nodes on screen (a bounded walk, `model.ts`), one link per question: the
-// Lanes view (Q1), the radar or Weave tab (Q2), the changes list (Q3), the
-// advances and their why notes (Q4), and the policies on trial (Q5).
+// nodes on screen (a bounded walk, `model.ts`), one link per question, each
+// a kernel view: Lanes (Q1, Q2), Advances and their why notes (Q3, Q4), and
+// the policies on trial (Q5).
 import { ref, shallowRef, watch } from "vue";
 import { RouterLink } from "vue-router";
-import type { NodeDto, StaticContributionDto } from "@tartan/contract/api.ts";
+import type { NodeDto } from "@tartan/contract/api.ts";
 import { useApi } from "../../../app/context.ts";
 import { nodeHref } from "../../../router/params.ts";
 import {
@@ -35,25 +35,12 @@ const simGroups = shallowRef<readonly string[]>([]);
 const loading = ref(false);
 let generation = 0;
 
-const tabsOf = async (repo: string): Promise<readonly StaticContributionDto[]> => {
-	try {
-		return (await api.view(repo, "")).static.tabs;
-	} catch {
-		return [];
-	}
-};
-
 const load = async (): Promise<void> => {
 	const mine = ++generation;
 	loading.value = true;
 	try {
 		const walked = await walkRepos(props.roots, (parent, cursor) => api.nodes.children(parent, cursor));
-		const out = await Promise.all(
-			walked.repos.map(async (repo) => ({
-				repo,
-				links: questionLinks(repo.path, await tabsOf(repo.path)),
-			})),
-		);
+		const out = walked.repos.map((repo) => ({ repo, links: questionLinks(repo.path) }));
 		if (mine !== generation) return;
 		rows.value = out;
 		truncated.value = walked.truncated;

@@ -9,12 +9,10 @@
 //   GET /-/api/why?repo=<path>&(sha=|path=[&line=])
 //   GET /-/api/blame                                     501 (M2)
 //
-// Also the mock of a `static+action` result the views exercise: `tartan.work`
-// answers its "New work" header action (`new-work`) by navigating to the
-// repo's Work tab, as `extensions/work/src/ui.ts` does.
+// Extension ids in this history (gates, the CI run's requester, the queue
+// that landed, why-note sections) are samples: the mock forge installs none.
 
 import type {
-	ActionResponse,
 	AdvanceDto,
 	AdvancesResponse,
 	LandBatchDto,
@@ -22,11 +20,9 @@ import type {
 	RunDto,
 	WhyResponse,
 } from "@tartan/contract/api.ts";
-import type { SlotCtxHint } from "@tartan/contract/slot-ctx.ts";
 import { CHANGE_ID_2, EVENTS, LANE_IDS } from "./coord.ts";
 import {
 	CHANGE_ID,
-	instId,
 	MOCK_NOW,
 	mockUlid,
 	OWNER_ID,
@@ -48,7 +44,8 @@ export const BATCH_IDS = {
 	conflicted: `lb_${mockUlid(6002)}`,
 } as const;
 
-const CI = instId("tartan.ci");
+/** The installation of a sample CI extension that requested the runs. */
+const CI = `i_${mockUlid(504)}`;
 
 export const RUNS: readonly RunDto[] = [
 	{
@@ -147,9 +144,9 @@ export const ADVANCES: readonly AdvanceDto[] = [
 		createdAt: MOCK_NOW - 5 * HOUR - 6 * MIN,
 		finishedAt: MOCK_NOW - 5 * HOUR - 5 * MIN,
 		gateResults: [
-			{ ext: "acme.no-secrets", decision: "allow", mode: "enforce" },
+			{ ext: "sample.gate", decision: "allow", mode: "enforce" },
 			{
-				ext: "tartan.radar",
+				ext: "sample.advisor",
 				decision: "advise",
 				mode: "shadow",
 				message: "services/api/src/server.ts is also edited in another lane",
@@ -225,7 +222,7 @@ export const WHY: WhyResponse = {
 			advance: `adv_${mockUlid(6001)}_1`,
 			ref: "refs/heads/main",
 			batch: BATCH_IDS.landed,
-			landedBy: instId("tartan.weave"),
+			landedBy: `i_${mockUlid(506)}`,
 			actor: OWNER_ID,
 			change: CHANGE_ID,
 			lane: LANE_IDS.router,
@@ -241,7 +238,7 @@ export const WHY: WhyResponse = {
 				events: EVENTS.slice(0, 2).map((e) => e.id),
 			},
 			gates: [
-				{ ext: "acme.no-secrets@1.0.0", decision: "allow", mode: "enforce" },
+				{ ext: "sample.gate@0.1.0", decision: "allow", mode: "enforce" },
 			],
 			checks: {
 				state: "success",
@@ -250,29 +247,12 @@ export const WHY: WhyResponse = {
 			},
 			chain: { seq: 2, head: "9".repeat(64) },
 		},
-		// The sections tartan.work, tartan.changes and tartan.review contribute
-		// (their `noteSection`s), keyed by extension id.
+		// The sections extensions contribute (their `noteSection`s), keyed by
+		// extension id.
 		ext: {
-			"tartan.work": {
-				ref: "acme/platform/router#17",
-				title: "Split router into modules",
-				kind: "intent",
-				why:
-					"Each team should own its routes without merge fights in one file.",
-				acceptance: [
-					"routes load per service",
-					"no route is registered twice",
-				],
-				plan: "One module per service, a registry in shared",
-				agent: "a_claude-1",
-			},
-			"tartan.changes@0.1.0": {
-				change: CHANGE_ID,
+			"sample.notes@0.1.0": {
 				title: "api: split router into modules",
-				summary: "Moves each service's routes into its own module.",
-				revision: 2,
 			},
-			"tartan.review": { route: "auto", risk: 0.18 },
 		},
 	},
 	events: EVENTS.slice(0, 2),
@@ -397,17 +377,3 @@ export const answerLandApi = (req: LandApiRequest): Response | null => {
 	};
 	return json(body);
 };
-
-/**
- * The mock extension's answer to an action, when it mirrors the real one
- * (else the server's generic toast): `tartan.work`'s `new-work` header
- * action navigates to the repo's Work tab.
- */
-export const mockActionResult = (
-	extId: string,
-	action: unknown,
-	ctx: SlotCtxHint,
-): ActionResponse | null =>
-	extId === "tartan.work" && action === "new-work" && ctx.node !== undefined
-		? { v: 1, navigate: `/${ctx.node}/-/work` }
-		: null;

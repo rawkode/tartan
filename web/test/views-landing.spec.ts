@@ -11,10 +11,11 @@ import { describe, expect, it, vi } from "vitest";
 import { createApi } from "../src/api/client.ts";
 import { createHttp, type FetchLike } from "../src/api/http.ts";
 import { LANE_IDS } from "../src/api/mock/coord.ts";
-import { instId, REPO_ID, SHAS } from "../src/api/mock/fixtures.ts";
+import { REPO_ID, SHAS } from "../src/api/mock/fixtures.ts";
 import { BATCH_IDS, RUN_IDS } from "../src/api/mock/land.ts";
 import { createMockFetch } from "../src/api/mock/server.ts";
 import { duration } from "../src/views/coord/landing.ts";
+import { instId, NOTES, SAMPLE_CATALOG } from "./support/catalog.ts";
 import { mountApp, recordingFetch } from "./support/app.ts";
 import {
 	byAttr,
@@ -40,26 +41,26 @@ const tabs = (root: TestElement): string[] =>
 describe("repo header actions", () => {
 	it("posts the contribution id with the narrowed ctx and follows the result", async () => {
 		const app = await mountApp(REPO);
-		const button = byAttr(app.root, "data-action", "new-work")[0]!;
+		const button = byAttr(app.root, "data-action", "new-note")[0]!;
 		expect(button.tag).toBe("button");
-		expect(text(button)).toContain("New work");
+		expect(text(button)).toContain("New note");
 		click(button);
 		await flush();
 		const post = app.calls.find((c) => c.method === "POST");
 		expect(post?.path).toBe(
-			`/-/api/slot/${instId("tartan.work")}/new-work/action`,
+			`/-/api/slot/${instId(NOTES)}/new-note/action`,
 		);
 		expect(post?.body).toEqual({
-			action: "new-work",
+			action: "new-note",
 			ctx: { node: "acme/platform/router" },
 		});
 		await vi.waitFor(() =>
-			expect(app.router.currentRoute.value.fullPath).toBe(`${REPO}/-/work`)
+			expect(app.router.currentRoute.value.fullPath).toBe(`${REPO}/-/notes`)
 		);
 	});
 
 	it("narrows a code page's hint to the repo and shows failures as a toast", async () => {
-		const inner = createMockFetch();
+		const inner = createMockFetch({ catalog: SAMPLE_CATALOG });
 		const failing: FetchLike = (input, init) =>
 			input.endsWith("/action")
 				? Promise.resolve(
@@ -74,11 +75,11 @@ describe("repo header actions", () => {
 		const app = await mountApp(`${REPO}/-/tree/main/services`, {
 			fetch: failing,
 		});
-		click(byAttr(app.root, "data-action", "new-work")[0]!);
+		click(byAttr(app.root, "data-action", "new-note")[0]!);
 		await flush();
 		const post = app.calls.find((c) => c.method === "POST");
 		expect(post?.body).toEqual({
-			action: "new-work",
+			action: "new-note",
 			ctx: { node: "acme/platform/router" },
 		});
 		expect(app.toasts.items.map((t) => [t.tone, t.text])).toContainEqual([
@@ -203,7 +204,7 @@ describe("advances and why (WP10 API)", () => {
 		);
 		expect(byAttr(app.root, "data-advance")).toHaveLength(2);
 		const t = text(app.root);
-		expect(t).toContain("tartan.radar: advise (shadow)");
+		expect(t).toContain("sample.advisor: advise (shadow)");
 		expect(t).toContain("evidence reused");
 		expect(t).toContain("(trunk not moved)");
 		expect(links(app.root)).toContain(
@@ -280,7 +281,8 @@ describe("forge home", () => {
 		expect(paths).toContain("/-/api/view?path=acme&view=home");
 		expect(links(app.root)).toContain("/acme");
 		const t = text(app.root);
-		expect(t).toContain("Active lanes");
+		expect(t).toContain("Notes");
+		expect(t).toContain("Recent sample notes");
 		expect(t).not.toContain("No forge-wide metrics yet.");
 		expect(t).not.toContain("stub");
 	});

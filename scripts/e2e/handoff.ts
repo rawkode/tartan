@@ -1,8 +1,7 @@
 // `deno task e2e -- agent`: one agent credential for work after a run (a
 // manual check, a model-driven session against the dev-e2e forge), minted
-// by `e2e-developer`'s own session and written, with the MCP URL of a pack
-// group (`e2e/swarm` by default: the e2e group itself carries no pack, so
-// its scope serves no work or lanes tool), to a 0600 file in a 0700
+// by `e2e-developer`'s own session and written, with the MCP URL of one of
+// the e2e groups (`e2e/swarm` by default), to a 0600 file in a 0700
 // directory under `.private/` or outside the checkout. The token is never
 // printed: the launcher logs only the file's path, the agent's id and its
 // expiry. The agent is named `e2e-<runId>-handoff`, so the janitor of a
@@ -11,7 +10,7 @@
 
 import * as path from "node:path";
 import type { Caller, ForgeApi } from "./forge-api.ts";
-import { makeRunId, PACK_AT } from "./provision.ts";
+import { GROUPS, makeRunId } from "./provision.ts";
 
 /** The node the agent is limited to (the e2e baseline group). */
 export const HANDOFF_NODE = "e2e";
@@ -19,17 +18,17 @@ export const HANDOFF_SCOPES = ["repo:read", "repo:write", "lanes", "mcp"];
 /** Developer (the persona's own role on `e2e`). */
 export const HANDOFF_MAX_ROLE = 30;
 export const HANDOFF_FILE = "agent.json";
-/** The pack groups whose MCP scope serves the pack's tools. */
-export const HANDOFF_GROUPS = Object.keys(PACK_AT) as readonly string[];
-/** The Swarm pack group: work, changes, lanes, radar and the Weave. */
+/** The groups whose MCP scope the handoff may name: the e2e baseline. */
+export const HANDOFF_GROUPS: readonly string[] = GROUPS;
+/** The default group the MCP URL names. */
 export const HANDOFF_GROUP = "e2e/swarm";
 
 export type Handoff = {
 	readonly version: 1;
 	readonly origin: string;
-	/** `<origin>/-/mcp/<group>`: a pack group's scope, below the agent's node. */
+	/** `<origin>/-/mcp/<group>`: an e2e group's scope, at or below the agent's node. */
 	readonly mcpUrl: string;
-	/** The pack group the MCP URL names. */
+	/** The e2e group the MCP URL names. */
 	readonly group: string;
 	readonly node: string;
 	readonly agentId: string;
@@ -103,7 +102,7 @@ export const mintHandoff = async (
 	const group = input.group ?? HANDOFF_GROUP;
 	if (!HANDOFF_GROUPS.includes(group)) {
 		throw new Error(
-			`the MCP group is a pack group (${
+			`the MCP group is an e2e group (${
 				HANDOFF_GROUPS.join(", ")
 			}), not ${group}`,
 		);

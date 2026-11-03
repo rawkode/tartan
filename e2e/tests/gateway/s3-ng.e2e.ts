@@ -12,20 +12,12 @@
 // src/constants.ts, or `stage up --echo on`). While it is off, the
 // matrix checks that no Tartan band-2 line is sent; with it on, the refusal
 // guidance is checked. The accepted-push echo test stays a pending skip
-// whatever the switch: no Swarm pack member contributes an echo yet, so
-// this suite cannot see one. The WASM suite (tests/wasm/no-secrets.e2e.ts)
-// checks an extension's echo on an accepted push; it is best-effort (within
-// `ECHO_LIMITS.totalBudgetMs`), so that suite pushes up to three times and
-// logs which push carried it.
-//
-// Untrusted text (a work item title with ESC, OSC and BEL sequences) is
-// stripped of its control characters before it reaches another agent's
-// notices (and, with echo on, its terminal).
+// whatever the switch: the echo lines come from the installations in force,
+// and this branch has none.
 
 import { writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { expect } from "e2e";
-import type { Conflict, WorkItem } from "@tartan/contract/interfaces.ts";
 import type { LaneHandle } from "@tartan/contract/interfaces.ts";
 import type { RefPolicyReason } from "@tartan/contract/security.ts";
 import { scriptedAgent } from "../../support/agent.ts";
@@ -164,12 +156,10 @@ test.describe("The synthesized ng through the product gateway", {
 	test(
 		"an accepted lane push carries Tartan's band-2 lines before git's own end",
 		{
-			// An accepted push carries the echo of the installations in force
-			// (its echo); no Swarm member has an `echo` contribution yet
-			// (radar's sideband is a stretch), so this repo gets none. The WASM
-			// suite checks acme.no-secrets' echo lines on a real push.
+			// An accepted push carries the echo of the installations in force;
+			// no extension is installed on this branch, so a repo gets none.
 			skip:
-				"pending: no Swarm pack member contributes an echo yet (radar's sideband echo); tests/wasm/no-secrets.e2e.ts checks an extension's echo on an accepted push",
+				"pending: no installed extension contributes an echo on this branch",
 			tags: ["echo", "agent", "pending"],
 			timeout: 300_000,
 		},
@@ -195,87 +185,4 @@ test.describe("The synthesized ng through the product gateway", {
 			expect(controlsIn(pushed.stdout + pushed.stderr)).toEqual([]);
 		},
 	);
-
-	test("ESC, OSC and BEL in a work title never reach another agent", {
-		tags: ["agent", "radar", "n2"],
-		timeout: 300_000,
-	}, async ({ stage, workdir }) => {
-		// A claims an item whose title carries terminal escapes; both agents
-		// then edit one file, B first: A's push is the one radar reacts to,
-		// so it tells B about A's lane, title included.
-		const repo = await fixtureRepo(stage, "swarm", "s3-escapes");
-		const a = scriptedAgent(stage, PACK_GROUP.swarm, "A");
-		const b = scriptedAgent(stage, PACK_GROUP.swarm, "B");
-		const hostile =
-			`Pwn\u001b]0;owned\u0007 \u001b[31mred\u001b[0m \u009b2J ${stage.runId}`;
-		const lanes: Record<"A" | "B", string> = { A: "", B: "" };
-		for (
-			const [agent, title] of [[b, `Plain ${stage.runId}`], [
-				a,
-				hostile,
-			]] as const
-		) {
-			const item = await agent.mcp.call<WorkItem>("work_create", {
-				repo: repo.path,
-				kind: "intent",
-				title,
-			});
-			const claim = await agent.mcp.call<{ lane: LaneHandle }>("work_claim", {
-				ref: item.ref,
-			});
-			const lane = await agent.awaitOpen(repo.path, claim.lane);
-			const clone = await agent.clone(workdir, repo.remote);
-			await agent.runLane(lane.git.start, clone);
-			await writeFile(
-				path.join(clone, "docs", "guide.md"),
-				`# Guide\n\n${agent.name} was here.\n`,
-			);
-			await agent.commit(clone, `S3 escapes ${agent.name}`);
-			const pushed = await agent.gitResult(clone, [
-				"push",
-				// The lane's own remote: the canonical repo for a branch lane, its
-				// lane remote for a `repo` lane.
-				lane.remote,
-				`HEAD:${lane.ref}`,
-			]);
-			expect(pushed.code, `agent ${agent.name} pushes its lane`).toBe(0);
-			expect(controlsIn(pushed.stdout + pushed.stderr)).toEqual([]);
-			lanes[agent.name] = lane.id;
-		}
-		// Radar's conflict exists, and one of B's next results carries the
-		// notice about A's lane with the title's text but none of its
-		// controls. A notice is delivered once, so every result B gets from
-		// here on is read for it (the structured notices and the text block).
-		const notices: string[] = [];
-		const texts: string[] = [];
-		const told = () => notices.some((n) => n.includes(lanes.A));
-		await expect.poll(async () => {
-			const result = await b.mcp.callFull<{ conflicts: Conflict[] }>(
-				"conflicts_list",
-				{ repo: repo.path },
-			);
-			notices.push(...result.notices.map((n) => n.text));
-			texts.push(result.text);
-			return result.value.conflicts.some((x) =>
-				new Set([x.a, x.b]).has(lanes.A) && new Set([x.a, x.b]).has(lanes.B)
-			);
-		}, { timeout: 120_000, interval: 2_000, message: "radar saw no conflict" })
-			.toBe(true);
-		await expect.poll(async () => {
-			if (told()) return true;
-			const result = await b.mcp.callFull("lanes_get", {
-				repo: repo.path,
-				laneId: lanes.B,
-			});
-			notices.push(...result.notices.map((n) => n.text));
-			texts.push(result.text);
-			return told();
-		}, { timeout: 120_000, interval: 2_000, message: "B was never told" })
-			.toBe(true);
-		const notice = notices.find((n) => n.includes(lanes.A)) ?? "";
-		expect(controlsIn(notice), "the notice has no control character")
-			.toEqual([]);
-		expect(controlsIn(texts.join("\n")), "nor the results' text").toEqual([]);
-		expect(notice, "the title's printable text survives").toContain("owned");
-	});
 });

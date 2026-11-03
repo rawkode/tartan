@@ -5,6 +5,10 @@ A repository configures its CI pipeline, its review owners, its projects and som
 with the official `cue` command-line tool (v0.17.1) in a sandbox, checks the result, and applies it from the
 default branch only. Design: [`design/ADR-repo-config-cue.md`](design/ADR-repo-config-cue.md).
 
+> **Spike branch (`spike/strip-down`).** The CI pipeline (`tartan.ci`), review owners (`tartan.review`) and Weave
+> settings below came from first-party extensions that this branch removed. What stays is the kernel's part: the root
+> package `tartan`, its evaluation, previews and sign-offs, and the `projects` and `global` keys.
+
 Repository config is **off** unless the forge was deployed with `--repo-config` ([`deploy.md`](deploy.md)). While it
 is off, nothing is evaluated: CI runs zero-config, review has no owners rules, and the project graph uses its
 detectors only.
@@ -95,7 +99,7 @@ file, the position and the import. Repository-local and registry imports are pla
 ## Checking it before you push
 
 ```sh
-tartan config schema --repo acme/platform/api --out /tmp/tartan-schema
+tt config schema --repo acme/platform/api --out /tmp/tartan-schema
 cp *.cue /tmp/tartan-schema/ && cd /tmp/tartan-schema
 CUE_REGISTRY=none cue export -E --out json .:tartan
 ```
@@ -103,7 +107,7 @@ CUE_REGISTRY=none cue export -E --out json .:tartan
 That prints exactly what the forge evaluates. In the repository itself, `cue export .:tartan` gives the same values
 without the forge's closedness checks.
 
-On a lane, `tartan config vet --lane <id>` (or the MCP tool `repo_config_preview`) evaluates the lane head and shows
+On a lane, `tt config vet --repo <path> --lane <id>` (or the MCP tool `repo_config_preview`) evaluates the lane head and shows
 the plan, the CUE errors and the forge's denials. The MCP tools `repo_config_get`, `repo_config_schema` and
 `repo_config_result` read the state, the schema and a preview's result.
 

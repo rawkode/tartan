@@ -270,7 +270,7 @@ export const createMockProjects = (): MockProjects => {
 			return p
 				? {
 					...listing(p),
-					provider: "tartan.work",
+					provider: "sample.work",
 					items: ITEMS.filter((i) => i.on.includes(p.name)).map(strip),
 				}
 				: null;
@@ -281,7 +281,7 @@ export const createMockProjects = (): MockProjects => {
 				? {
 					...listing(p),
 					scanned: CHANGES.length,
-					provider: "tartan.changes",
+					provider: "sample.changes",
 					changes: CHANGES.filter((c) => c.on.includes(p.name)).map(strip),
 				}
 				: null;

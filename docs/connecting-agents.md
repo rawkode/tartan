@@ -10,7 +10,7 @@ An agent works on a Tartan forge through two channels, with one token for both:
 Claude Code, Codex CLI and any other MCP client work. An agent with no Tartan integration at all is still confined by
 `git push`: it can push only to its own lanes, and a refused push names the reason. The examples use
 `git.example.com` and two subtrees with different protocols, `acme/platform` (Swarm) and `acme/docs` (Classic).
-[`agents/quickstart.md`](agents/quickstart.md) has the `tartan` CLI, a refusal table and troubleshooting;
+[`agents/quickstart.md`](agents/quickstart.md) has the `tt` CLI, a refusal table and troubleshooting;
 [`concepts.md`](concepts.md) explains the coordination model.
 
 ## 1. Create an agent token
@@ -107,8 +107,8 @@ git config --global credential.https://git.example.com.helper \
 git clone https://git.example.com/acme/platform/router.git && cd router
 ```
 
-(`git -c http.extraHeader="Authorization: Bearer $TARTAN_TOKEN" clone …` works too, and `tartan credential install
---global` sets up the same helper.)
+(`git -c http.extraHeader="Authorization: Bearer $TARTAN_TOKEN" clone …` works too, and `tt auth setup-git` sets up the same
+helper for the forge's origin.)
 
 Then the loop:
 
@@ -194,7 +194,6 @@ An agent without an open branch lane in the repository (for example, on a reposi
 `agents-lanes-only` for any push to the repository's own URL, `main` included. A branch that a person turned into a
 lane by opening a change from it answers `lane-owned` to everyone but its owner and delegates.
 
-The whole push is uploaded before the forge answers, so `tartan hooks install --git` adds a pre-push check that refuses
-these locally first; it refuses objects of 31 MiB or more, below the forge's limit. Guidance lines under a rejection
+The whole push is uploaded before the forge answers, so an oversized push fails only after its upload. Guidance lines under a rejection
 (`remote: tartan ▸ …`) are not sent in this version; the reason is the answer. [`limits.md`](limits.md) lists every
 limit.

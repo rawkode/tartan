@@ -55,20 +55,20 @@ describe("advances model", () => {
 	it("counts enforced vetoes and what shadow gates would have vetoed", () => {
 		const list = [
 			advance(1, [
-				{ ext: "acme.no-secrets@1.0.0", decision: "veto", mode: "shadow" },
+				{ ext: "sample.gate@0.1.0", decision: "veto", mode: "shadow" },
 			]),
 			advance(2, [
-				{ ext: "acme.no-secrets@1.0.0", decision: "veto", mode: "shadow" },
-				{ ext: "tartan.radar", decision: "veto", mode: "shadow" },
+				{ ext: "sample.gate@0.1.0", decision: "veto", mode: "shadow" },
+				{ ext: "sample.advisor", decision: "veto", mode: "shadow" },
 			]),
 			advance(3, [{
-				ext: "acme.no-secrets@1.0.0",
+				ext: "sample.gate@0.1.0",
 				decision: "allow",
 				mode: "shadow",
 			}]),
 			advance(
 				4,
-				[{ ext: "tartan.review", decision: "veto", mode: "enforce" }],
+				[{ ext: "sample.review", decision: "veto", mode: "enforce" }],
 				"failed",
 			),
 			advance(5, undefined, "locked"),
@@ -81,8 +81,8 @@ describe("advances model", () => {
 		expect(s.vetoed).toBe(1);
 		expect(s.shadowVetoes).toBe(2);
 		expect(s.shadowByExt).toEqual([
-			{ ext: "acme.no-secrets@1.0.0", vetoes: 2 },
-			{ ext: "tartan.radar", vetoes: 1 },
+			{ ext: "sample.gate@0.1.0", vetoes: 2 },
+			{ ext: "sample.advisor", vetoes: 1 },
 		]);
 		expect(list.filter((a) => matchesFilter(a, "gated"))).toHaveLength(4);
 		expect(list.filter((a) => matchesFilter(a, "veto")).map((a) => a.id))

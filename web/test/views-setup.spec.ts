@@ -2,7 +2,7 @@
 // the fragment token (never displayed), environment checks with the
 // container retry, name and origin, "paste your issuer URL" (DCR, the
 // optional initial access token, the manual fallback), the claim link, and
-// the post-claim steps (lane self-test shown, never applied; pack; root key).
+// the post-claim steps (lane self-test shown, never applied; root key).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FetchLike } from "../src/api/http.ts";
@@ -275,7 +275,7 @@ describe("setup wizard: pre-claim", () => {
 });
 
 describe("setup wizard: post-claim", () => {
-	it("runs the lane self-test, installs a pack, and offers the root key once", async () => {
+	it("runs the lane self-test, then content, and offers the root key once", async () => {
 		const app = await mountApp("/-/setup", { mock: { setupState: "done" } });
 		await flush();
 		expect(title(app.root)).toBe("Lane self-test");
@@ -290,22 +290,6 @@ describe("setup wizard: post-claim", () => {
 		);
 		click(button(app.root, "Continue"));
 		await flush();
-		expect(title(app.root)).toBe("Protocol");
-		// The pack goes to the owner's root namespace through WP7a's install API.
-		expect(input(app.root, "pack-node").value).toBe("rawkode");
-		submit(byTag(app.root, "form")[0]!);
-		await flush();
-		expect(
-			app.calls.find((c) =>
-				c.path === "/-/api/installations" && c.method === "POST"
-			)?.body,
-		).toEqual({
-			extId: "tartan.pack.swarm",
-			version: "0.1.0",
-			node: "rawkode",
-			mode: "enforce",
-		});
-		expect(app.calls.some((c) => c.path.endsWith("/pack"))).toBe(false);
 		expect(title(app.root)).toBe("Content");
 		click(button(app.root, "Skip for now"));
 		await flush();
@@ -355,15 +339,13 @@ describe("setup wizard: post-claim", () => {
 		expect(writes.map((c) => c.path)).toEqual(["/-/api/admin/selftest/lanes"]);
 		click(button(app.root, "Continue"));
 		await flush();
-		expect(title(app.root)).toBe("Protocol");
+		expect(title(app.root)).toBe("Content");
 	});
 
 	it("creates a first group and repository (sample) in the content step", async () => {
 		const app = await mountApp("/-/setup", { mock: { setupState: "done" } });
 		await flush();
 		click(button(app.root, "Continue"));
-		await flush();
-		submit(byTag(app.root, "form")[0]!);
 		await flush();
 		type(input(app.root, "slug"), "studio");
 		submit(byTag(app.root, "form")[0]!);

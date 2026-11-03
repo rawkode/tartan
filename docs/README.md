@@ -3,13 +3,18 @@
 Start with the [README](../README.md): what Tartan is, why it is agent-native, the status of each feature, the
 one-command deploy and how to connect an agent.
 
+> **Spike branch (`spike/strip-down`).** This branch removed the first-party extensions and packs (`tartan.work`,
+> `tartan.changes`, `tartan.board`, `tartan.radar`, `tartan.ci`, `tartan.review`, `tartan.weave`, `tartan.fifo`,
+> `tartan.epics`, `tartan.hud`, the Swarm and Classic packs) and the `acme.no-secrets` demo. Guides that describe work
+> items, changes, radar, CI, review, the Weave or the packs describe code that is not on this branch.
+
 ## Using Tartan
 
 | Page                                           | For                                                                                                                              |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | [`concepts.md`](concepts.md)                   | the coordination model: lanes, claims and footprints, conflict radar, the Weave, Advances, why-notes, protocol packs, scoped MCP |
 | [`connecting-agents.md`](connecting-agents.md) | connecting Claude Code, Codex CLI or any MCP client: agent tokens, MCP, `/-/agents.md` and the lane flow with stock git          |
-| [`agents/quickstart.md`](agents/quickstart.md) | the quick reference: the `tartan` CLI, what the forge refuses, troubleshooting                                                   |
+| [`agents/quickstart.md`](agents/quickstart.md) | the quick reference: the `tt` CLI, what the forge refuses, troubleshooting                                                       |
 | [`repo-config.md`](repo-config.md)             | repository config: the root CUE package `tartan` (pipeline, owners, projects, extensions)                                        |
 | [`limits.md`](limits.md)                       | push, import and lane limits, and where each is enforced                                                                         |
 

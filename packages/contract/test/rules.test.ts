@@ -446,7 +446,7 @@ Deno.test("entry.builtin is for bundled packages only", () => {
 });
 
 Deno.test("pack members may carry an Owner-approved backgroundRole", async () => {
-	const swarm = await readJson("../../extensions/packs/swarm/tartan.json");
+	const swarm = await readJson("test/fixtures/swarm-pack.json");
 	const parsed = parseManifest(swarm);
 	ok(parsed.ok);
 	const roles = Object.fromEntries(
@@ -468,7 +468,7 @@ Deno.test("pack members may carry an Owner-approved backgroundRole", async () =>
 
 Deno.test("tartan.review's ref.advance gate fails closed", async () => {
 	const review = parseManifest(
-		await readJson("../../extensions/review/tartan.json"),
+		await readJson("test/fixtures/review-manifest.json"),
 	);
 	ok(review.ok);
 	equal(review.ok && review.manifest.gates?.[0].default, "veto");

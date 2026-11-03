@@ -36,7 +36,7 @@ const KERNEL_ONLY =
 const SOURCE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 const SKIP_DIRS = new Set(["node_modules", "dist", "target", ".wrangler"]);
 
-type Violation = {
+export type Violation = {
 	readonly file: string;
 	readonly specifier: string;
 	readonly reason: string;
@@ -145,12 +145,14 @@ const checkExtension = async (extensionRoot: string): Promise<Violation[]> => {
 	return violations;
 };
 
-const main = async (): Promise<number> => {
-	const root = (Deno.args[0] ?? "extensions").replace(/\/+$/, "");
-	if (!(await isDir(root))) {
-		console.log(`check-imports: no ${root}/ directory, nothing to check`);
-		return 0;
-	}
+/**
+ * Every forbidden import under `root` (one extension per child directory),
+ * or null when `root` is not a directory. No extension is no violation.
+ */
+export const checkRoot = async (
+	root: string,
+): Promise<{ extensions: number; violations: Violation[] } | null> => {
+	if (!(await isDir(root))) return null;
 	const extensions: string[] = [];
 	for await (const entry of Deno.readDir(root)) {
 		if (entry.isDirectory && !SKIP_DIRS.has(entry.name)) {
@@ -159,6 +161,17 @@ const main = async (): Promise<number> => {
 	}
 	const violations = (await Promise.all(extensions.sort().map(checkExtension)))
 		.flat();
+	return { extensions: extensions.length, violations };
+};
+
+const main = async (): Promise<number> => {
+	const root = (Deno.args[0] ?? "extensions").replace(/\/+$/, "");
+	const result = await checkRoot(root);
+	if (result === null) {
+		console.log(`check-imports: no ${root}/ directory, nothing to check`);
+		return 0;
+	}
+	const { violations } = result;
 	if (violations.length > 0) {
 		for (const v of violations) {
 			console.error(`${v.file}: "${v.specifier}" — ${v.reason}`);
@@ -166,7 +179,7 @@ const main = async (): Promise<number> => {
 		console.error(`check-imports: ${violations.length} forbidden import(s)`);
 		return 1;
 	}
-	console.log(`check-imports: ${extensions.length} extension(s) clean`);
+	console.log(`check-imports: ${result.extensions} extension(s) clean`);
 	return 0;
 };
 

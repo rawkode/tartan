@@ -1,5 +1,5 @@
 // State shared by the tests of one run across e2e's worker processes, so a
-// flow that spans several tests (the M1 loop, the changes group) can be
+// flow that spans several tests (the lanes, gateway and CUE suites) can be
 // built once and checked by independent tests: a failed check never skips
 // the next one, and each test names the step it checks.
 //
@@ -72,7 +72,7 @@ const sleep = (ms: number): Promise<void> =>
 
 /**
  * How long a waiter waits for another worker's outcome by default: longer
- * than any stage takes (the M1 loop's land waits up to 20 minutes after CI),
+ * than any stage takes (a repo's config evaluation waits up to 5 minutes),
  * so the waiting test's own timeout is what bounds it.
  */
 export const DEFAULT_WAIT_MS = 60 * 60_000;

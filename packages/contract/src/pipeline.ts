@@ -1,6 +1,5 @@
-// JobGraph: the input of `caps.runs.start` and RunWorkflow. `packages/pipeline`
-// (WP14) plans the `tartan.ci` pipeline (repo policy, ADR repo config) into
-// this shape; kernel git jobs (WP10) build it directly with `argv`.
+// JobGraph: the input of `caps.runs.start` and RunWorkflow. Kernel git jobs
+// (WP10) build it directly with `argv`; extensions that run CI plan into it.
 
 import { z } from "zod";
 import { GitSourceSchema, RepoRefSchema, ShaSchema } from "./common.ts";

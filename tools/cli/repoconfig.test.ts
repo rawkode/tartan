@@ -1,4 +1,4 @@
-// `tartan config show|vet|schema` (WP23) against the local forge stand-in:
+// `tt config show|vet|schema` against the local forge stand-in:
 // the MCP tools each command calls, vet's polling and exit codes, and that
 // `schema` writes only the schema's own paths plus a local module file.
 
@@ -17,7 +17,7 @@ const KEY = "b".repeat(64);
 
 const setup = async () => {
 	const forge = startFakeForge({ token: TOKEN });
-	const dir = await Deno.makeTempDir({ prefix: "tartan-cli-config-" });
+	const dir = await Deno.makeTempDir({ prefix: "tt-cli-config-" });
 	const env: Record<string, string> = {
 		TARTAN_URL: forge.origin,
 		TARTAN_TOKEN: TOKEN,

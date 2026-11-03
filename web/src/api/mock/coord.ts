@@ -9,7 +9,6 @@ import type { Envelope } from "@tartan/contract/events.ts";
 import {
 	AGENTS,
 	CHANGE_ID,
-	instId,
 	MOCK_NOW,
 	mockUlid,
 	OWNER_ID,
@@ -146,19 +145,20 @@ export const LANES: readonly LaneDto[] = [
 /** `stream` as the contract types it (`repo:<id>`). */
 const STREAM = `repo:${REPO_ID}` as const;
 
-/** Interface events come from the installation that provides the interface. */
+/**
+ * Interface events come from the installation that provides the interface;
+ * here a sample provider per interface (the mock forge installs none).
+ */
 const PROVIDER: Readonly<Record<string, Envelope["source"]>> = Object
 	.fromEntries(
-		([
-			["work", "tartan.work"],
-			["changes", "tartan.changes"],
-			["conflicts", "tartan.radar"],
-			["checks", "tartan.ci"],
-		] as const).map(([ns, ext]) => [ns, {
-			kind: "installation",
-			id: instId(ext),
-			ext: `${ext}@0.1.0`,
-		}]),
+		(["work", "changes", "conflicts", "checks"] as const).map((ns, i) => [
+			ns,
+			{
+				kind: "installation",
+				id: `i_${mockUlid(501 + i)}`,
+				ext: `sample.${ns}@0.1.0`,
+			},
+		]),
 	);
 
 let seq = 0;
@@ -283,7 +283,7 @@ export const EVENTS: readonly Envelope[] = [
 		ref: "refs/heads/main",
 		changes: [{ changeId: CHANGE_ID_2, laneId: LANE_IDS.docs, head: sha(15) }],
 		reasonEvents: [],
-		requestedBy: "tartan.weave",
+		requestedBy: "sample.queue",
 		testPolicy: "checks",
 	}),
 	push(LANE_IDS.web, MOCK_NOW - 12 * MIN, sha(13), CLAUDE),

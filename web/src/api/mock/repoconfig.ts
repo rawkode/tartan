@@ -9,9 +9,10 @@
 //   DELETE /-/api/repos/<repoId>/lanes/<laneId>/policy-signoff?head=<sha>
 //   GET    /-/api/nodes/<nodeId>/config-approvals
 //
-// The sample repo's trunk has `tartan.cue` (package tartan: the CI
-// pipeline); the lane of the change on the change page adds a Weave overlay
-// and an approved own install, so the change card has a plan to show.
+// The sample repo's trunk has `tartan.cue` (package tartan: a pipeline for a
+// sample CI extension); the lane of the change on the change page adds a
+// queue overlay and an approved own install, so the change card has a plan
+// to show. Extension ids are samples: the mock forge installs none.
 
 import type { NodeDto } from "@tartan/contract/api.ts";
 import type {
@@ -23,14 +24,14 @@ import type {
 	RepoConfigStateDto,
 } from "@tartan/contract/repoconfig.ts";
 import { LANE_IDS, LANES } from "./coord.ts";
-import {
-	instId,
-	MOCK_NOW,
-	mockUlid,
-	OWNER_ID,
-	REPO_ID,
-	SHAS,
-} from "./fixtures.ts";
+import { MOCK_NOW, mockUlid, OWNER_ID, REPO_ID, SHAS } from "./fixtures.ts";
+
+/** Sample installation ids (the coordination fixtures use the same). */
+const INST = {
+	ci: `i_${mockUlid(504)}`,
+	review: `i_${mockUlid(505)}`,
+	queue: `i_${mockUlid(506)}`,
+} as const;
 
 const MIN = 60_000;
 const EVALUATOR = "cue@v0.17.1/cli+job@2+rules@2";
@@ -61,9 +62,9 @@ const PIPELINE = {
 export const CONFIG_APPROVALS: readonly ConfigApprovalDto[] = [{
 	nodeId: ACME,
 	nodePath: "acme",
-	extId: "acme.no-secrets",
+	extId: "sample.gate",
 	version: "0.2.0",
-	packageSha256: hex("no-secrets-0.2.0"),
+	packageSha256: hex("sample-gate-0.2.0"),
 	backgroundRole: 20,
 	approvedBy: OWNER_ID,
 	approvedAt: MOCK_NOW - 3 * 24 * 60 * MIN,
@@ -114,10 +115,10 @@ const trunkState = (): RepoConfigStateDto => ({
 	updatedAt: MOCK_NOW - 2 * 60 * MIN,
 	effective: [
 		{
-			extId: "tartan.ci",
+			extId: "sample.ci",
 			version: "0.1.0",
 			mode: "enforce",
-			installationId: instId("tartan.ci"),
+			installationId: INST.ci,
 			nodePath: "acme",
 			source: "inherited",
 			overridable: [],
@@ -127,10 +128,10 @@ const trunkState = (): RepoConfigStateDto => ({
 			hasGates: true,
 		},
 		{
-			extId: "tartan.review",
+			extId: "sample.review",
 			version: "0.1.0",
 			mode: "enforce",
-			installationId: instId("tartan.review"),
+			installationId: INST.review,
 			nodePath: "acme",
 			source: "inherited",
 			overridable: [],
@@ -140,10 +141,10 @@ const trunkState = (): RepoConfigStateDto => ({
 			hasGates: true,
 		},
 		{
-			extId: "tartan.weave",
+			extId: "sample.queue",
 			version: "0.1.0",
 			mode: "enforce",
-			installationId: instId("tartan.weave"),
+			installationId: INST.queue,
 			nodePath: "acme",
 			source: "inherited",
 			overridable: ["batch", "debounceMs"],
@@ -186,20 +187,20 @@ const lanePreview = (): RepoConfigPreviewDto => ({
 	plan: [
 		{
 			op: "overlay",
-			extId: "tartan.weave",
-			installationId: instId("tartan.weave"),
+			extId: "sample.queue",
+			installationId: INST.queue,
 			nodePath: "acme",
 			changes: [{ key: "batch", from: 4, to: 2 }],
-			text: "overlay tartan.weave (inherited from /acme): batch 4 → 2",
+			text: "overlay sample.queue (inherited from /acme): batch 4 → 2",
 		},
 		{
 			op: "install",
-			extId: "acme.no-secrets",
+			extId: "sample.gate",
 			version: "0.2.0",
 			mode: "enforce",
 			enabled: true,
 			settings: { severity: "hunk", allow: ["services/api/fixtures/**"] },
-			text: "install acme.no-secrets 0.2.0 (enforce)",
+			text: "install sample.gate 0.2.0 (enforce)",
 		},
 	],
 	evaluatedAt: MOCK_NOW - 3 * MIN,

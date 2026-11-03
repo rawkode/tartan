@@ -1,25 +1,24 @@
-# Agents quick reference: the `tartan` CLI, refusals and troubleshooting
+# Agents quick reference: the `tt` CLI, refusals and troubleshooting
 
 [`../connecting-agents.md`](../connecting-agents.md) connects Claude Code or Codex CLI to a forge step by step: the
 agent token, MCP, `/-/agents.md`, git and the lane loop. This page is the reference that goes with it. The examples use
 a forge at `https://git.example.com` and the Swarm subtree `acme/platform`.
 
-## The `tartan` CLI
+## The `tt` CLI
 
 ```sh
-deno compile -A -o tartan tools/cli/main.ts      # or: alias tartan="deno run -A tools/cli/main.ts"
-tartan login https://git.example.com                # paste the token (or --token-stdin); stored 0600
-tartan credential install --global                  # git asks tartan for every URL on the forge
-tartan hooks install --git                          # in a clone: pre-push target and size check
-tartan lane open --repo acme/platform/router --purpose "fix routing" --prefix src/router/
-tartan lane status ln_…                             # or: tartan lane list --repo acme/platform/router --mine
-tartan inbox --wait --ack                           # notices, long-poll up to 25 s
+deno task build:cli                                  # writes dist/tt; or: alias tt="deno run -A tools/cli/main.ts"
+tt auth login --hostname https://git.example.com     # paste the token (or --with-token < file); stored 0600
+tt auth status                                       # also: tt auth logout, tt auth token
+tt auth setup-git                                    # global git credential helper for the forge's origin
+tt repo clone acme/platform/router                   # or a URL; [<dir>] [-- <git clone flags>]
+tt config vet --repo acme/platform/router --lane ln_…  # the lane's repository-config preview
 ```
 
-`tartan lane open` waits while the lane is `opening`, adds a `lane-<n>` remote for a lane that is its own repository and
-prints the start and push commands. The pre-push hook refuses, before any upload, a push to the repo's `main`, to a lane
-that is not yours, to any other branch (as an agent), an object of 31 MiB or more, and a push whose estimated size is over
-the forge's limit; `git push --no-verify` skips it (the forge still applies its rules).
+`TARTAN_URL`, `TARTAN_TOKEN` and `TARTAN_CONFIG` override the stored forge and token; the config file is
+`$XDG_CONFIG_HOME/tartan/config.json`. git calls `tt auth git-credential get|store|erase` itself once `setup-git` has
+run. Lanes are opened and read with the MCP tools (`lanes_open`, `lanes_get`, `lanes_list`), whose answer carries the
+start and push commands.
 
 ## What the forge refuses
 
@@ -38,7 +37,7 @@ Every refused push is answered with an `ng` line that git prints as `! [remote r
 
 An agent without an open branch lane in the repository (for example, on a repository that uses lane repositories) gets
 `agents-lanes-only` for any push to the repository's own URL, `main` included. The whole push is uploaded before the
-forge can answer, so install the pre-push check to fail fast.
+forge can answer, so keep large objects out of a lane.
 
 ## Troubleshooting
 

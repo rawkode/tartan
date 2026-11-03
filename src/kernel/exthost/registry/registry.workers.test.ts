@@ -22,6 +22,7 @@ import type {
 import { describe, expect, it } from "vitest";
 import { testEnv as env, uniqueName } from "../../../../test/env.ts";
 import { builtins } from "../../../builtins.ts";
+import { legacyBuiltins } from "../host/testing/legacy-builtins.ts";
 import {
 	createRouter,
 	ROUTES,
@@ -103,13 +104,12 @@ describe("registry in the real ForgeDO", () => {
 		);
 		expect(packages.every((p) => p.bundled && /^[0-9a-f]{64}$/.test(p.sha256)))
 			.toBe(true);
-		const version = await registry.extVersion();
-		expect(version).toBe(1);
 		// Re-registering the same bundle is a no-op.
+		const version = await registry.extVersion();
 		await registry.registerBuiltins(
 			builtins.all().map((p) => p.manifest),
 		);
-		expect(await registry.extVersion()).toBe(1);
+		expect(await registry.extVersion()).toBe(version);
 		// Promote is served over RPC: an unknown installation is not found.
 		const error = await registry.promote(OWNER, "i_x").catch((
 			e: unknown,
@@ -143,7 +143,10 @@ describe("registry on DO SQLite", () => {
 				clock: { now: () => Date.now() },
 				ids: { ulid: createUlid() },
 			} as unknown as RegistryDeps;
-			const registry = createRegistry(deps, { builtins: () => builtins.all() });
+			const registry = createRegistry(deps, {
+				builtins: () => legacyBuiltins.all(),
+			});
+			registry.registerBuiltinsSync(legacyBuiltins.all());
 			const f = registry.facade;
 			const pack = await f.install(OWNER, {
 				extId: "tartan.pack.swarm",
@@ -156,7 +159,8 @@ describe("registry on DO SQLite", () => {
 			expect(inForce.filter((i) => i.installation.pack === pack.extId).length)
 				.toBe(
 					1 +
-						(builtins.get("tartan.pack.swarm")!.manifest.members ?? []).length,
+						(legacyBuiltins.get("tartan.pack.swarm")!.manifest.members ?? [])
+							.length,
 				);
 			expect((await f.provider("queue@1", repoId))?.installation.extId).toBe(
 				"tartan.weave",
@@ -224,7 +228,11 @@ describe("registry on DO SQLite", () => {
 				clock: { now: () => Date.now() },
 				ids: { ulid: createUlid() },
 			} as unknown as RegistryDeps;
-			const f = createRegistry(deps, { builtins: () => builtins.all() }).facade;
+			const registry = createRegistry(deps, {
+				builtins: () => legacyBuiltins.all(),
+			});
+			registry.registerBuiltinsSync(legacyBuiltins.all());
+			const f = registry.facade;
 			const install = (extId: string, node: string) =>
 				f.install(OWNER, { extId, version: "0.1.0", node, mode: "enforce" });
 			await install("tartan.pack.swarm", "rawkode");

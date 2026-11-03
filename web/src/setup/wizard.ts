@@ -4,7 +4,7 @@
 //   fresh     → unlock (setup token from the URL fragment, or the logs code)
 //   unlocked  → environment checks → name and origin → identity provider
 //   idp       → claim ("sign in to become owner", a sign-in with purpose bootstrap)
-//   done      → (signed-in admin) lane self-test → protocol pack → content →
+//   done      → (signed-in admin) lane self-test → content →
 //               people and agents → root key (button path only) → finished
 //   done      → (anyone else) "this forge is set up" + sign in
 
@@ -15,7 +15,6 @@ export type WizardStep =
 	| "idp"
 	| "claim"
 	| "selftest"
-	| "pack"
 	| "content"
 	| "people"
 	| "secret"
@@ -34,7 +33,6 @@ export const PRE_CLAIM: readonly WizardStep[] = [
 
 export const postClaimSteps = (rootKeyFallback: boolean): WizardStep[] => [
 	"selftest",
-	"pack",
 	"content",
 	"people",
 	...(rootKeyFallback ? ["secret" as const] : []),
@@ -48,7 +46,6 @@ export const STEP_LABELS: Readonly<Record<WizardStep, string>> = {
 	idp: "Identity provider",
 	claim: "Claim ownership",
 	selftest: "Lane self-test",
-	pack: "Protocol",
 	content: "Content",
 	people: "People and agents",
 	secret: "Root key",

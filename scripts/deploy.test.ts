@@ -1205,7 +1205,11 @@ Deno.test("--build-ext: each extension package is built after the SPA and before
 			build < lines.findIndex((l) => l.startsWith("npx wrangler deploy -c")),
 		);
 	}
-	assert(w.logs.some((l) => l.includes("PUT /-/api/packages")));
+	assert(
+		EXT_PACKAGES.length === 0
+			? w.logs.some((l) => l.includes("no WASM extension package"))
+			: w.logs.some((l) => l.includes("PUT /-/api/packages")),
+	);
 });
 
 Deno.test("--build-ext: a missing toolchain stops before anything is built or deployed", async () => {

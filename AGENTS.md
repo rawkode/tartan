@@ -16,6 +16,10 @@ Sources of truth, in order:
 If the code and [`docs/design/OVERVIEW.md`](docs/design/OVERVIEW.md) disagree, open an issue instead of quietly
 diverging.
 
+On the `spike/strip-down` branch, `extensions/` and `packages/pipeline` are removed: no first-party extension or pack
+is bundled (`BUILTIN_SOURCES` is empty), and Issues will be the first extension, a WASM package. The extension rules
+below still apply to it.
+
 ## House style
 
 - Tabs everywhere (`.editorconfig`), `deno fmt`, line width 80, markdown prose not rewrapped. YAML uses spaces.
@@ -132,7 +136,7 @@ Test file conventions:
   conformance test, `kernel/exthost/api/slot-conformance.workers.test.ts`, run alone). The `web` project runs the SPA's
   specs, the coordination views' included. `vitest.config.ts` `GROUP_ORDER` has the order.
 
-Live tasks (`deploy`, `destroy`, `smoke`, `live`, `build:ext`, `e2e`, `seed`, `reset`) act on a deployed stage. Only
+Live tasks (`deploy`, `destroy`, `smoke`, `live`, `build:ext`, `e2e`) act on a deployed stage. Only
 deploy `dev` or `dev-*` stages. Never deploy production, and never delete anything outside a dev stage.
 
 Match the evidence to the claim. A formatter pass, type check, unit test, workerd test, dry run, deploy and live smoke

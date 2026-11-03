@@ -1,10 +1,9 @@
-// `tartan config` (WP23, reviewed by WP11; ADR repo config "MCP, CLI and
-// HTTP"): Tartan config is the CUE package `tartan` of a repo's
-// root `*.cue` files.
+// `tt config` (ADR repo config "MCP, CLI and HTTP"): Tartan config is the CUE
+// package `tartan` of a repo's root `*.cue` files.
 //
-//   tartan config show --repo <path> [--json]
-//   tartan config vet [--repo <path>] [--lane <id>] [--wait <s>] [--json]
-//   tartan config schema --repo <path> --out <dir>
+//   tt config show --repo <path> [--json]
+//   tt config vet --repo <path> [--lane <id>] [--wait <s>] [--json]
+//   tt config schema --repo <path> --out <dir>
 //
 // `vet` previews a lane (the current branch's `lanes/<id>` by default) and
 // polls the result; it never signs off or applies (a person does that in a
@@ -29,7 +28,6 @@ import {
 	requireCredential,
 	UsageError,
 } from "./commands.ts";
-import { readLanes } from "./lanes.ts";
 import { createMcpClient, type ToolAnswer } from "./mcp.ts";
 
 const POLL_MS = 2_000;
@@ -38,8 +36,8 @@ const POLL_MS = 2_000;
 export const SCHEMA_PATH_RE =
 	/^(cue\.mod\/pkg\/tartan\.dev\/ext\/ext\.cue|cue\.mod\/pkg\/tartan\.dev\/ext\/x\/[a-z0-9_]{1,64}\/settings\.cue|~tartan\.cue)$/;
 
-const repoOf = (args: Args, fallback?: string): string => {
-	const repo = flag(args, "repo") ?? args.positional[0] ?? fallback;
+const repoOf = (args: Args): string => {
+	const repo = flag(args, "repo") ?? args.positional[0];
 	if (repo === undefined) throw new UsageError("--repo <path> is required");
 	return repo.replace(/^\/+/, "").replace(/\.git$/, "");
 };
@@ -58,34 +56,25 @@ export const configShow = async (io: Io, args: Args): Promise<void> => {
 	io.out(has(args, "json") ? JSON.stringify(got.value, null, 2) : shown(got));
 };
 
-/** The lane of the current branch (`lanes/<id>`), else the only recorded lane of the repo. */
-const currentLane = async (io: Io, repo: string | undefined) => {
+/** The lane of the current branch (`lanes/<id>`), if one is checked out. */
+const currentLane = async (io: Io): Promise<string | undefined> => {
 	const branch = await io.git(["symbolic-ref", "--short", "-q", "HEAD"]);
 	const name = branch.code === 0 ? branch.stdout.trim() : "";
-	const lanes = await readLanes(io.git);
-	const byBranch = lanes.find((l) => l.branch === name) ??
-		(/^lanes\/ln_[0-9A-Za-z]{26}$/.test(name)
-			? { laneId: name.slice("lanes/".length), repo: undefined }
-			: undefined);
-	if (byBranch !== undefined) return byBranch;
-	const mine = lanes.filter((l) => repo === undefined || l.repo === repo);
-	return mine.length === 1 ? mine[0] : undefined;
+	return /^lanes\/ln_[0-9A-Za-z]{26}$/.test(name)
+		? name.slice("lanes/".length)
+		: undefined;
 };
 
 /** Exit code: 0 ok or clean, 1 errors or denials, 3 still evaluating at the deadline. */
 export const configVet = async (io: Io, args: Args): Promise<number> => {
 	const credential = requireCredential(await loadConfig(io), io, args);
-	const given = flag(args, "lane");
-	const found = given === undefined
-		? await currentLane(io, flag(args, "repo"))
-		: undefined;
-	const laneId = given ?? found?.laneId;
+	const laneId = flag(args, "lane") ?? await currentLane(io);
 	if (laneId === undefined) {
 		throw new UsageError(
 			"--lane <id> is required (no lanes/<id> branch is checked out)",
 		);
 	}
-	const repo = repoOf(args, found?.repo);
+	const repo = repoOf(args);
 	const client = createMcpClient(credential.origin, credential.token, io.fetch);
 	let got = answered(
 		io,

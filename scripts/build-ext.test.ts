@@ -23,9 +23,9 @@ import type { Run } from "./preflight.ts";
 Deno.test("crateName reads [package] name only", () => {
 	strictEqual(
 		crateName(
-			'[package]\nname = "acme-no-secrets"\nversion = "0.1.0"\n\n[dependencies]\nname = "x"\n',
+			'[package]\nname = "acme-example"\nversion = "0.1.0"\n\n[dependencies]\nname = "x"\n',
 		),
-		"acme-no-secrets",
+		"acme-example",
 	);
 	let threw = false;
 	try {

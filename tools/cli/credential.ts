@@ -1,9 +1,9 @@
-// `tartan credential`: a git credential helper (WP11). For any URL on a forge
-// you logged in to (the repo's git URL and every lane remote
+// `tt auth git-credential`: a git credential helper. For any URL on a forge you
+// logged in to (the repo's git URL and every lane remote
 // `/<repo>/-/lanes/<id>.git` share the host), git gets the token as the Basic
 // password; for any other host the helper answers nothing, so git asks the next
-// helper. `store` and `erase` are no-ops: the token lives in the CLI config (or
-// `TARTAN_TOKEN`), never in git's stores.
+// helper. `store` and `erase` are no-ops: the token lives in the `tt` config
+// (or `TARTAN_TOKEN`), never in git's stores.
 
 import {
 	type CliConfig,
@@ -50,7 +50,7 @@ export const credentialAnswer = (
 	return `username=${username}\npassword=${credential.token}\n`;
 };
 
-/** How this CLI is invoked again (hooks, the credential helper). */
+/** How `tt` is invoked again (by git, as the credential helper). */
 export const invocation = (): string[] => {
 	const exec = Deno.execPath();
 	const base = exec.slice(exec.lastIndexOf("/") + 1);
@@ -59,26 +59,39 @@ export const invocation = (): string[] => {
 	return [exec, "run", "-A", decodeURIComponent(main.pathname)];
 };
 
-/** POSIX single-quoting for a hook or a `!`-helper command line. */
+/** POSIX single-quoting for a `!`-helper command line. */
 export const shellQuote = (arg: string): string =>
 	`'${arg.replaceAll("'", `'\\''`)}'`;
 
+/** The `credential.<origin>.helper` value that runs `tt auth git-credential`. */
+export const helperValue = (command: readonly string[] = invocation()) =>
+	`!${command.map(shellQuote).join(" ")} auth git-credential`;
+
+export const helperKey = (origin: string) => `credential.${origin}.helper`;
+
+/** Whether git (any scope) already asks `tt` for this origin. */
+export const helperConfigured = async (
+	git: Git,
+	origin: string,
+): Promise<boolean> => {
+	const out = await git(["config", "--get-all", helperKey(origin)]);
+	return out.code === 0 &&
+		out.stdout.split("\n").some((v) => v.endsWith(" auth git-credential"));
+};
+
 /**
- * `git config [--global] credential.<origin>.helper`: the helper list for
- * that origin is reset first (an empty value), so a keychain helper cannot
- * answer with a stale password before this one.
+ * `git config --global credential.<origin>.helper`: the helper list for that
+ * origin is reset first (an empty value), so a keychain helper cannot answer
+ * with a stale password before this one.
  */
 export const installCredentialHelper = async (
 	git: Git,
 	origin: string,
-	options: { readonly global: boolean; readonly command?: string[] },
 ): Promise<string> => {
-	const scope = options.global ? ["--global"] : [];
-	const key = `credential.${origin}.helper`;
-	const command = (options.command ?? invocation()).map(shellQuote).join(" ");
-	const value = `!${command} credential`;
-	await git(["config", ...scope, "--unset-all", key]);
-	await gitOk(git, ["config", ...scope, "--add", key, ""]);
-	await gitOk(git, ["config", ...scope, "--add", key, value]);
+	const key = helperKey(origin);
+	const value = helperValue();
+	await git(["config", "--global", "--unset-all", key]);
+	await gitOk(git, ["config", "--global", "--add", key, ""]);
+	await gitOk(git, ["config", "--global", "--add", key, value]);
 	return value;
 };

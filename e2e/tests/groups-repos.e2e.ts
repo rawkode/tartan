@@ -1,7 +1,7 @@
 // Groups, repos and the role matrix. The owner creates a group and
-// an empty repository with the forms; the repo frame shows the kernel tabs,
-// the Classic pack's tabs (from the manifests, never literals) and Settings
-// for Owners only. A Reporter sees no Settings; anonymous visitors see a
+// an empty repository with the forms; the repo frame shows the kernel tabs
+// (no extension is installed on this branch, so no extension tabs) and
+// Settings for Owners only. A Reporter sees no Settings; anonymous visitors see a
 // not-found or no-access state for a private repo, never its content.
 
 import { expect, type Screen } from "e2e";
@@ -16,19 +16,14 @@ import {
 	watchApi,
 } from "../support/page.ts";
 import { archiveNode, fixtureRepo } from "../support/repos.ts";
-import { packTabs } from "../support/tabs.ts";
 import { RENDERED } from "../support/view.ts";
 
 const KERNEL_TABS_SIGNED_IN = ["Code", "History", "Lanes", "Runs", "Advances"];
 /** Repository config (RepoFrame.vue): every member (Reporter+) reads it. */
 const MEMBER_TABS = ["Config"];
-const classicRepoTabs = packTabs()
-	.filter((t) => t.pack === "classic" && t.slot === "repo.tab")
-	.map((t) => t.label);
 
 /**
- * The repo tab bar of a member: the kernel tabs in their order, every
- * Classic tab from the manifests (in the order the forge gives them), then
+ * The repo tab bar of a member: the kernel tabs in their order, then
  * Config, then Settings for Owners only, and nothing else.
  */
 const expectRepoTabs = async (
@@ -41,15 +36,15 @@ const expectRepoTabs = async (
 		...MEMBER_TABS,
 		...(options.settings ? ["Settings"] : []),
 	]);
-	for (const label of [...classicRepoTabs, ...MEMBER_TABS]) {
+	for (const label of MEMBER_TABS) {
 		await expect(nav.getByRole("link", label)).toBeVisible();
 	}
 	await expect(nav.getByRole("link", "Settings")).toHaveCount(
 		options.settings ? 1 : 0,
 	);
 	await expect(nav.getByRole("link")).toHaveCount(
-		KERNEL_TABS_SIGNED_IN.length + classicRepoTabs.length +
-			MEMBER_TABS.length + (options.settings ? 1 : 0),
+		KERNEL_TABS_SIGNED_IN.length + MEMBER_TABS.length +
+			(options.settings ? 1 : 0),
 	);
 };
 

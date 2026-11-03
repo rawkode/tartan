@@ -4,6 +4,13 @@ This is the public summary of Tartan's design: the kernel, its invariants, the e
 flows. [`../architecture.md`](../architecture.md) is the shorter overview; `packages/contract` is the source of truth
 for names and signatures.
 
+> **Spike branch (`spike/strip-down`).** This branch strips Tartan down to the forge (git over HTTPS, lanes, the
+> Advance, MCP, projects), repository config in CUE, and Issues as the first WASM extension (not written yet). It
+> removed the first-party extensions and packs (`tartan.work`, `tartan.changes`, `tartan.board`, `tartan.radar`,
+> `tartan.ci`, `tartan.review`, `tartan.weave`, `tartan.fifo`, `tartan.epics`, `tartan.hud`, `tartan.pack.swarm`,
+> `tartan.pack.classic`), the `acme.no-secrets` WASM demo and `packages/pipeline`. The text below still describes
+> them; read it as the design those extensions implemented, not as code on this branch.
+
 | Document                                               | For                                                                                                                                 |
 | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | this page                                              | the summary: principles, kernel invariants, data model, lanes, core flows                                                           |

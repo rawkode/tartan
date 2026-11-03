@@ -1,6 +1,6 @@
-// Every catalogue slot a manifest uses has an SPA host, or is a listed
-// exception: `src/slots/hosts.ts` against the components' `SlotOutlet`s and
-// against `extensions/*/tartan.json`.
+// Every catalogue slot has an SPA host, or is a listed exception:
+// `src/slots/hosts.ts` against the contract catalogue and the components'
+// `SlotOutlet`s.
 
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -15,7 +15,6 @@ import {
 
 // Not `new URL("..", import.meta.url)`: Vite's client transform rewrites it.
 const WEB = join(dirname(fileURLToPath(import.meta.url)), "..");
-const ROOT = join(WEB, "..");
 
 const walk = (dir: string): string[] =>
 	readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
@@ -38,29 +37,6 @@ const mounted = (file: string): Set<string> => {
 		}
 	}
 	return ids;
-};
-
-const manifestSlots = (): Set<string> => {
-	const slots = new Set<string>();
-	for (
-		const e of readdirSync(join(ROOT, "extensions"), { withFileTypes: true })
-	) {
-		if (!e.isDirectory()) continue;
-		let raw: string;
-		try {
-			raw = readFileSync(
-				join(ROOT, "extensions", e.name, "tartan.json"),
-				"utf8",
-			);
-		} catch {
-			continue;
-		}
-		const m = JSON.parse(raw) as {
-			contributes?: { slots?: { slot: string }[] };
-		};
-		for (const c of m.contributes?.slots ?? []) slots.add(c.slot);
-	}
-	return slots;
 };
 
 describe("slot hosts", () => {
@@ -100,16 +76,6 @@ describe("slot hosts", () => {
 				expect(SLOT_HOSTS[slot as keyof typeof SLOT_HOSTS], `${rel}: ${slot}`)
 					.toContain(rel);
 			}
-		}
-	});
-
-	it("covers every slot the manifests use", () => {
-		for (const slot of manifestSlots()) {
-			expect(
-				Object.hasOwn(SLOT_HOSTS, slot) ||
-					Object.hasOwn(SLOTS_NOT_RENDERED, slot),
-				slot,
-			).toBe(true);
 		}
 	});
 });

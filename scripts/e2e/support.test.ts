@@ -1,13 +1,12 @@
 // Unit tests for the pure parts of the e2e suites' support code
 // (e2e/support/*): the stage reader and its guards, the hermetic git
 // environment, the lane-command parser, the deterministic fixtures (rebuilt
-// with the local git), the settled-slot counts, the manifest-derived tab
-// table, the MCP reply parser and the "unrouted" and "server error" rules.
-// The flow helpers (shared store, loop stages, labels, gateway checks) are
-// in flows.test.ts.
+// with the local git), the settled-slot counts, the MCP reply parser and the
+// "unrouted" and "server error" rules. The flow helpers (shared store,
+// gateway checks) are in flows.test.ts.
 
 import { deepStrictEqual, equal, match, ok, throws } from "node:assert/strict";
-import * as path from "node:path";
+
 import {
 	ISSUER_RE as IDP_ISSUER_RE,
 	REDIRECT_URI_RE,
@@ -16,15 +15,12 @@ import {
 	BROKEN_CONFIG_FIXTURE,
 	buildFixture,
 	buildHistory,
-	COMPOSE_FIXTURE,
 	CUE_FIXTURE,
 	FIXTURE,
 	FIXTURE_COMMITS,
 	FIXTURE_HEAD,
 	FIXTURE_SHAS,
-	LOOP_FIXTURE,
 	MONOREPO_FIXTURE,
-	SWAP_FIXTURE,
 } from "../../e2e/support/fixture-repo.ts";
 import {
 	git,
@@ -47,7 +43,6 @@ import {
 	StageError,
 	tokensOf,
 } from "../../e2e/support/stage.ts";
-import { packTabs, tabRoute } from "../../e2e/support/tabs.ts";
 import {
 	activeChangeTab,
 	ctxOfSlotRequest,
@@ -240,10 +235,7 @@ Deno.test({
 		for (
 			const [name, fixture] of [
 				["basic", FIXTURE],
-				["loop", LOOP_FIXTURE],
 				["broken config", BROKEN_CONFIG_FIXTURE],
-				["compose", COMPOSE_FIXTURE],
-				["swap", SWAP_FIXTURE],
 				["monorepo", MONOREPO_FIXTURE],
 				["cue", CUE_FIXTURE],
 			] as const
@@ -268,7 +260,7 @@ Deno.test({
 			deepStrictEqual(await buildFixture(dir, home), [...FIXTURE_SHAS]);
 			equal(FIXTURE_HEAD, FIXTURE_SHAS[2]);
 			equal(FIXTURE_COMMITS.length, FIXTURE_SHAS.length);
-			// The forge reads nothing under .tartan/: CI is in package tartan.
+			// The forge reads nothing under .tartan/: config is package tartan.
 			equal(
 				Object.keys(FIXTURE_COMMITS[0].files).some((f) =>
 					f.startsWith(".tartan/")
@@ -287,7 +279,7 @@ const view = {
 		tabs: [
 			{
 				installationId: "i1",
-				ext: "tartan.changes",
+				ext: "acme.threads",
 				slot: "change.tab",
 				id: "revisions",
 				route: "revisions",
@@ -295,7 +287,7 @@ const view = {
 			},
 			{
 				installationId: "i1",
-				ext: "tartan.changes",
+				ext: "acme.threads",
 				slot: "change.tab",
 				id: "diff",
 				route: "diff",
@@ -303,7 +295,7 @@ const view = {
 			},
 			{
 				installationId: "i2",
-				ext: "tartan.board",
+				ext: "acme.board",
 				slot: "repo.tab",
 				id: "repo-board",
 				route: "board",
@@ -351,48 +343,6 @@ Deno.test("a slot request's ctx hint decodes from its URL", () => {
 		),
 		hint,
 	);
-});
-
-Deno.test("the tab table comes from the pack manifests", () => {
-	const tabs = packTabs();
-	for (const pack of ["swarm", "classic"] as const) {
-		const repoTabs = tabs.filter((t) =>
-			t.pack === pack && t.slot === "repo.tab"
-		);
-		ok(repoTabs.some((t) => t.ext === "tartan.work"), `${pack} has Work`);
-		ok(repoTabs.some((t) => t.ext === "tartan.changes"), `${pack} has Changes`);
-	}
-	const keys = tabs.map((t) => `${t.pack}/${t.slot}/${t.ext}/${t.id}`);
-	equal(new Set(keys).size, keys.length, "one test per tab");
-	for (const t of tabs) {
-		match(t.route, /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/, t.id);
-		ok(t.label !== "", t.id);
-	}
-	equal(tabRoute({ id: "x", route: "board/*" }), "board");
-	equal(tabRoute({ id: "x" }), "x");
-	// The Classic pack renames its members' tabs (the view API's labels).
-	const label = (pack: string, ext: string) =>
-		tabs.find((t) => t.pack === pack && t.ext === ext && t.slot === "repo.tab")
-			?.label;
-	equal(label("classic", "tartan.work"), "Issues");
-	equal(label("classic", "tartan.changes"), "Pull requests");
-	equal(label("swarm", "tartan.work"), "Work");
-});
-
-Deno.test("a pack naming an extension without a manifest fails collection", async () => {
-	const root = await Deno.makeTempDir({ prefix: "tartan-e2e-ext-" });
-	try {
-		for (const pack of ["swarm", "classic"]) {
-			await Deno.mkdir(path.join(root, "packs", pack), { recursive: true });
-			await Deno.writeTextFile(
-				path.join(root, "packs", pack, "tartan.json"),
-				JSON.stringify({ members: [{ id: "tartan.gone" }] }),
-			);
-		}
-		throws(() => packTabs(root), /tartan\.gone/);
-	} finally {
-		await Deno.remove(root, { recursive: true });
-	}
 });
 
 Deno.test("MCP replies are read as JSON or as an event stream", () => {

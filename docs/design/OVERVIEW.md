@@ -6,6 +6,13 @@ the security model. [`README.md`](README.md) is the short design summary, [`../a
 is the one-page overview, and `packages/contract` is the source of truth for names, types and signatures. Where this
 document and the contract disagree, the contract wins.
 
+> **Spike branch (`spike/strip-down`).** This branch strips Tartan down to the forge (git over HTTPS, lanes, the
+> Advance, MCP, projects), repository config in CUE, and Issues as the first WASM extension (not written yet). It
+> removed the first-party extensions and packs (`tartan.work`, `tartan.changes`, `tartan.board`, `tartan.radar`,
+> `tartan.ci`, `tartan.review`, `tartan.weave`, `tartan.fifo`, `tartan.epics`, `tartan.hud`, `tartan.pack.swarm`,
+> `tartan.pack.classic`), the `acme.no-secrets` WASM demo and `packages/pipeline`. The text below still describes
+> them; read it as the design those extensions implemented, not as code on this branch.
+
 The document describes what the code on the default branch does. Where a part is designed but not built yet, or is
 built but switched off by default, the text says so; [Planned work](#planned-work) collects those items.
 
@@ -1056,9 +1063,10 @@ budget. Recent landings with their why summaries and excerpts of nearby `AGENTS.
 
 An agent reads trunk from the repository's git URL and writes only through its lanes, with the same token as a Bearer
 header or as a Basic password through the credential helper; force pushes of its own lane are allowed, so rebases
-work, and any Reporter can fetch another lane read-only to stack or rebase on it. The optional `tartan` CLI
-(`tools/cli`) adds `login`, `lane open|status|list|close` (printing the lane's `git.start` and `git.push` commands),
-`inbox`, `config show|vet|schema`, a git credential helper and a pre-push check (`hooks install --git`).
+work, and any Reporter can fetch another lane read-only to stack or rebase on it. The optional `tt` CLI
+(`tools/cli`, built to `dist/tt` by `deno task build:cli`) is gh-style: `auth login|logout|status|token`,
+`auth setup-git` (a global git credential helper for the forge's origin, answered by `auth git-credential`),
+`repo clone` and `config show|vet|schema`.
 
 ### Simulated agents
 

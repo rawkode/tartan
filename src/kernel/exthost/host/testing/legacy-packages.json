@@ -1,0 +1,1341 @@
+[
+	{
+		"dir": "work",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.work",
+			"name": "Work",
+			"description": "Issues, intents and resolver items: claims with footprints open lanes (work@1)",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.work"
+			},
+			"storage": {
+				"scope": "repo",
+				"migrations": [
+					"migrations/0001_init.sql",
+					"migrations/0002_links.sql",
+					"migrations/0003_drop_tournament.sql"
+				]
+			},
+			"provides": [
+				"work@1"
+			],
+			"permissions": {
+				"repo": "read",
+				"lanes": [
+					"open",
+					"close"
+				],
+				"notes": true,
+				"notify": true,
+				"events.read": [
+					"lane.*",
+					"changes.*"
+				],
+				"interfaces.call": [
+					"conflicts@1"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "lane.lost"
+				},
+				{
+					"event": "lane.closed"
+				},
+				{
+					"event": "changes.submitted"
+				},
+				{
+					"event": "changes.abandoned"
+				},
+				{
+					"event": "changes.superseded"
+				},
+				{
+					"event": "changes.landed"
+				}
+			],
+			"contributes": {
+				"slots": [
+					{
+						"slot": "repo.tab",
+						"id": "work",
+						"label": "Work",
+						"icon": "list-checks",
+						"route": "work",
+						"when": "node.kind == 'repo'"
+					},
+					{
+						"slot": "repo.header.action",
+						"id": "new-work",
+						"label": "New work",
+						"icon": "plus",
+						"when": "node.kind == 'repo'",
+						"role": 30
+					},
+					{
+						"slot": "work.panel",
+						"id": "item",
+						"dynamic": true,
+						"refreshOn": [
+							"work.*",
+							"changes.*"
+						]
+					},
+					{
+						"slot": "blame.annotation",
+						"id": "intent",
+						"dynamic": true
+					}
+				],
+				"context": [
+					{
+						"id": "work-item",
+						"maxBytes": 4096,
+						"priority": "protocol"
+					}
+				],
+				"protocol": "protocol.md"
+			}
+		},
+		"protocol": "Work: find work with `work_list`, then `work_claim {ref, footprint: {projects, prefixes}, plan}`; declare the projects and path prefixes you expect to touch.\nThe claim gives you your own lane. Start it with the `lane.git.start` command and push only with `lane.git.push` (a lane remote's `main`, or `HEAD:refs/heads/lanes/<id>`); never push `main`.\nA lane still `opening` has no commands yet: poll `lanes_get` until it is `open`. Read `overlaps` and the context: coordinate before editing what another lane declared.\nAdd `Tartan-Work: <ref>` to your commits. Use `work_release` if you give up, and `work_create` (kind `intent`) for follow-up work you discover.\n",
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			},
+			{
+				"n": 2,
+				"name": "links",
+				"sql": ""
+			},
+			{
+				"n": 3,
+				"name": "drop_tournament",
+				"sql": ""
+			}
+		]
+	},
+	{
+		"dir": "changes",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.changes",
+			"name": "Changes",
+			"description": "Agent-first changes: drafts from lanes, submit, revisions per push, threads (changes@1)",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.changes"
+			},
+			"storage": {
+				"scope": "repo",
+				"migrations": [
+					"migrations/0001_init.sql",
+					"migrations/0002_timeline.sql",
+					"migrations/0003_drop_selection_ref.sql"
+				]
+			},
+			"provides": [
+				"changes@1"
+			],
+			"permissions": {
+				"repo": "read",
+				"lanes": [
+					"adopt"
+				],
+				"notes": true,
+				"notify": true,
+				"events.read": [
+					"lane.*",
+					"push.*",
+					"review.*",
+					"queue.*",
+					"land.*",
+					"ref.*"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "lane.opened"
+				},
+				{
+					"event": "lane.closed"
+				},
+				{
+					"event": "push.diffed"
+				},
+				{
+					"event": "review.decided"
+				},
+				{
+					"event": "review.requested"
+				},
+				{
+					"event": "queue.*"
+				},
+				{
+					"event": "land.*"
+				},
+				{
+					"event": "ref.advanced"
+				}
+			],
+			"contributes": {
+				"slots": [
+					{
+						"slot": "repo.tab",
+						"id": "changes",
+						"label": "Changes",
+						"icon": "git-pull-request",
+						"route": "changes",
+						"when": "node.kind == 'repo'"
+					},
+					{
+						"slot": "change.tab",
+						"id": "diff",
+						"label": "Diff",
+						"icon": "file-diff",
+						"route": "diff"
+					},
+					{
+						"slot": "change.tab",
+						"id": "revisions",
+						"label": "Revisions",
+						"icon": "history",
+						"route": "revisions"
+					},
+					{
+						"slot": "change.panel",
+						"id": "overview",
+						"order": -10,
+						"dynamic": true,
+						"refreshOn": [
+							"changes.*",
+							"review.*",
+							"queue.*",
+							"land.*"
+						]
+					},
+					{
+						"slot": "change.panel",
+						"id": "threads",
+						"dynamic": true,
+						"refreshOn": [
+							"changes.*"
+						]
+					},
+					{
+						"slot": "lane.sidebar",
+						"id": "change",
+						"dynamic": true,
+						"refreshOn": [
+							"changes.*"
+						]
+					}
+				],
+				"protocol": "protocol.md"
+			}
+		},
+		"protocol": "Changes: your lane is a draft change from the moment it opens. Push your commits with the lane's `git.push` command, then call `changes_submit {laneId, title, summary}` when your acceptance criteria pass.\nSubmit after you push: a lane you have not pushed is refused (`empty-lane`). Every later push to the lane is a new revision, and a new revision is reviewed again.\nAnswer review threads with `changes_comment`; `changes_get` shows your revisions and state; `changes_abandon` gives the change up.\n",
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			},
+			{
+				"n": 2,
+				"name": "timeline",
+				"sql": ""
+			},
+			{
+				"n": 3,
+				"name": "drop_selection_ref",
+				"sql": ""
+			}
+		]
+	},
+	{
+		"dir": "board",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.board",
+			"name": "Board",
+			"description": "Kanban projection of work, changes, queue and lanes; moves update work items as the viewer",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.board"
+			},
+			"storage": {
+				"scope": "node",
+				"migrations": [
+					"migrations/0001_init.sql",
+					"migrations/0002_links.sql"
+				]
+			},
+			"permissions": {
+				"events.read": [
+					"work.*",
+					"changes.*",
+					"queue.*",
+					"lane.*"
+				],
+				"interfaces.call": [
+					"work@1"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "work.*"
+				},
+				{
+					"event": "changes.*"
+				},
+				{
+					"event": "queue.*"
+				},
+				{
+					"event": "lane.*"
+				}
+			],
+			"backfill": "all",
+			"contributes": {
+				"slots": [
+					{
+						"slot": "nav.global",
+						"id": "nav",
+						"label": "Board",
+						"icon": "kanban",
+						"route": "board"
+					},
+					{
+						"slot": "node.tab",
+						"id": "board",
+						"label": "Board",
+						"icon": "kanban",
+						"route": "board"
+					},
+					{
+						"slot": "repo.tab",
+						"id": "repo-board",
+						"label": "Board",
+						"icon": "kanban",
+						"route": "board",
+						"when": "node.kind == 'repo'"
+					}
+				]
+			}
+		},
+		"protocol": null,
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			},
+			{
+				"n": 2,
+				"name": "links",
+				"sql": ""
+			}
+		]
+	},
+	{
+		"dir": "epics",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.epics",
+			"name": "Epics",
+			"description": "Cross-repo epics: roll up work items and decompose epics",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.epics"
+			},
+			"storage": {
+				"scope": "node",
+				"migrations": [
+					"migrations/0001_init.sql"
+				]
+			},
+			"permissions": {
+				"events.read": [
+					"work.*"
+				],
+				"interfaces.call": [
+					"work@1"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "work.*"
+				}
+			],
+			"contributes": {
+				"slots": [
+					{
+						"slot": "nav.global",
+						"id": "nav",
+						"label": "Epics",
+						"icon": "layers",
+						"route": "epics"
+					},
+					{
+						"slot": "node.tab",
+						"id": "epics",
+						"label": "Epics",
+						"icon": "layers",
+						"route": "epics"
+					},
+					{
+						"slot": "work.sidebar",
+						"id": "epic",
+						"dynamic": true,
+						"refreshOn": [
+							"work.*"
+						]
+					}
+				]
+			}
+		},
+		"protocol": null,
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			}
+		]
+	},
+	{
+		"dir": "hud",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.hud",
+			"name": "HUD",
+			"description": "Heads-up display for a subtree: active lanes, predicted and avoided conflicts, landed per hour, changes that needed a human",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.hud"
+			},
+			"storage": {
+				"scope": "node",
+				"migrations": [
+					"migrations/0001_init.sql",
+					"migrations/0002_state.sql"
+				]
+			},
+			"permissions": {
+				"events.read": [
+					"lane.*",
+					"conflicts.detected",
+					"conflicts.cleared",
+					"ref.advanced",
+					"review.requested",
+					"review.decided"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "lane.*"
+				},
+				{
+					"event": "conflicts.detected"
+				},
+				{
+					"event": "conflicts.cleared"
+				},
+				{
+					"event": "ref.advanced"
+				},
+				{
+					"event": "review.requested"
+				},
+				{
+					"event": "review.decided"
+				}
+			],
+			"backfill": "30d",
+			"contributes": {
+				"slots": [
+					{
+						"slot": "home.section",
+						"id": "swarm",
+						"title": "Real and simulated agents",
+						"dynamic": true,
+						"refreshOn": [
+							"lane.*",
+							"conflicts.*",
+							"ref.advanced",
+							"review.*"
+						]
+					},
+					{
+						"slot": "hud.metric",
+						"id": "active-lanes",
+						"title": "Active lanes",
+						"dynamic": true,
+						"cache": "role",
+						"order": 1
+					},
+					{
+						"slot": "hud.metric",
+						"id": "predicted-conflicts",
+						"title": "Predicted conflicts",
+						"dynamic": true,
+						"cache": "role",
+						"order": 2
+					},
+					{
+						"slot": "hud.metric",
+						"id": "conflicts-avoided",
+						"title": "Conflicts avoided",
+						"dynamic": true,
+						"cache": "role",
+						"order": 3
+					},
+					{
+						"slot": "hud.metric",
+						"id": "landed-per-hour",
+						"title": "Landed / hour",
+						"dynamic": true,
+						"cache": "role",
+						"order": 4
+					},
+					{
+						"slot": "hud.metric",
+						"id": "needed-a-human",
+						"title": "Needed a human",
+						"dynamic": true,
+						"cache": "role",
+						"order": 5
+					}
+				]
+			}
+		},
+		"protocol": null,
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			},
+			{
+				"n": 2,
+				"name": "state",
+				"sql": ""
+			}
+		]
+	},
+	{
+		"dir": "radar",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.radar",
+			"name": "Conflict Radar",
+			"description": "Predicts conflicts between lanes from footprints and pushes, before they reach trunk (conflicts@1)",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.radar"
+			},
+			"storage": {
+				"scope": "repo",
+				"migrations": [
+					"migrations/0001_init.sql",
+					"migrations/0002_m1.sql"
+				]
+			},
+			"provides": [
+				"conflicts@1"
+			],
+			"permissions": {
+				"repo": "read",
+				"notes": true,
+				"notify": true,
+				"events.read": [
+					"lane.*",
+					"push.*",
+					"ref.*",
+					"changes.*"
+				],
+				"interfaces.call": [
+					"work@1"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "lane.opened"
+				},
+				{
+					"event": "lane.closed"
+				},
+				{
+					"event": "lane.lost"
+				},
+				{
+					"event": "lane.archived"
+				},
+				{
+					"event": "lane.deleted"
+				},
+				{
+					"event": "push.diffed"
+				},
+				{
+					"event": "ref.advanced"
+				},
+				{
+					"event": "changes.submitted"
+				},
+				{
+					"event": "changes.abandoned"
+				},
+				{
+					"event": "changes.superseded"
+				}
+			],
+			"contributes": {
+				"slots": [
+					{
+						"slot": "repo.tab",
+						"id": "radar",
+						"label": "Radar",
+						"icon": "radar",
+						"route": "radar",
+						"when": "node.kind == 'repo'"
+					},
+					{
+						"slot": "file.banner",
+						"id": "editing",
+						"dynamic": true,
+						"refreshOn": [
+							"conflicts.*",
+							"push.diffed"
+						]
+					},
+					{
+						"slot": "lane.badge",
+						"id": "severity",
+						"dynamic": true,
+						"refreshOn": [
+							"conflicts.*"
+						]
+					},
+					{
+						"slot": "change.sidebar",
+						"id": "conflicts",
+						"dynamic": true,
+						"refreshOn": [
+							"conflicts.*"
+						]
+					},
+					{
+						"slot": "hud.metric",
+						"id": "conflicts-avoided",
+						"dynamic": true,
+						"cache": "role"
+					}
+				],
+				"context": [
+					{
+						"id": "neighbourhood",
+						"maxBytes": 4096,
+						"priority": "conflicts"
+					}
+				],
+				"protocol": "protocol.md",
+				"settings": {
+					"type": "object",
+					"properties": {
+						"origin": {
+							"type": "string",
+							"title": "Forge origin",
+							"description": "The forge's https origin (for example https://code.example.com), used in the fetch commands radar suggests for lanes on the repo backend"
+						}
+					},
+					"additionalProperties": false
+				}
+			},
+			"limits": {
+				"effects_per_second": 200
+			}
+		},
+		"protocol": "Conflict radar watches every lane's footprint and pushed paths. Before you edit outside your footprint, call\n`conflicts_check {paths}`. A `conflict` or `trunk_drift` notice names the other lane and a suggestion: `coordinate`\n(`inbox_send` to its owner), `stack` (fetch its lane, rebase onto it), `rebase` (onto trunk), `yield` or `proceed`.\nAnswer it with `conflicts_ack {conflictId, resolution}`; `conflicts_list {laneId}` shows what is still open.\n",
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			},
+			{
+				"n": 2,
+				"name": "m1",
+				"sql": ""
+			}
+		]
+	},
+	{
+		"dir": "ci",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.ci",
+			"name": "CI",
+			"description": "Affected-project CI on Workflows and Sandbox containers; answers land testing (checks@1)",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.ci"
+			},
+			"storage": {
+				"scope": "repo",
+				"migrations": [
+					"migrations/0001_init.sql",
+					"migrations/0002_runs.sql",
+					"migrations/0003_config_waits.sql"
+				]
+			},
+			"provides": [
+				"checks@1"
+			],
+			"permissions": {
+				"repo": "read",
+				"runs": [
+					"start",
+					"cancel"
+				],
+				"land.report": true,
+				"notify": true,
+				"events.read": [
+					"changes.*",
+					"land.*",
+					"run.*",
+					"job.*",
+					"push.*",
+					"repo.config.*"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "changes.submitted"
+				},
+				{
+					"event": "changes.revised"
+				},
+				{
+					"event": "land.testing"
+				},
+				{
+					"event": "run.*"
+				},
+				{
+					"event": "job.*"
+				},
+				{
+					"event": "push.diffed"
+				},
+				{
+					"event": "repo.config.resolved"
+				}
+			],
+			"contributes": {
+				"slots": [
+					{
+						"slot": "change.sidebar",
+						"id": "checks",
+						"dynamic": true,
+						"refreshOn": [
+							"checks.*",
+							"run.*",
+							"job.*"
+						]
+					},
+					{
+						"slot": "repo.tab",
+						"id": "ci",
+						"label": "CI",
+						"icon": "play",
+						"route": "ci",
+						"when": "node.kind == 'repo'"
+					},
+					{
+						"slot": "repo.sidebar",
+						"id": "projects",
+						"dynamic": true,
+						"refreshOn": [
+							"checks.*"
+						]
+					}
+				],
+				"context": [
+					{
+						"id": "test-commands",
+						"maxBytes": 2048,
+						"priority": "hints"
+					}
+				]
+			},
+			"config": {
+				"default": {
+					"image": "tartan-runner"
+				},
+				"cue": "config/settings.cue",
+				"repoPolicy": [
+					"pipeline"
+				]
+			}
+		},
+		"protocol": null,
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			},
+			{
+				"n": 2,
+				"name": "runs",
+				"sql": ""
+			},
+			{
+				"n": 3,
+				"name": "config_waits",
+				"sql": ""
+			}
+		],
+		"settingsCue": "package settings\n\n// tartan.ci for repository config (docs/design/ADR-repo-config-cue.md).\n// #Settings are an installation's settings; their defaults equal\n// `config.default` in tartan.json (the self-check and\n// src/builtins.test.ts check that they do).\n#Settings: {\n\t// The runner image id, part of every CI input hash.\n\timage: string | *\"tartan-runner\"\n}\n\n// Repo policy (`config.repoPolicy`): authored in the repository's package\n// tartan as `extensions: \"tartan.ci\": settings: pipeline: {…}` and read at\n// each change's base on trunk (K13). CUE gives shape and positions; tartan.ci\n// validates the value again (at most 32 jobs, timeouts up to 60m).\n#Policy: {\n\tpipeline?: #Pipeline\n}\n\n#Duration: =~\"^[0-9]{1,7}(ms|s|m|h)$\"\n\n#Pipeline: {\n\t// The run's wall clock (default 15m, at most 60m).\n\ttimeout?: #Duration\n\tjobs: [=~\"^[a-z0-9][a-z0-9-]{0,29}$\"]: #Job\n\t// Which jobs run for a change, a land candidate and a push (default: all).\n\ton?: {\n\t\tchange?: [...string]\n\t\tland?: [...string]\n\t\tpush?: {\n\t\t\tbranches: [...string]\n\t\t\tjobs: [...string]\n\t\t}\n\t}\n\t// When CI runs for a lane: on every push, on submit, or never.\n\tlanes?: ci?: \"on-push\" | \"on-submit\" | \"none\"\n}\n\n#Job: {\n\trun: string\n\tneeds?: [...string]\n\t// Run once per affected project (or every project), with\n\t// {{project.root}} and {{project.name}} in run and cwd.\n\teach?:     \"affected\" | \"all\"\n\tcwd?:      string\n\toptional?: bool\n\ttimeout?:  #Duration\n\tenv?: [=~\"^[A-Z_][A-Z0-9_]{0,63}$\"]: string | number | bool\n}\n"
+	},
+	{
+		"dir": "review",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.review",
+			"name": "Review",
+			"description": "Review by exception: risk routing from trunk policy, evidence bundles, attention inbox (review@1)",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.review"
+			},
+			"storage": {
+				"scope": "repo",
+				"migrations": [
+					"migrations/0001_init.sql",
+					"migrations/0002_flow.sql"
+				]
+			},
+			"provides": [
+				"review@1"
+			],
+			"permissions": {
+				"repo": "read",
+				"notes": true,
+				"notify": true,
+				"ai": true,
+				"events.read": [
+					"changes.*",
+					"checks.*",
+					"conflicts.*",
+					"queue.*",
+					"land.*",
+					"ref.*",
+					"repo.config.*"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "changes.submitted"
+				},
+				{
+					"event": "changes.revised"
+				},
+				{
+					"event": "checks.completed"
+				},
+				{
+					"event": "conflicts.*"
+				},
+				{
+					"event": "queue.ejected"
+				},
+				{
+					"event": "land.vetoed"
+				},
+				{
+					"event": "ref.advanced"
+				},
+				{
+					"event": "repo.config.resolved"
+				}
+			],
+			"gates": [
+				{
+					"point": "ref.advance",
+					"onTruncated": "allow",
+					"default": "veto"
+				}
+			],
+			"contributes": {
+				"slots": [
+					{
+						"slot": "change.panel",
+						"id": "evidence",
+						"dynamic": true,
+						"refreshOn": [
+							"review.*",
+							"checks.*"
+						]
+					},
+					{
+						"slot": "home.section",
+						"id": "attention",
+						"dynamic": true,
+						"refreshOn": [
+							"review.*"
+						]
+					}
+				],
+				"context": [
+					{
+						"id": "review-rules",
+						"maxBytes": 2048,
+						"priority": "ownership"
+					}
+				]
+			},
+			"config": {
+				"default": {
+					"mode": "by-exception",
+					"autoThreshold": 0.35
+				},
+				"cue": "config/settings.cue",
+				"repoPolicy": [
+					"owners"
+				]
+			}
+		},
+		"protocol": null,
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			},
+			{
+				"n": 2,
+				"name": "flow",
+				"sql": ""
+			}
+		],
+		"settingsCue": "package settings\n\n// tartan.review for repository config (docs/design/ADR-repo-config-cue.md).\n// #Settings are an installation's settings; their defaults equal\n// `config.default` in tartan.json (the self-check and\n// src/builtins.test.ts check that they do).\n#Settings: {\n\t// by-exception: low-risk changes are approved automatically.\n\tmode: *\"by-exception\" | \"human-required\"\n\t// A change whose risk is below this is low risk.\n\tautoThreshold: number & >=0 & <=1 | *0.35\n\t// Optional per-factor weights (0–100) of the risk model.\n\tweights?: {\n\t\tsensitive?:     number & >=0 & <=100\n\t\tblastRadius?:   number & >=0 & <=100\n\t\tsize?:          number & >=0 & <=100\n\t\tweakenedTests?: number & >=0 & <=100\n\t\tradar?:         number & >=0 & <=100\n\t\ttrackRecord?:   number & >=0 & <=100\n\t}\n}\n\n// Repo policy (`config.repoPolicy`): authored in the repository's package\n// tartan as `extensions: \"tartan.review\": settings: owners: rules: […]` and\n// read at trunk (K13). tartan.review validates the value again (at most 500\n// rules).\n#Policy: {\n\towners?: #Owners\n}\n\n#Owners: {\n\trules: [...#Rule]\n}\n\n#Rule: {\n\t// Globs of repository paths.\n\tpaths: [string, ...string]\n\t// 0 (none) … 3 (critical).\n\tsensitivity?: int & >=0 & <=3\n\t// Handles, group names or principal ids; principal ids join the attention set.\n\towners?: [...string]\n}\n"
+	},
+	{
+		"dir": "weave",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.weave",
+			"name": "Weave",
+			"description": "Merge train: serial batches of approved changes, ejection with notify-author (M1); sub-trains, bisect, resolver items (M2)",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.weave"
+			},
+			"storage": {
+				"scope": "repo",
+				"migrations": [
+					"migrations/0001_init.sql",
+					"migrations/0002_train.sql"
+				]
+			},
+			"provides": [
+				"queue@1"
+			],
+			"requires": [
+				"changes@1",
+				"checks@1",
+				"review@1"
+			],
+			"permissions": {
+				"repo": "read",
+				"land": [
+					"refs/heads/*"
+				],
+				"notes": true,
+				"notify": true,
+				"events.read": [
+					"changes.*",
+					"review.*",
+					"checks.*",
+					"land.*",
+					"ref.*",
+					"queue.*"
+				],
+				"interfaces.call": [
+					"work@1",
+					"changes@1"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "changes.submitted"
+				},
+				{
+					"event": "changes.revised"
+				},
+				{
+					"event": "changes.abandoned"
+				},
+				{
+					"event": "changes.superseded"
+				},
+				{
+					"event": "review.decided"
+				},
+				{
+					"event": "land.*"
+				},
+				{
+					"event": "ref.advanced"
+				}
+			],
+			"contributes": {
+				"slots": [
+					{
+						"slot": "repo.tab",
+						"id": "weave",
+						"label": "Weave",
+						"icon": "git-merge",
+						"route": "weave",
+						"when": "node.kind == 'repo'"
+					},
+					{
+						"slot": "change.sidebar",
+						"id": "position",
+						"dynamic": true,
+						"refreshOn": [
+							"queue.*",
+							"land.*"
+						]
+					},
+					{
+						"slot": "hud.metric",
+						"id": "landed-per-hour",
+						"dynamic": true,
+						"cache": "role"
+					}
+				],
+				"context": [
+					{
+						"id": "resolver",
+						"maxBytes": 4096,
+						"priority": "conflicts"
+					},
+					{
+						"id": "weave-health",
+						"maxBytes": 1024,
+						"priority": "hints"
+					}
+				],
+				"protocol": "protocol.md"
+			},
+			"config": {
+				"default": {
+					"batch": 4,
+					"debounceMs": 2000,
+					"resolver": "notify-author",
+					"reuseDisjointEvidence": true,
+					"bisect": true
+				},
+				"cue": "config/settings.cue",
+				"targets": [],
+				"repoOverridable": [
+					"batch",
+					"debounceMs"
+				]
+			},
+			"limits": {
+				"event_cpu_ms": 1000,
+				"render_cpu_ms": 50,
+				"action_cpu_ms": 500,
+				"tool_cpu_ms": 2000,
+				"subrequests": 50,
+				"effects_per_second": 50
+			}
+		},
+		"protocol": "Trunk (`main`) is woven by Tartan. Never push it. Work in your lane; push early and often; read `remote: tartan ▸` lines;\nread the `tartan-notices` block at the end of every tool result; call `changes_submit` when your acceptance criteria pass;\na change that conflicts at land time comes back to you with both intents.\n",
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			},
+			{
+				"n": 2,
+				"name": "train",
+				"sql": ""
+			}
+		],
+		"settingsCue": "package settings\n\n// tartan.weave settings for repository config (docs/design/ADR-repo-config-cue.md).\n// The defaults equal `config.default` in tartan.json (the approval\n// self-check and src/builtins.test.ts check that they do).\n#Settings: {\n\t// Changes per batch; Weave never takes more than its policy's maxBatch (4).\n\tbatch: int & >=1 & <=4 | *4\n\t// How long Weave waits for more approved changes before a batch starts.\n\tdebounceMs: int & >=0 & <=60000 | *2000\n\t// What happens to a change that conflicts at land time (M2 adds values).\n\tresolver:              \"notify-author\"\n\treuseDisjointEvidence: bool | *true\n\tbisect:                bool | *true\n}\n"
+	},
+	{
+		"dir": "fifo",
+		"manifest": {
+			"schema": 1,
+			"id": "tartan.fifo",
+			"name": "FIFO",
+			"description": "Serial queue: lands one human-approved change at a time (queue@1)",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.fifo"
+			},
+			"storage": {
+				"scope": "repo",
+				"migrations": [
+					"migrations/0001_init.sql",
+					"migrations/0002_train.sql"
+				]
+			},
+			"provides": [
+				"queue@1"
+			],
+			"requires": [
+				"changes@1",
+				"review@1"
+			],
+			"permissions": {
+				"repo": "read",
+				"land": [
+					"refs/heads/*"
+				],
+				"notify": true,
+				"events.read": [
+					"changes.*",
+					"review.*",
+					"land.*",
+					"ref.*",
+					"queue.*"
+				],
+				"interfaces.call": [
+					"work@1",
+					"changes@1"
+				]
+			},
+			"subscribe": [
+				{
+					"event": "changes.submitted"
+				},
+				{
+					"event": "changes.revised"
+				},
+				{
+					"event": "changes.abandoned"
+				},
+				{
+					"event": "changes.superseded"
+				},
+				{
+					"event": "review.decided"
+				},
+				{
+					"event": "land.*"
+				},
+				{
+					"event": "ref.advanced"
+				}
+			],
+			"contributes": {
+				"slots": [
+					{
+						"slot": "repo.tab",
+						"id": "queue",
+						"label": "Queue",
+						"icon": "list-ordered",
+						"route": "queue",
+						"when": "node.kind == 'repo'"
+					},
+					{
+						"slot": "change.sidebar",
+						"id": "position",
+						"dynamic": true,
+						"refreshOn": [
+							"queue.*",
+							"land.*"
+						]
+					}
+				],
+				"context": [
+					{
+						"id": "queue-health",
+						"maxBytes": 1024,
+						"priority": "hints"
+					}
+				],
+				"protocol": "protocol.md"
+			},
+			"config": {
+				"default": {
+					"debounceMs": 2000
+				}
+			}
+		},
+		"protocol": "Trunk (`main`) is landed by Tartan, one change at a time. Never push it. Work in your lane and call `changes_submit` when\nyour acceptance criteria pass; a human reviewer approves every change before it is queued. Read the `tartan-notices`\nblock at the end of every tool result; a change that fails or conflicts at land time comes back to you.\n",
+		"migrations": [
+			{
+				"n": 1,
+				"name": "init",
+				"sql": ""
+			},
+			{
+				"n": 2,
+				"name": "train",
+				"sql": ""
+			}
+		]
+	},
+	{
+		"dir": "packs/swarm",
+		"manifest": {
+			"schema": 1,
+			"kind": "pack",
+			"id": "tartan.pack.swarm",
+			"name": "Swarm",
+			"description": "Agent swarm protocol: claims with footprints, lanes, radar, review by exception, Weave",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.pack.swarm"
+			},
+			"storage": {
+				"scope": "node"
+			},
+			"permissions": {},
+			"members": [
+				{
+					"id": "tartan.work",
+					"version": "0.1.0"
+				},
+				{
+					"id": "tartan.changes",
+					"version": "0.1.0"
+				},
+				{
+					"id": "tartan.radar",
+					"version": "0.1.0"
+				},
+				{
+					"id": "tartan.ci",
+					"version": "0.1.0"
+				},
+				{
+					"id": "tartan.review",
+					"version": "0.1.0",
+					"config": {
+						"mode": "by-exception",
+						"autoThreshold": 0.35
+					}
+				},
+				{
+					"id": "tartan.weave",
+					"version": "0.1.0",
+					"config": {
+						"batch": 4
+					},
+					"backgroundRole": 30
+				},
+				{
+					"id": "tartan.board",
+					"version": "0.1.0"
+				}
+			]
+		},
+		"protocol": null,
+		"migrations": []
+	},
+	{
+		"dir": "packs/classic",
+		"manifest": {
+			"schema": 1,
+			"kind": "pack",
+			"id": "tartan.pack.classic",
+			"name": "Classic",
+			"description": "Classic protocol: issues and pull requests; a human approves every pull request, and FIFO lands them one at a time",
+			"version": "0.1.0",
+			"api": "tartan:ext@0.1.0",
+			"runtime": "builtin",
+			"entry": {
+				"builtin": "tartan.pack.classic"
+			},
+			"storage": {
+				"scope": "node"
+			},
+			"permissions": {},
+			"contributes": {
+				"protocol": "protocol.md"
+			},
+			"members": [
+				{
+					"id": "tartan.work",
+					"version": "0.1.0",
+					"config": {
+						"wording": "classic",
+						"labels": {
+							"work": "Issues",
+							"new-work": "New issue"
+						}
+					}
+				},
+				{
+					"id": "tartan.changes",
+					"version": "0.1.0",
+					"config": {
+						"wording": "classic",
+						"labels": {
+							"changes": "Pull requests"
+						}
+					}
+				},
+				{
+					"id": "tartan.ci",
+					"version": "0.1.0"
+				},
+				{
+					"id": "tartan.review",
+					"version": "0.1.0",
+					"config": {
+						"mode": "human-required"
+					}
+				},
+				{
+					"id": "tartan.fifo",
+					"version": "0.1.0"
+				},
+				{
+					"id": "tartan.board",
+					"version": "0.1.0"
+				}
+			]
+		},
+		"protocol": "Classic protocol: issues and pull requests. Here an issue is a `work` item and a pull request is a `change`.\n\n- Issues: `work_list` and `work_get` read them, `work_create` files one, and `work_claim {ref}` takes one and opens your lane.\n- Pull requests: your lane is a draft pull request. Push with the lane's `git.push` command, then call `changes_submit {laneId, title, summary}` to open it for review.\n- A human Maintainer reviews every pull request; nothing is approved automatically. Answer review threads with `changes_comment`; every push is a new revision and is reviewed again.\n- Approved pull requests land one at a time, first in, first out (`queue_status`). There are no conflict notices here: fetch trunk and rebase before you submit.\n",
+		"migrations": []
+	}
+]

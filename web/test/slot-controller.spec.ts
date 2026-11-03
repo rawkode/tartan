@@ -18,7 +18,7 @@ const REPO = "01k6g000000000000000000040";
 
 const INSTANCE: SlotInstanceDto = {
 	installationId: "i_01k6g000000000000000000504",
-	ext: "tartan.ci",
+	ext: "sample.notes",
 	slot: "change.panel",
 	id: "checks",
 	order: 0,
@@ -165,7 +165,7 @@ describe("slot controller", () => {
 		// after the first render names `work.*`.
 		let n = 0;
 		const t = setup({
-			instance: { ...INSTANCE, ext: "tartan.work", id: "item", refreshOn: [] },
+			instance: { ...INSTANCE, ext: "sample.notes", id: "item", refreshOn: [] },
 			render: () =>
 				Promise.resolve(
 					doc(`render ${++n}`, { refreshOn: ["work.*"], cursor: 3 + n }),

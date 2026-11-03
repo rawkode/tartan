@@ -2,8 +2,8 @@
 // evaluate: a repo imported with a root `package tartan` holding a type
 // error. The forge reports the failure with the file and line, the settings
 // page shows it with a link to that line, and the `package cuenv` file
-// beside it is not what failed. (The M1 loop covers a config that does
-// evaluate: tests/loop/m1-loop.e2e.ts, step 1.)
+// beside it is not what failed. (A config that does evaluate:
+// tests/cue/cue-config.e2e.ts.)
 
 import { expect } from "e2e";
 import type { RepoConfigStateDto } from "@tartan/contract/repoconfig.ts";

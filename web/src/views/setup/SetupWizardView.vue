@@ -31,7 +31,6 @@ import StepClaim from "./steps/StepClaim.vue";
 import StepContent from "./steps/StepContent.vue";
 import StepIdp from "./steps/StepIdp.vue";
 import StepName from "./steps/StepName.vue";
-import StepPack from "./steps/StepPack.vue";
 import StepPeople from "./steps/StepPeople.vue";
 import StepSecret from "./steps/StepSecret.vue";
 import StepSelfTest from "./steps/StepSelfTest.vue";
@@ -147,7 +146,6 @@ const stepIndex = computed(() => (step.value ? steps.value.indexOf(step.value) :
 				<StepIdp v-else-if="step === 'idp' && setup" :state="setup" @configured="onIdp" />
 				<StepClaim v-else-if="step === 'claim'" />
 				<StepSelfTest v-else-if="step === 'selftest'" @done="advance" />
-				<StepPack v-else-if="step === 'pack'" @done="advance" />
 				<StepContent v-else-if="step === 'content'" @done="advance" />
 				<StepPeople v-else-if="step === 'people'" @done="advance" />
 				<StepSecret v-else-if="step === 'secret'" @done="advance" />
