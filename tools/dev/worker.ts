@@ -10,6 +10,9 @@
 // - `Outbound`: the Tartan Worker's outbound service. The mock IdP's origin
 //   and the fake Artifacts remotes are answered here; anything else goes to
 //   the internet.
+// - `DevSandbox`: Tartan's `SANDBOX`. Repository config (`cueSubmit`) is
+//   evaluated by the launcher's local `cue`; everything else goes to the real
+//   TartanSandbox, which has no container here.
 // - `FakeArtifacts`, `FakeAi`: the bindings miniflare cannot run locally,
 //   from `@tartan/testkit` as in the workerd tests (test/fakes). Each push
 //   to a fake repo starts the IngestWorkflow, as the
@@ -18,7 +21,21 @@
 // All state here is in memory: the launcher keeps nothing between runs, so
 // the Durable Objects and the fake repos always agree.
 
-import { env, RpcTarget, WorkerEntrypoint } from "cloudflare:workers";
+import {
+	DurableObject,
+	env,
+	RpcTarget,
+	WorkerEntrypoint,
+} from "cloudflare:workers";
+import {
+	type CueJobInput,
+	type CueSubmitResult,
+	type EvalResponse,
+	FORGE_DO_NAME,
+	isEvalOk,
+	repoDoName,
+	ulid,
+} from "@tartan/contract";
 import { createFakeArtifacts } from "@tartan/testkit";
 import { createMockIdp } from "../../src/kernel/identity/testing/mock-idp.ts";
 
@@ -29,6 +46,11 @@ type DevEnv = {
 	readonly DEV_IDP_ISSUER: string;
 	/** Set behind a tunnel: the automatic sign-in needs it; "" locally. */
 	readonly DEV_KEY: string;
+	/** The launcher's local `cue` evaluator; "" without `cue` on PATH. */
+	readonly DEV_EVAL_URL: string;
+	readonly REAL_SANDBOX: DurableObjectNamespace;
+	readonly REPO: DurableObjectNamespace;
+	readonly FORGE: DurableObjectNamespace;
 };
 
 const devEnv = env as unknown as DevEnv;
@@ -129,6 +151,150 @@ export class FakeArtifacts extends WorkerEntrypoint {
 
 	delete(name: string) {
 		return fake.delete(name);
+	}
+}
+
+/** The TartanSandbox calls this Worker forwards (typed by hand: RPC stubs are too deep). */
+type SandboxRpc = Readonly<
+	Record<
+		| "prepare"
+		| "runJob"
+		| "jobState"
+		| "reconcile"
+		| "stopRun"
+		| "watchdog"
+		| "gitExec"
+		| "selftest"
+		| "runnerInfo"
+		| "cueProbe",
+		(...args: unknown[]) => Promise<unknown>
+	>
+>;
+
+type CueSinkRpc = {
+	repoconfig(): {
+		cueResult(
+			inputKey: string,
+			envelope: EvalResponse,
+			origin: "trunk" | "preview",
+		): Promise<void>;
+	};
+	registry(): {
+		selfCheckResult(requestId: string, envelope: EvalResponse): Promise<void>;
+	};
+};
+
+/** `trunk` for `cue:trunk`, `preview` for `cue:preview:<k>` (as the sandbox). */
+const cueOrigin = (name: string | undefined): "trunk" | "preview" | null =>
+	name === "cue:trunk"
+		? "trunk"
+		: name !== undefined && /^cue:preview:[0-9]{1,2}$/.test(name)
+		? "preview"
+		: null;
+
+/**
+ * Tartan's `SANDBOX` in the dev environment. Repository config jobs
+ * (`cueSubmit` on a `cue:*` sandbox) are evaluated by the launcher's local
+ * `cue` (DEV_EVAL_URL, the CLI evaluator behind tartan.cue-eval/1) and their
+ * envelopes delivered as the container sandbox delivers them. Every other
+ * call goes to the real TartanSandbox, which has no container here.
+ */
+export class DevSandbox extends DurableObject<DevEnv> {
+	#real() {
+		return this.env.REAL_SANDBOX.getByName(
+			this.ctx.id.name ?? "unnamed",
+		) as unknown as SandboxRpc;
+	}
+
+	prepare(input: unknown) {
+		return this.#real().prepare(input);
+	}
+	runJob(input: unknown) {
+		return this.#real().runJob(input);
+	}
+	jobState(jobId: string, attempt: number) {
+		return this.#real().jobState(jobId, attempt);
+	}
+	reconcile() {
+		return this.#real().reconcile();
+	}
+	stopRun() {
+		return this.#real().stopRun();
+	}
+	watchdog() {
+		return this.#real().watchdog();
+	}
+	gitExec(argv: readonly string[], options?: unknown) {
+		return this.#real().gitExec(argv, options);
+	}
+	selftest() {
+		return this.#real().selftest();
+	}
+	runnerInfo() {
+		return this.#real().runnerInfo();
+	}
+	cueProbe(input: unknown) {
+		return this.#real().cueProbe(input);
+	}
+
+	cueSubmit(job: CueJobInput): CueSubmitResult {
+		const origin = cueOrigin(this.ctx.id.name);
+		if (origin === null) {
+			return {
+				accepted: false,
+				reason: "invalid",
+				message: "this sandbox does not evaluate repository config",
+			};
+		}
+		if (this.env.DEV_EVAL_URL === "") {
+			return {
+				accepted: false,
+				reason: "unavailable",
+				message: "no local cue: start `deno task dev` with cue on PATH",
+			};
+		}
+		// Delivered after this call returns, as the container's queue does.
+		this.ctx.waitUntil(this.#evaluate(job, origin));
+		return {
+			accepted: true,
+			jobId: ulid(),
+			warm: true,
+			ahead: 0,
+			joined: false,
+		};
+	}
+
+	async #evaluate(job: CueJobInput, origin: "trunk" | "preview") {
+		try {
+			const res = await fetch(this.env.DEV_EVAL_URL, {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify(job.request),
+			});
+			if (!res.ok) throw new Error(`evaluator answered ${res.status}`);
+			const envelope = await res.json() as EvalResponse;
+			const sink = job.sink;
+			if (sink.kind === "repo") {
+				await (this.env.REPO.getByName(
+					repoDoName(sink.repoId),
+				) as unknown as CueSinkRpc).repoconfig()
+					.cueResult(job.request.inputKey, envelope, origin);
+			} else {
+				await (this.env.FORGE.getByName(
+					FORGE_DO_NAME,
+				) as unknown as CueSinkRpc).registry()
+					.selfCheckResult(sink.requestId, envelope);
+			}
+			console.log(
+				`[tartan-dev] cue ${origin}: ${
+					isEvalOk(envelope)
+						? "ok"
+						: `error ${JSON.stringify(envelope).slice(0, 400)}`
+				}`,
+			);
+		} catch (err) {
+			console.error(`[tartan-dev] cue evaluation failed: ${err}`);
+		}
 	}
 }
 

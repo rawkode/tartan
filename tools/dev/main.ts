@@ -27,7 +27,8 @@
 
 import { build } from "esbuild";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
-import { artifactsNamespace, COMPAT_DATE } from "@tartan/contract";
+import { artifactsNamespace, COMPAT_DATE, CUE_VERSION } from "@tartan/contract";
+import { createCliEvaluator } from "../../src/kernel/repoconfig/evaluators/cli.ts";
 import {
 	type Args,
 	certDir,
@@ -184,6 +185,37 @@ const startTunnel = async (local: string): Promise<Tunnel> => {
 	throw new Error("cloudflared did not report a quick tunnel URL in 60 s");
 };
 
+/**
+ * The local repository config evaluator: the kernel's CLI evaluator
+ * (tartan.cue-eval/1 over a `cue` subprocess) behind one loopback POST, for
+ * the dev worker's DevSandbox. Null when no `cue` binary is found (CUE_BIN,
+ * else `cue` on PATH); repository config then stays off.
+ */
+const startCueEvaluator = async (): Promise<{ url: string } | null> => {
+	// The evaluator runs cue with an empty environment (as the job does), so
+	// the binary is resolved to an absolute path here.
+	const lookup = await new Deno.Command("sh", {
+		args: ["-c", 'command -v "$1"', "sh", Deno.env.get("CUE_BIN") ?? "cue"],
+		stdout: "piped",
+		stderr: "null",
+	}).output().catch(() => null);
+	const cueBin = lookup?.success
+		? new TextDecoder().decode(lookup.stdout).trim()
+		: "";
+	if (!cueBin.startsWith("/")) return null;
+	// nixpkgs and source builds print `cue version (devel)`; the language
+	// version is the one the kernel pins.
+	const evaluator = createCliEvaluator({ cueBin, cueVersion: CUE_VERSION });
+	const server = Deno.serve(
+		{ hostname: "127.0.0.1", port: 0, onListen: () => {} },
+		async (req) =>
+			req.method === "POST"
+				? Response.json(await evaluator.evaluate(await req.json()))
+				: new Response("POST an EvalRequest\n", { status: 405 }),
+	);
+	return { url: `http://127.0.0.1:${server.addr.port}/` };
+};
+
 const randomKey = (): string =>
 	btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))))
 		.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -196,6 +228,7 @@ const main = async (args: Args): Promise<void> => {
 		? await startTunnel(`http://127.0.0.1:${port}`)
 		: null;
 	const devKey = tunnel ? randomKey() : "";
+	const cue = await startCueEvaluator();
 	await Deno.remove(OUT_DIR, { recursive: true }).catch(() => {});
 	if (args.buildWeb) await run("npm", ["run", "build:web"]);
 	const [tartanModules, devModules] = await Promise.all([
@@ -237,10 +270,25 @@ const main = async (args: Args): Promise<void> => {
 						scriptName: "tartan",
 					},
 				},
+				durableObjects: {
+					DEV_SANDBOX: { className: "DevSandbox", useSQLite: true },
+					REAL_SANDBOX: {
+						className: "TartanSandbox",
+						scriptName: "tartan",
+						useSQLite: true,
+					},
+					REPO: { className: "RepoDO", scriptName: "tartan", useSQLite: true },
+					FORGE: {
+						className: "ForgeDO",
+						scriptName: "tartan",
+						useSQLite: true,
+					},
+				},
 				bindings: {
 					ARTIFACTS_NAMESPACE: artifactsNamespace(STAGE),
 					DEV_IDP_ISSUER,
 					DEV_KEY: devKey,
+					DEV_EVAL_URL: cue?.url ?? "",
 				},
 			},
 			{
@@ -270,7 +318,13 @@ const main = async (args: Args): Promise<void> => {
 					REPO: { className: "RepoDO", useSQLite: true },
 					INBOX: { className: "InboxDO", useSQLite: true },
 					EXT: { className: "ExtensionDO", useSQLite: true },
-					SANDBOX: { className: "TartanSandbox", useSQLite: true },
+					// Repository config jobs go to the dev worker's local cue.
+					SANDBOX: {
+						className: "DevSandbox",
+						scriptName: "tartan-dev",
+						useSQLite: true,
+					},
+					REAL_SANDBOX: { className: "TartanSandbox", useSQLite: true },
 					BUS: { className: "BusDO", useSQLite: true },
 				},
 				workflows: {
@@ -290,6 +344,7 @@ const main = async (args: Args): Promise<void> => {
 					TARTAN_JUDGE_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
 					OIDC_ISSUER: "",
 					OIDC_CLIENT_ID: "",
+					...(cue ? { TARTAN_REPO_CONFIG: "on" } : {}),
 				},
 			},
 		],
@@ -304,6 +359,11 @@ const main = async (args: Args): Promise<void> => {
              and ${DEV_IDP_ISSUER} as the IdP issuer.
 [tartan-dev] sign-in is automatic as "dev"; state is in memory only.
 `);
+	console.log(
+		cue
+			? "[tartan-dev] config: repository CUE config on (local cue)"
+			: "[tartan-dev] config: off (no cue: put cue on PATH or set CUE_BIN)",
+	);
 	if (tunnel) {
 		console.log(
 			`[tartan-dev] tunnel: public; the automatic sign-in needs this link ` +
