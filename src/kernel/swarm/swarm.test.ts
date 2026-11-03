@@ -349,13 +349,25 @@ Deno.test("an agent handed over mid-lane continues from its head with fresh cach
 });
 
 /** Wall time sped up 2,000×: one simulated minute is 30 ms. */
+/**
+ * Virtual time that moves only when an agent sleeps (to its wake time), so
+ * the work between sleeps costs no simulated time and the tick counts do not
+ * depend on how fast the machine runs the fake forge. Real timers, scaled by
+ * `speed`, still order the wake-ups of concurrent agents.
+ */
 const fastClock = (speed = 2000) => {
-	const start = 1_790_000_000_000;
-	const t0 = performance.now();
+	let virtual = 1_790_000_000_000;
 	return {
-		now: () => start + (performance.now() - t0) * speed,
-		sleep: (ms: number) =>
-			new Promise<void>((resolve) => setTimeout(resolve, ms / speed)),
+		now: () => virtual,
+		sleep: (ms: number) => {
+			const wake = virtual + ms;
+			return new Promise<void>((resolve) =>
+				setTimeout(() => {
+					virtual = Math.max(virtual, wake);
+					resolve();
+				}, ms / speed)
+			);
+		},
 	};
 };
 
