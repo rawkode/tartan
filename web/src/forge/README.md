@@ -27,7 +27,7 @@ Issues are `rawkode.issues` tools, called over `POST /-/api/repos/<id>/ext/rawko
 | `/oss/devtools/build/kiln:lsp/-/issues/128` | One issue                                                        |
 | `/oss/devtools/build/kiln:lsp/-/issues/new` | New issue                                                        |
 | `/oss/devtools/build/kiln/-/activity`       | Activity, from the repo's event log                              |
-| `/oss/-/new/repo`                           | New repo in a group, which the kernel needs for a parent         |
+| `/oss/-/new/repo`                           | New repo in a group (also `/-/new/repo` at the root)             |
 | `/oss/-/new/group`                          | New group (also `/-/new/group` at the root)                      |
 | `/-/design-system`                          | The design system gallery                                        |
 

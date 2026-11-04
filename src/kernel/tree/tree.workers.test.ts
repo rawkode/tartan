@@ -47,6 +47,7 @@ import {
 import { loopback } from "../../exports.ts";
 import type { TreePorts } from "./context.ts";
 import { createTreeModule } from "./module.ts";
+import { TREE_MIGRATIONS } from "./schema.ts";
 
 /** The pool fake's test-only RPC (never called by product code). */
 type FakeArtifactsRpc = RepoStore & {
@@ -174,7 +175,7 @@ describe("tree module on Durable Object SQLite", () => {
 				const migrations = f.sql.exec<{ n: number }>(
 					"SELECT n FROM _migrations WHERE n BETWEEN 200 AND 299",
 				).toArray().map((r) => r.n);
-				expect(migrations).toEqual([200]);
+				expect(migrations).toEqual([200, 201]);
 				const root = await f.tree.createRoot({
 					kind: "user",
 					slug: "acme",
@@ -221,6 +222,18 @@ describe("tree module on Durable Object SQLite", () => {
 					"node.created",
 					"node.moved",
 				]);
+				// The rebuild of `nodes` works on this SQLite with rows and grants in
+				// place: migration 201 again, now over a populated table.
+				const before = f.sql.exec("SELECT * FROM nodes ORDER BY path")
+					.toArray();
+				const rebuild = TREE_MIGRATIONS.find((m) => m.n === 201)!.sql;
+				state.storage.transactionSync(() => f.sql.exec(rebuild));
+				expect(f.sql.exec("SELECT * FROM nodes ORDER BY path").toArray())
+					.toEqual(before);
+				expect(await f.tree.effectiveRole([dev], parent.id)).toBe(30);
+				expect((await f.tree.resolvePath("acme/platform"))?.redirectTo).toBe(
+					"acme/core",
+				);
 				// Foreign keys hold on Durable Object SQLite.
 				expect(() =>
 					f.sql.exec(

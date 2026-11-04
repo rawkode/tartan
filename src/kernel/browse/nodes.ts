@@ -245,10 +245,18 @@ async (c) => {
 					{ reason: "sample" },
 				);
 			}
-			const parent = await target(tree, auth, body.parent);
-			decideRole(auth, parent.node, parent.facts, CREATE);
+			let parentId: string | null = null;
+			if (body.parent === undefined) {
+				if (auth.kind !== "user" || !auth.isAdmin) {
+					throw denied("role", "root repos are created by admins");
+				}
+			} else {
+				const parent = await target(tree, auth, body.parent);
+				decideRole(auth, parent.node, parent.facts, CREATE);
+				parentId = parent.node.id;
+			}
 			const common = {
-				parentId: parent.node.id,
+				parentId,
 				slug: body.slug,
 				...(body.visibility ? { visibility: body.visibility } : {}),
 				...(body.description !== undefined

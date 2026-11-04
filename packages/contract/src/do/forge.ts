@@ -648,7 +648,8 @@ export interface TreeFacade {
 	createRepo(
 		by: string,
 		input: {
-			parentId: string;
+			/** Null: at the top of the tree. */
+			parentId: string | null;
 			slug: string;
 			visibility?: Visibility;
 			description?: string;
@@ -659,7 +660,8 @@ export interface TreeFacade {
 	importRepo(
 		by: string,
 		input: {
-			parentId: string;
+			/** Null: at the top of the tree. */
+			parentId: string | null;
 			slug: string;
 			import: RepoImportSource;
 			visibility?: Visibility;

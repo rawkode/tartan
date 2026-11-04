@@ -180,6 +180,46 @@ Deno.test("POST /-/api/nodes: only the forge Owner creates groups, with a write 
 	);
 });
 
+Deno.test("POST /-/api/nodes/repos: a repo at the top of the tree, for an admin who is the forge Owner", async () => {
+	const { b, owner, maint } = await setup();
+	const root = await nodes(b, "POST", "repos", adminSession(owner), {
+		slug: "dotfiles",
+		visibility: "public",
+	});
+	equal(root.status, 201);
+	equal((root.body as NodeDto).path, "dotfiles");
+	equal((root.body as NodeDto).kind, "repo");
+	equal((root.body as NodeDto).depth, 0);
+	ok(b.fake.inspect.refs(repoArtifactsName(root.body.id))["refs/heads/main"]);
+	// It is listed at the root, and a repo still holds no node.
+	const listed = await nodes(b, "GET", "", adminSession(owner));
+	ok(listed.body.nodes.some((n: NodeDto) => n.path === "dotfiles"));
+	equal(
+		(await nodes(b, "POST", "repos", adminSession(owner), {
+			parent: "dotfiles",
+			slug: "inner",
+		})).status,
+		400,
+	);
+	equal(
+		(await nodes(b, "POST", "repos", adminSession(owner), { slug: "api" }))
+			.body.reason,
+		"reserved-slug",
+	);
+	equal(
+		(await nodes(b, "POST", "repos", adminSession(owner), { slug: "dotfiles" }))
+			.body.reason,
+		"path-taken",
+	);
+	for (const auth of [session(maint), adminSession(maint), session(owner)]) {
+		equal(
+			(await nodes(b, "POST", "repos", auth, { slug: "other" })).status,
+			403,
+		);
+	}
+	equal((await nodes(b, "POST", "repos", null, { slug: "other" })).status, 401);
+});
+
 Deno.test("POST /-/api/nodes/repos: the forge Owner only: create, URL import and import mode", async () => {
 	const { b, owner, dev, maint } = await setup();
 	await b.groups(owner, "acme", "platform");

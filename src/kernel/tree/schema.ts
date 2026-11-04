@@ -22,6 +22,37 @@ const NODES = `CREATE TABLE nodes (
   CHECK (kind <> 'repo' OR depth >= 1));
 CREATE INDEX nodes_parent ON nodes(parent_id, slug)`;
 
+/**
+ * Repos at any level, the top included: SQLite cannot drop a CHECK, so `nodes`
+ * is rebuilt without `kind <> 'repo' OR depth >= 1`. Foreign keys stay on, and
+ * grants, redirects and protected_refs point at this table, so the checks are
+ * deferred to the commit: dropping the table counts their rows as violations,
+ * and inserting the same ids again clears them. Parents go in before children.
+ * The pragma goes back off at the end: Durable Object SQLite can hold this write in
+ * a longer implicit transaction, and later writes in it must fail where they stand.
+ */
+const NODES_REPOS_AT_ANY_DEPTH = `PRAGMA defer_foreign_keys = ON;
+CREATE TABLE nodes_rebuild AS SELECT * FROM nodes;
+DROP TABLE nodes;
+CREATE TABLE nodes (
+  id TEXT PRIMARY KEY,
+  parent_id TEXT REFERENCES nodes(id),
+  kind TEXT NOT NULL CHECK (kind IN ('user','group','repo')),
+  slug TEXT NOT NULL CHECK (length(slug) BETWEEN 1 AND 64 AND slug GLOB '[a-z0-9]*' AND slug NOT GLOB '*[^a-z0-9-]*'),
+  path TEXT NOT NULL UNIQUE,
+  depth INTEGER NOT NULL CHECK (depth >= 0),
+  visibility TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('private','internal','public')),
+  artifacts_name TEXT UNIQUE,
+  default_branch TEXT,
+  description TEXT, created_by TEXT NOT NULL, created_at INTEGER NOT NULL, archived_at INTEGER,
+  CHECK ((kind = 'repo') = (artifacts_name IS NOT NULL)),
+  CHECK ((parent_id IS NULL) = (depth = 0)),
+  CHECK (kind <> 'user' OR depth = 0));
+CREATE INDEX nodes_parent ON nodes(parent_id, slug);
+INSERT INTO nodes SELECT * FROM nodes_rebuild ORDER BY depth;
+DROP TABLE nodes_rebuild;
+PRAGMA defer_foreign_keys = OFF`;
+
 const REDIRECTS =
 	`CREATE TABLE redirects (old_path TEXT PRIMARY KEY, node_id TEXT NOT NULL REFERENCES nodes(id), created_at INTEGER NOT NULL)`;
 
@@ -53,5 +84,10 @@ export const TREE_MIGRATIONS: readonly Migration[] = [
 		sql: [NODES, REDIRECTS, GRANTS, PROTECTED_REFS, ARTIFACTS_INDEX].join(
 			";\n",
 		),
+	},
+	{
+		n: 201,
+		name: "nodes: repos at any depth",
+		sql: NODES_REPOS_AT_ANY_DEPTH,
 	},
 ];

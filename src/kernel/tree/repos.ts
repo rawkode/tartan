@@ -54,7 +54,8 @@ export const GENESIS_AUTHOR = {
 export const GENESIS_MESSAGE = "Initial commit";
 
 export type CreateRepoInput = {
-	readonly parentId: string;
+	/** Null: at the top of the tree. */
+	readonly parentId: string | null;
 	readonly slug: string;
 	readonly visibility?: Visibility;
 	readonly description?: string;
@@ -62,7 +63,8 @@ export type CreateRepoInput = {
 };
 
 export type ImportRepoInput = {
-	readonly parentId: string;
+	/** Null: at the top of the tree. */
+	readonly parentId: string | null;
 	readonly slug: string;
 	readonly import: RepoImportSource;
 	readonly visibility?: Visibility;
@@ -147,7 +149,7 @@ export const createRepoCreation = (c: TreeContext): RepoCreation => {
 	const begin = (
 		by: string,
 		input: {
-			readonly parentId: string;
+			readonly parentId: string | null;
 			readonly slug: string;
 			readonly visibility?: Visibility;
 			readonly description?: string;
@@ -155,9 +157,11 @@ export const createRepoCreation = (c: TreeContext): RepoCreation => {
 		},
 	): NodeRow =>
 		c.tx(() => {
-			const parent = requireNode(c, input.parentId);
-			if (parent.kind === "repo") throw invalid("a repo has no child nodes");
-			const slug = checkSlug(input.slug, { root: false });
+			const parent = input.parentId === null
+				? null
+				: requireNode(c, input.parentId);
+			if (parent?.kind === "repo") throw invalid("a repo has no child nodes");
+			const slug = checkSlug(input.slug, { root: parent === null });
 			requireForgeOwner(c, by, "creating a repo");
 			const id = c.ids.ulid();
 			const name = repoArtifactsName(id);

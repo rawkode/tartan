@@ -274,7 +274,7 @@ const seed = async (
 				"POST",
 				"/-/api/nodes/repos",
 				{
-					parent: repo.parent,
+					...(repo.parent === undefined ? {} : { parent: repo.parent }),
 					slug: repo.slug,
 					visibility: "public",
 					description: repo.description,

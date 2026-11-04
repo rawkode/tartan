@@ -467,13 +467,10 @@ export const createForgeStore = (
 			visibility,
 			...(description ? { description } : {}),
 		};
+		const place = parent.addr ? { parent: parent.addr } : {};
 		const created = kind === "group"
-			? await api.nodes.createGroup({
-				...common,
-				kind: "group",
-				...(parent.addr ? { parent: parent.addr } : {}),
-			})
-			: await api.nodes.createRepo({ ...common, parent: parent.addr });
+			? await api.nodes.createGroup({ ...common, ...place, kind: "group" })
+			: await api.nodes.createRepo({ ...common, ...place });
 		await ensureChildren(parent, true);
 		const url = urlFor(created.path);
 		setBanner(url, `${kind === "group" ? "Group" : "Repo"} created.`);

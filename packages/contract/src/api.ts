@@ -305,7 +305,8 @@ export const RepoImportSourceSchema = z.union([
 export type RepoImportSource = z.infer<typeof RepoImportSourceSchema>;
 
 export const RepoCreateRequestSchema = z.strictObject({
-	parent: NodePathSchema,
+	/** Absent: at the top of the tree. */
+	parent: NodePathSchema.optional(),
 	slug: Slug,
 	visibility: VisibilitySchema.optional(),
 	description: z.string().max(500).optional(),

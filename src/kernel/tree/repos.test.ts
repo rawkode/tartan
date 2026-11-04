@@ -4,7 +4,7 @@
 // ended through WP5a's `importComplete`, the Owner-only import mode, rollbacks
 // and the stale-create timer.
 
-import { deepStrictEqual, equal, ok } from "node:assert/strict";
+import { deepStrictEqual, equal, ok, throws } from "node:assert/strict";
 import {
 	fromRpcError,
 	repoArtifactsName,
@@ -14,6 +14,7 @@ import {
 } from "@tartan/contract";
 import { fetchPack } from "@tartan/testkit";
 import { CREATE_GRACE_MS, CREATE_TIMER_PREFIX } from "./repos.ts";
+import { TREE_MIGRATIONS } from "./schema.ts";
 import { createTreeHarness, publicUrl } from "./testing/harness.ts";
 
 const code = async (p: Promise<unknown>): Promise<TartanError> => {
@@ -383,4 +384,49 @@ Deno.test("moves refresh the RepoDO path cache of every live repo in the subtree
 		path: "acme/core/edge/router",
 		defaultBranch: "main",
 	});
+});
+
+Deno.test("migration 201 keeps every node and what points at them, and lets a repo sit at the root", async () => {
+	const h = createTreeHarness();
+	const { id: owner } = await h.owner("acme");
+	const g = await h.groups(owner, "acme", "g/deep");
+	const repo = await h.facade.createRepo(owner, { parentId: g.id, slug: "r" });
+	const member = h.identity.user("m");
+	await h.facade.grant(owner, repo.id, member, ROLE.developer);
+	await h.facade.moveNode(owner, g.id, { slug: "moved" });
+	const nodesOf = () =>
+		h.storage.sql.exec("SELECT * FROM nodes ORDER BY path").toArray();
+	const before = nodesOf();
+	const rebuild = TREE_MIGRATIONS.find((m) => m.n === 201)!.sql;
+	h.storage.transactionSync(() => h.storage.sql.exec(rebuild));
+	deepStrictEqual(nodesOf(), before);
+	equal(
+		await h.facade.effectiveRole([member], repo.id),
+		ROLE.developer,
+		"its grants still apply",
+	);
+	equal(
+		(await h.facade.resolvePath("acme/g/deep"))?.redirectTo,
+		"acme/g/moved",
+		"its redirects still apply",
+	);
+	// The foreign keys are enforced again after the commit.
+	throws(() =>
+		h.storage.sql.exec(
+			"INSERT INTO grants (node_id, principal_id, role, granted_by, created_at) VALUES ('nope', 'x', 10, 'x', 0)",
+		)
+	);
+	const root = await h.facade.createRepo(owner, {
+		parentId: null,
+		slug: "top",
+	});
+	equal(root.path, "top");
+	equal(root.depth, 0);
+	// A user namespace still stays at the root.
+	throws(() =>
+		h.storage.sql.exec(
+			"INSERT INTO nodes (id, parent_id, kind, slug, path, depth, created_by, created_at) VALUES ('x', ?, 'user', 'u', 'acme/u', 1, 'x', 0)",
+			g.id,
+		)
+	);
 });

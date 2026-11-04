@@ -148,5 +148,5 @@ control, tab or link:
 
 A number with no source is left out, not shown as 0: a stranger sees no issue counts, and a repo without Issues has none.
 
-A repository cannot sit at the top of the tree: the kernel requires a repo to be below a group or a user. The sample's
-`dotfiles` is `dev/dotfiles`, under the Owner's own root.
+A repository can sit at any level, the top of the tree included: the sample's `dotfiles` has no group above it. A move
+still needs a new parent, so nothing moves up to the top; create it there.

@@ -105,7 +105,7 @@ Deno.test("the other repos are single projects", async () => {
 	for (const path of ["oss/devtools/build/remote-cache", "writing/blog"]) {
 		deepStrictEqual(await summary(path), [], path);
 	}
-	deepStrictEqual(await summary("dev/dotfiles"), []);
+	deepStrictEqual(await summary("dotfiles"), []);
 });
 
 Deno.test("every seeded issue names a project that exists and has Issues on", async () => {

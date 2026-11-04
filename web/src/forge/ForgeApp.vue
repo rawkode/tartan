@@ -106,11 +106,7 @@ const missing = computed(() => {
 	if (!node) return true;
 	if (route.value.tab === "projects" && node.kind !== "group") return true;
 	if (route.value.tab === "activity" && node.kind !== "repo") return true;
-	if (detail?.type === "new-node") {
-		if (node.kind !== "group") return true;
-		// The kernel keeps repos under a group or user: a repo needs a parent.
-		if (detail.kind === "repo" && node.addr === "") return true;
-	}
+	if (detail?.type === "new-node" && node.kind !== "group") return true;
 	return false;
 });
 

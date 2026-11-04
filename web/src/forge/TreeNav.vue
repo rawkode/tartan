@@ -39,6 +39,7 @@ const footLinks = css({
 			:route="route" />
 		<div v-if="scope === ''" :class="[styles.actions, 'owner-only']">
 			<Button :href="urlFor('', 'new/group')">New group</Button>
+			<Button :href="urlFor('', 'new/repo')">New repo</Button>
 		</div>
 		<p :class="[styles.foot, footLinks]">
 			<a href="/-/hud">HUD</a>

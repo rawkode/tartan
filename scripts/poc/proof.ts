@@ -54,7 +54,7 @@ const repoId = async (path: string): Promise<string> =>
 const KILN = await repoId("oss/devtools/build/kiln");
 const CACHE = await repoId("oss/devtools/build/remote-cache");
 const PLATFORM = await repoId("infra/cloud/platform");
-const DOTFILES = await repoId("dev/dotfiles");
+const DOTFILES = await repoId("dotfiles");
 
 const refused = (reply: ToolReply, status: number, code: string): boolean =>
 	reply.status === status && reply.code === code;

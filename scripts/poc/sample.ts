@@ -19,8 +19,8 @@ export type SampleIssue = {
 };
 
 export type SampleRepo = {
-	/** The parent group's path. */
-	readonly parent: string;
+	/** The parent group's path; absent at the top of the tree. */
+	readonly parent?: string;
 	readonly slug: string;
 	readonly description: string;
 	/** Whether Issues is installed on it. */
@@ -280,11 +280,9 @@ const BLOG: SampleRepo = {
 	],
 };
 
-// A repo cannot sit at the top of the tree (kernel: a repo's depth is at least
-// 1), so the top-level `dotfiles` lives under the Owner's own root. It has no
-// Issues: the proof reads 404 not_installed from it.
+// At the top of the tree, with no group above it. It has no Issues: the proof
+// reads 404 not_installed from it.
 export const DOTFILES: SampleRepo = {
-	parent: "dev",
 	slug: "dotfiles",
 	description: "Shell and editor configuration",
 	issues: false,
@@ -309,7 +307,7 @@ export const SAMPLE_REPOS: readonly SampleRepo[] = [
 ];
 
 export const pathOf = (repo: SampleRepo): string =>
-	`${repo.parent}/${repo.slug}`;
+	repo.parent === undefined ? repo.slug : `${repo.parent}/${repo.slug}`;
 
 /** A repo's files at its last commit. */
 export const filesOf = (repo: SampleRepo): Record<string, string> =>
