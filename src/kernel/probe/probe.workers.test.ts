@@ -71,7 +71,7 @@ describe("RepoDO probe module", () => {
 			).toArray();
 			expect(rows).toEqual([{
 				name: "api",
-				manifest_path: "services/api/package.json",
+				manifest_path: "services/api/forge.cue",
 			}]);
 			expect(
 				sql.exec("SELECT glob, source FROM global_files").toArray(),
