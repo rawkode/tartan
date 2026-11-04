@@ -213,6 +213,14 @@ export type ProjectGraph = {
 	readonly packages?: Readonly<Record<string, string | null>>;
 };
 
+/** `RepoProbeApi.trunkFastForward`: `commits` are ancestors first. */
+export type TrunkFastForward =
+	| { readonly fastForward: true; readonly commits: readonly string[] }
+	| {
+		readonly fastForward: false;
+		readonly why: "diverged" | "too-many-commits" | "missing-commit";
+	};
+
 export type Affected = {
 	readonly projects: readonly string[];
 	/** True when a global file, a manifest or a path outside every project root changed. */

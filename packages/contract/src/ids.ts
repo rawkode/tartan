@@ -580,6 +580,12 @@ export const TARTAN_REF_PREFIX = "refs/tartan/" as const;
 export const CANDIDATES_PREFIX = "refs/tartan/candidates/" as const;
 export const CHANGES_PREFIX = "refs/tartan/changes/" as const;
 export const ATTIC_PREFIX = "refs/tartan/attic/" as const;
+/**
+ * Where an Owner's direct push to the default branch waits while the kernel
+ * checks it is a fast-forward (`gateway/direct.ts`). Hidden, and only the gateway
+ * writes it (`refs/tartan/` is refused to everyone else); it lives for one request.
+ */
+export const DIRECT_PUSH_PREFIX = "refs/tartan/direct/" as const;
 /** Sandbox-mirror-only work refs; never pushed. */
 export const WORK_REF_PREFIX = "refs/tartan-work/" as const;
 /** The `branch` backend's lane namespace in the canonical repo. */

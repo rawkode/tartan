@@ -23,6 +23,7 @@ import {
 	fold,
 	type GatewayPushContext,
 	globMatch,
+	mayPushTrunk,
 	mayReceivePack,
 	memberView,
 	publicView,
@@ -81,6 +82,7 @@ const agent = (over: Partial<PushCaller> = {}): PushCaller => ({
 	role: ROLE.developer,
 	laneId: null,
 	forgeOwner: false,
+	trunkWrite: false,
 	...over,
 });
 
@@ -90,6 +92,7 @@ const user = (over: Partial<PushCaller> = {}): PushCaller => ({
 	role: ROLE.developer,
 	laneId: null,
 	forgeOwner: false,
+	trunkWrite: false,
 	...over,
 });
 
@@ -243,10 +246,41 @@ Deno.test("row 1: an importing repo takes pushes from the forge Owner only, to h
 	);
 });
 
-Deno.test("row 2: protected refs are woven-by-tartan for users and agents", () => {
+Deno.test("row 2: protected refs are woven-by-tartan for everyone but the repo's Owner on main", () => {
+	equal(
+		verdict(update("refs/heads/main"), user(), userCtx()),
+		"woven-by-tartan",
+	);
 	equal(
 		verdict(update("refs/heads/main"), user({ role: ROLE.owner }), userCtx()),
 		"woven-by-tartan",
+		"Owner by role alone: the credential has no trunk write",
+	);
+	equal(
+		verdict(
+			update("refs/heads/main"),
+			user({ role: ROLE.maintainer, trunkWrite: true }),
+			userCtx(),
+		),
+		"woven-by-tartan",
+		"trunkWrite without Owner",
+	);
+	equal(
+		verdict(
+			update("refs/heads/main"),
+			agent({ role: ROLE.owner, trunkWrite: true }),
+		),
+		"woven-by-tartan",
+		"never an agent",
+	);
+	equal(
+		verdict(
+			update("refs/heads/main"),
+			user({ role: ROLE.owner, trunkWrite: true, laneId: LANE_A }),
+			userCtx(),
+		),
+		"woven-by-tartan",
+		"never a lane-pinned token",
 	);
 	equal(verdict(update("refs/heads/main"), agent()), "woven-by-tartan");
 	equal(
@@ -542,6 +576,53 @@ Deno.test("row 10: everything else is unsupported-ref", () => {
 		);
 		equal(verdict(create(ref), agent()), "unsupported-ref", ref);
 	}
+});
+
+Deno.test("row 2: the repo's Owner pushes main directly, and only main", () => {
+	const owner = user({ role: ROLE.owner, trunkWrite: true });
+	equal(verdict(update("refs/heads/main"), owner, userCtx()), "allow");
+	equal(
+		verdict(create("refs/heads/release/1.0"), owner, userCtx()),
+		"woven-by-tartan",
+		"another protected pattern stays with the Advance",
+	);
+	equal(
+		verdict(remove("refs/heads/main"), owner, userCtx()),
+		"non-fast-forward",
+		"deleting trunk rewrites it",
+	);
+	equal(
+		verdict(
+			update("refs/heads/main"),
+			owner,
+			userCtx({
+				caller: { kind: "user", writeCredential: false },
+			}),
+		),
+		"no-write-credential",
+	);
+});
+
+Deno.test("mayPushTrunk: a user with Owner and a repo:write credential, nothing less", () => {
+	const auth = (over: Partial<AuthContext> = {}): AuthContext => ({
+		principal: USER,
+		kind: "user",
+		via: "pat",
+		tokenId: "tok",
+		scopes: ["repo:write"],
+		nodeId: null,
+		laneId: null,
+		maxRole: ROLE.owner,
+		isAdmin: false,
+		...over,
+	} as AuthContext);
+	equal(mayPushTrunk(auth(), ROLE.owner), true);
+	equal(mayPushTrunk(auth({ via: "session", scopes: [] }), ROLE.owner), true);
+	equal(mayPushTrunk(auth(), ROLE.maintainer), false);
+	equal(mayPushTrunk(auth({ scopes: ["lanes"] }), ROLE.owner), false);
+	equal(mayPushTrunk(auth({ kind: "agent" }), ROLE.owner), false);
+	equal(mayPushTrunk(auth({ onBehalfOf: "u_x" }), ROLE.owner), false);
+	equal(mayPushTrunk(auth({ laneId: LANE_A }), ROLE.owner), false);
 });
 
 Deno.test("decisions come back per command, in order", () => {

@@ -147,6 +147,8 @@ export const REF_POLICY_REASONS = [
 	"case-collision",
 	"repo-importing",
 	"woven-by-tartan",
+	// An Owner's direct push to the default branch that would rewrite or delete it.
+	"non-fast-forward",
 	"kernel-only",
 	"not-your-lane",
 	"lane-closed",
@@ -201,6 +203,12 @@ export type PushCaller = {
 	readonly laneId: string | null;
 	/** The forge Owner (import mode). */
 	readonly forgeOwner: boolean;
+	/**
+	 * May push the default branch directly: a user holding Owner on this repo
+	 * through a credential that can write it (`mayPushTrunk`), never an agent,
+	 * a token acting for one, or a lane-pinned token.
+	 */
+	readonly trunkWrite: boolean;
 };
 
 /** One command's verdict; one rejection rejects the whole push (nothing is forwarded). */

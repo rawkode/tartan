@@ -23,6 +23,11 @@
 //    mid-relay is still recorded), and the held-back final flush is released
 //    only after phase 1 has committed (5 s bound); phase 2 (RepoProbe's lane
 //    range → `recordDiff`) follows in `waitUntil`.
+//
+// A push of the default branch by its Owner takes `direct.ts` at step 4: it
+// goes up under a quarantine ref, is refused unless it is a fast-forward, and
+// only then moves trunk. A push that moved trunk is discovered eagerly, best
+// effort (`discoverTrunk`): other refs do not change the graph at the trunk tip.
 
 import {
 	ARTIFACTS_OBJECT_LIMIT_BYTES,
@@ -32,10 +37,12 @@ import {
 	LANE_BRANCH_PREFIX,
 	redactSecrets,
 	stripControl,
+	trunkRef,
 	ZERO_SHA,
 } from "@tartan/contract";
 import type {
 	AuthContext,
+	DiffResult,
 	PushCaller,
 	PushCommand,
 	RecordPushResult,
@@ -59,12 +66,14 @@ import {
 	synthReportStatus,
 } from "@tartan/gitproto";
 import { laneNotFound, type RepoAccess, resolveAccess } from "./access.ts";
+import { pushDirect } from "./direct.ts";
 import { ATOMIC_REASON, guidanceLines } from "./guidance.ts";
 import { laneUpstream } from "./laneremote.ts";
 import {
 	canonicalWritePrecheck,
 	fold,
 	type GatewayPushContext,
+	mayPushTrunk,
 } from "./policy.ts";
 import { CONTENT_TYPE, gitBody, gitText, NO_CACHE } from "./respond.ts";
 import {
@@ -310,11 +319,58 @@ const needsDiff = (ref: string, after: string, importing: boolean): boolean =>
 	!importing && after !== ZERO_SHA && ref.startsWith("refs/heads/") &&
 	!isKernelRef(ref);
 
-/** Phase 2: RepoProbe's lane range for each accepted ref, then `recordDiff`. */
+/**
+ * Discovers the projects at each commit this push moved trunk to, so the graph
+ * is cached before anyone reads it. A push to any other ref does not change the
+ * graph at the trunk tip, so it discovers nothing. Best effort: the push has
+ * already landed, and a failure only means the first read detects instead.
+ */
+const discoverTrunk = async (
+	s: PushState,
+	result: RecordPushResult,
+	defaultBranch: string,
+): Promise<void> => {
+	const discover = s.deps.discoverProjects;
+	if (discover === undefined) return;
+	for (const event of result.events) {
+		if (event.type !== "push.accepted") continue;
+		const data = event.data as {
+			readonly target: string;
+			readonly ref: string;
+			readonly after: string;
+		};
+		if (
+			data.target !== "repo" || data.ref !== trunkRef(defaultBranch) ||
+			data.after === ZERO_SHA
+		) {
+			continue;
+		}
+		try {
+			await discover(s.access.repoId, data.after);
+			s.deps.log("[tartan] gateway: projects discovered at trunk push", {
+				repoId: s.access.repoId,
+				sha: data.after,
+			});
+		} catch (error) {
+			s.deps.log("[tartan] gateway: project discovery failed", {
+				repoId: s.access.repoId,
+				sha: data.after,
+				error: errorText(error),
+			});
+		}
+	}
+};
+
+/**
+ * Phase 2: RepoProbe's lane range for each accepted ref, then `recordDiff`. A
+ * direct push to trunk has its range already (`known`, by ref): trunk has moved,
+ * so the walk would now find it empty.
+ */
 const phase2 = async (
 	s: PushState,
 	result: RecordPushResult,
 	importing: boolean,
+	known: ReadonlyMap<string, DiffResult> = new Map(),
 ): Promise<void> => {
 	for (const event of result.events) {
 		if (event.type !== "push.accepted") continue;
@@ -329,7 +385,8 @@ const phase2 = async (
 			const source = data.target === "repo"
 				? { repoId: s.access.repoId }
 				: { repoId: s.access.repoId, laneId: data.target };
-			const diff = await s.deps.probe().laneDiff(source, data.after);
+			const diff = known.get(data.ref) ??
+				await s.deps.probe().laneDiff(source, data.after);
 			await s.repo.recordDiff(data.pushId, diff);
 		} catch (error) {
 			// RepoDO's `diff` timer completes it (backstop).
@@ -353,6 +410,7 @@ const phase1 = async (
 	report: ReportStatus | null,
 	bytes: number,
 	repoName: string | undefined,
+	trunkCommits?: readonly string[],
 ): Promise<RecordPushResult | null> => {
 	if (report === null) {
 		s.deps.log("[tartan] gateway: no report-status from upstream", {
@@ -378,6 +436,7 @@ const phase1 = async (
 		...(s.auth.tokenId ? { tokenId: s.auth.tokenId } : {}),
 		via: "gateway",
 		requestId: s.requestId,
+		...(trunkCommits === undefined ? {} : { trunkCommits }),
 	});
 };
 
@@ -562,6 +621,7 @@ const receivePack = async (
 		forgeOwner: auth.kind === "user" &&
 			ctx.importState === "importing" &&
 			await deps.isForgeOwner(auth.principal),
+		trunkWrite: laneId === null && mayPushTrunk(auth, access.role),
 	};
 	const rejectWith = (reasons: readonly (RefPolicyReason | null)[]) =>
 		reject(s, {
@@ -602,16 +662,6 @@ const receivePack = async (
 	const counter = createByteCounter(
 		contentLength === null ? maxBytes : undefined,
 	);
-	let body = peeked.body.pipeThrough(counter.stream);
-	const Fixed = (globalThis as {
-		FixedLengthStream?: new (length: number) => TransformStream<
-			Uint8Array,
-			Uint8Array
-		>;
-	}).FixedLengthStream;
-	if (contentLength !== null && Fixed !== undefined) {
-		body = body.pipeThrough(new Fixed(contentLength));
-	}
 	const sent = (): number => contentLength ?? counter.bytes();
 	const sizeRejection = (reason: "push-too-large" | "object-too-large") =>
 		reject(s, {
@@ -622,6 +672,116 @@ const receivePack = async (
 			ownLanes: ctx.ownLanes,
 			defaultBranch: ctx.defaultBranch,
 		});
+	const importing = ctx.importState === "importing";
+	const trunkCommand = laneId !== null || importing
+		? undefined
+		: commands.find((command) => command.ref === trunkRef(ctx.defaultBranch));
+	if (trunkCommand !== undefined) {
+		const direct = pushDirect({
+			deps,
+			req: r.req,
+			repoId: access.repoId,
+			upstream,
+			commands,
+			trunk: trunkCommand,
+			capabilities: peeked.capabilities,
+			body: peeked.body,
+			sectionBytes: peeked.sectionBytes,
+			contentLength,
+			requestId: s.requestId,
+			counter: counter.stream,
+		});
+		// The client may go away; the push it uploaded still completes.
+		r.waitUntil(direct.then(() => {}, () => {}));
+		const outcome = await direct.catch((error) => {
+			deps.log("[tartan] gateway: direct push failed", {
+				repoId: access.repoId,
+				error: errorText(error),
+			});
+			return { kind: "upload-failed", status: null } as const;
+		});
+		if (outcome.kind === "upload-failed") {
+			if (counter.exceeded()) return await sizeRejection("push-too-large");
+			if (overObjectLimit(sent())) {
+				return await sizeRejection("object-too-large");
+			}
+			deps.log("[tartan] gateway: upstream receive-pack failed", {
+				repoId: access.repoId,
+				status: outcome.status,
+			});
+			return gitText(502, "the git backend refused the push; try again");
+		}
+		if (outcome.kind === "refused") {
+			deps.log("[tartan] gateway: direct push is not a fast-forward", {
+				repoId: access.repoId,
+				why: outcome.why,
+			});
+			return await reject(s, {
+				commands,
+				reasons: commands.map((command) =>
+					command === trunkCommand ? "non-fast-forward" : null
+				),
+				caps,
+				body: null,
+				ownLanes: ctx.ownLanes,
+				defaultBranch: ctx.defaultBranch,
+			});
+		}
+		if (outcome.kind === "backend-refused") {
+			return gitBody(
+				synthReportStatus(outcome.report, caps),
+				CONTENT_TYPE.receiveResult,
+			);
+		}
+		const recorded = phase1(
+			s,
+			commands,
+			outcome.report,
+			sent(),
+			undefined,
+			outcome.report.refs.some((ref) => ref.ref === trunkCommand.ref && ref.ok)
+				? outcome.commits
+				: undefined,
+		);
+		const known = new Map(
+			outcome.diff === null ? [] : [[trunkCommand.ref, outcome.diff]],
+		);
+		r.waitUntil(
+			recorded.then(
+				async (result) => {
+					if (result === null) return;
+					await phase2(s, result, false, known);
+					await discoverTrunk(s, result, ctx.defaultBranch);
+				},
+				(error) =>
+					deps.log("[tartan] gateway: recordPush failed", {
+						repoId: access.repoId,
+						requestId: s.requestId,
+						error: errorText(error),
+					}),
+			),
+		);
+		await within(recorded, deps.config.phase1WaitMs);
+		const lines = await withinValue(
+			echoLines(s, caps, recorded),
+			ECHO_WAIT_MS,
+			[],
+		);
+		return gitBody(
+			synthReportStatus(outcome.report, caps, lines),
+			CONTENT_TYPE.receiveResult,
+		);
+	}
+	let body = peeked.body.pipeThrough(counter.stream);
+	const Fixed = (globalThis as {
+		FixedLengthStream?: new (length: number) => TransformStream<
+			Uint8Array,
+			Uint8Array
+		>;
+	}).FixedLengthStream;
+	if (contentLength !== null && Fixed !== undefined) {
+		body = body.pipeThrough(new Fixed(contentLength));
+	}
 	const pending = callUpstream(deps, r.req, upstream, {
 		method: "POST",
 		path: "git-receive-pack",
@@ -704,12 +864,15 @@ const receivePack = async (
 			laneId === null ? undefined : upstream.artifactsName,
 		)
 	);
-	const importing = ctx.importState === "importing";
 	r.waitUntil(
 		Promise.allSettled([
 			sniffed,
 			recorded.then(
-				(result) => result === null ? undefined : phase2(s, result, importing),
+				async (result) => {
+					if (result === null) return;
+					await phase2(s, result, importing);
+					await discoverTrunk(s, result, ctx.defaultBranch);
+				},
 				(error) =>
 					deps.log("[tartan] gateway: recordPush failed", {
 						repoId: access.repoId,

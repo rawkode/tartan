@@ -258,7 +258,7 @@ export type TrunkCommitRow = {
 	sha: string;
 	/** Trunk order: the imported first-parent chain ≤ 0 (tip = 0), genesis 0, each landing 1, 2, … */
 	seq: number;
-	source: "genesis" | "import" | "advance" | "seed";
+	source: "genesis" | "import" | "advance" | "seed" | "push";
 };
 export type KernelWriteRow = {
 	id: string;
@@ -506,6 +506,11 @@ export type PushReport = {
 	readonly via: PushVia;
 	/** Gateway request id | trigger event id | kernel_writes id. `UNIQUE(via, request_id)`. */
 	readonly requestId: string;
+	/**
+	 * An Owner's direct push to the default branch (gateway only): the commits it
+	 * added to trunk, ancestors first, recorded in `trunk_commits`.
+	 */
+	readonly trunkCommits?: readonly string[];
 };
 
 /**

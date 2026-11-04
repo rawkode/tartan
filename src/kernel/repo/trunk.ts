@@ -1,6 +1,6 @@
 // The trunk-commit set (K17): every trunk commit the kernel knows, in trunk
-// order (an imported first-parent chain at seq ≤ 0, genesis 0, each landing 1,
-// 2, …). Trunk is linear, so a commit's merge base with trunk is its reachable
+// order (an imported first-parent chain at seq ≤ 0, genesis 0, each landing or
+// Owner's direct push 1, 2, …). Trunk moves only forward, so a commit's merge base with trunk is its reachable
 // entry with the highest seq; WP8's range walk asks `trunkSeqs` one log page at
 // a time.
 
@@ -32,6 +32,45 @@ export const trunkSeqsSync = (
 	);
 };
 
+/** New trunk commits, in trunk order, at the next seqs (a known one keeps its seq). */
+const appendTrunkCommits = (
+	core: Core,
+	shas: readonly string[],
+	source: "advance" | "push",
+): void => {
+	let next = scalar(core.sql, "SELECT MAX(seq) AS n FROM trunk_commits") + 1;
+	for (const sha of shas) {
+		const inserted = rows<{ sha: string }>(
+			core.sql,
+			`INSERT INTO trunk_commits (sha, seq, source) VALUES (?, ?, ?)
+			 ON CONFLICT (sha) DO NOTHING RETURNING sha`,
+			sha,
+			Math.max(next, 1),
+			source,
+		);
+		if (inserted.length > 0) next = Math.max(next, 1) + 1;
+	}
+};
+
+/**
+ * An Owner's direct push to the default branch, in `recordPush`'s transaction:
+ * the commits it added at the next seqs, so `?sha=` and K17 see them as trunk,
+ * and its bytes added to `meta.trunk_pack_bytes`.
+ */
+export const recordTrunkPushSync = (
+	core: Core,
+	input: { readonly commits: readonly string[]; readonly bytes?: number },
+): void => {
+	for (const sha of input.commits) {
+		if (!isSha(sha)) throw invalid(`not a sha: ${sha}`);
+	}
+	appendTrunkCommits(core, input.commits, "push");
+	const estimate = getMetaNumber(core.sql, "trunk_pack_bytes");
+	if (estimate !== null && input.bytes !== undefined) {
+		setMeta(core.sql, "trunk_pack_bytes", estimate + input.bytes);
+	}
+};
+
 /**
  * `completeAdvance` (WP10) in its transaction: the landed commits at the next
  * seqs, in trunk order, and the landed lanes' gateway-pushed bytes added to
@@ -51,17 +90,7 @@ export const recordLandingSync = (
 	for (const laneId of input.landedLaneIds) {
 		if (!isIdOf("lane", laneId)) throw invalid(`not a lane id: ${laneId}`);
 	}
-	let next = scalar(core.sql, "SELECT MAX(seq) AS n FROM trunk_commits") + 1;
-	for (const sha of input.trunkCommits) {
-		const inserted = rows<{ sha: string }>(
-			core.sql,
-			`INSERT INTO trunk_commits (sha, seq, source) VALUES (?, ?, 'advance')
-			 ON CONFLICT (sha) DO NOTHING RETURNING sha`,
-			sha,
-			Math.max(next, 1),
-		);
-		if (inserted.length > 0) next = Math.max(next, 1) + 1;
-	}
+	appendTrunkCommits(core, input.trunkCommits, "advance");
 	const estimate = getMetaNumber(core.sql, "trunk_pack_bytes");
 	if (estimate === null || input.landedLaneIds.length === 0) return;
 	const pushed = scalar(

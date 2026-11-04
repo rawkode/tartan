@@ -30,6 +30,7 @@ import type { Env } from "../../env.ts";
 import { loopback } from "../../exports.ts";
 import { createExtDispatch } from "../exthost/host/dispatch.ts";
 import { createCapMac } from "../http/capmac.ts";
+import { projectsMode } from "../projects/mode.ts";
 import type { ControlBucket } from "../repo/upstream.ts";
 import {
 	type CapDeps,
@@ -157,6 +158,19 @@ export const createCapDeps = (env: Env): CapDeps => {
 	};
 };
 
+/**
+ * RepoProbe through the request's `ctx.exports`, else the module-level `exports`
+ * (imported on first use, so Deno tests can load this module).
+ */
+const probeOf = async (ctx: ExecutionContext) => {
+	const exports = (ctx as { exports?: unknown }).exports ??
+		(await import("cloudflare:workers")).exports;
+	return loopback({ exports }).RepoProbe as unknown as Pick<
+		RepoProbeApi,
+		"laneDiff" | "trunkFastForward" | "projectGraph"
+	>;
+};
+
 /** Every port from the bindings of one request. */
 export const createGatewayDeps = (
 	env: Env,
@@ -169,16 +183,14 @@ export const createGatewayDeps = (
 	isForgeOwner: (principal) =>
 		env.FORGE.getByName(FORGE_DO_NAME).identity().isOwner(principal),
 	probe: () => ({
-		// The request's `ctx.exports`, else the module-level `exports` (imported
-		// on first use, so Deno tests can load this module).
-		laneDiff: async (source, after) => {
-			const exports = (ctx as { exports?: unknown }).exports ??
-				(await import("cloudflare:workers")).exports;
-			const probe = loopback({ exports }).RepoProbe as unknown as Pick<
-				RepoProbeApi,
-				"laneDiff"
-			>;
-			return await probe.laneDiff(source, after);
+		laneDiff: async (source, after) =>
+			(await probeOf(ctx)).laneDiff(source, after),
+		trunkFastForward: async (repoId, before, after) =>
+			(await probeOf(ctx)).trunkFastForward(repoId, before, after),
+	}),
+	...(projectsMode(env) === "off" ? {} : {
+		discoverProjects: async (repoId: string, sha: string) => {
+			await (await probeOf(ctx)).projectGraph(repoId, sha);
 		},
 	}),
 	// The push echo: the fan-out every caller shares (dispatch.ts), RepoProbe

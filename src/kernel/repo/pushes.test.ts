@@ -558,3 +558,46 @@ Deno.test("a lane-remote push of a repo lane records target and repo_name, moves
 	deepStrictEqual(h.events.ofType("ref.tampered"), []);
 	equal((await h.facade.getLane(lane.id))?.quarantined, false);
 });
+
+Deno.test("a direct push to trunk records its commits, in order, and only from the gateway", async () => {
+	const h = await createHarness();
+	const { user } = principals(h);
+	const trunk = h.internal.metaSync("trunk_sha") as string;
+	const [one, two] = ["1".repeat(40), "2".repeat(40)];
+	const report = {
+		target: "repo",
+		bytes: 10,
+		refs: [{ ref: "refs/heads/main", before: trunk, after: two }],
+		principal: user,
+		via: "gateway",
+		requestId: "req-direct",
+		trunkCommits: [one, two],
+	} as const;
+	await rejects(
+		h.facade.recordPush({ ...report, via: "swarm" }),
+		(e) => fromRpcError(e).code === "invalid",
+	);
+	await h.facade.recordPush(report);
+	deepStrictEqual(
+		h.storage.sql.exec<{ sha: string; source: string }>(
+			"SELECT sha, source FROM trunk_commits WHERE source = 'push' ORDER BY seq",
+		).toArray(),
+		[{ sha: one, source: "push" }, { sha: two, source: "push" }],
+	);
+	equal(indexOf(h, "refs/heads/main"), two);
+	equal(h.internal.metaSync("trunk_sha"), two);
+	// Another ref in the report does not record trunk history.
+	await h.facade.recordPush({
+		...report,
+		requestId: "req-branch",
+		refs: [{ ref: "refs/heads/feat", before: ZERO_SHA, after: one }],
+		trunkCommits: ["3".repeat(40)],
+	});
+	equal(
+		h.storage.sql.exec<{ n: number }>(
+			"SELECT COUNT(*) AS n FROM trunk_commits WHERE sha = ?",
+			"3".repeat(40),
+		).toArray()[0].n,
+		0,
+	);
+});

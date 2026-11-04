@@ -27,6 +27,8 @@ import {
 	PUSH_COMMITS_MAX,
 	PUSH_PATHS_MAX,
 	type PushDiff,
+	type TrunkFastForward,
+	ZERO_SHA,
 } from "@tartan/contract";
 import {
 	type AddedLinesLimits,
@@ -59,11 +61,14 @@ import {
 	touchedPaths,
 	type TreeChange,
 } from "@tartan/monorepo";
-import { BINDING_READS_CONCURRENCY } from "../../constants.ts";
+import {
+	BINDING_READS_CONCURRENCY,
+	TRUNK_PUSH_MAX_COMMITS,
+} from "../../constants.ts";
 import type { TokenBucket } from "./bucket.ts";
 import type { ObjectCache } from "./cache.ts";
 import { isCurrentGraph } from "./projects.ts";
-import { walkLaneRange } from "./range.ts";
+import { walkFastForward, walkLaneRange } from "./range.ts";
 import {
 	createProbeReader,
 	type ProbeReader,
@@ -571,6 +576,29 @@ export const createRepoProbe = (deps: RepoProbeDeps): RepoProbeApi => {
 	});
 
 	return {
+		trunkFastForward: (repoId, before, after) =>
+			withSession(async (s): Promise<TrunkFastForward> => {
+				const src = checkSource({ repoId });
+				if (!isResolvedSha(after)) {
+					throw invalid(`after must be a sha: ${after}`);
+				}
+				if (before === ZERO_SHA) return { fastForward: true, commits: [after] };
+				if (!isResolvedSha(before)) {
+					throw invalid(`before must be a sha: ${before}`);
+				}
+				const port = deps.repo(src.repoId);
+				const reader = await s.reader(src);
+				return await walkFastForward(
+					{
+						log: (from, o) => reader.log(from, o),
+						trunkSeqs: (shas) => port.trunkSeqs(shas),
+					},
+					before,
+					after,
+					{ maxCommits: TRUNK_PUSH_MAX_COMMITS },
+				);
+			}),
+
 		laneDiff: (source, after, options) =>
 			withSession(async (s): Promise<DiffResult> => {
 				const src = checkSource(source);

@@ -40,6 +40,7 @@ import type {
 	Merge3Result,
 	PathDiff,
 	ProjectGraph,
+	TrunkFastForward,
 } from "./git.ts";
 import type { DefinedInterfaceId, ToolDef } from "./interfaces.ts";
 import type {
@@ -209,6 +210,16 @@ export interface RepoProbeApi {
 		after: string,
 		options?: { readonly addedLines?: boolean },
 	): Promise<DiffResult>;
+	/**
+	 * Whether `after` is a fast-forward of the trunk tip `before`, and the commits
+	 * that would add (ancestors first). `after` need not be on any advertised ref.
+	 * Asked between the two requests of an Owner's direct push to trunk.
+	 */
+	trunkFastForward(
+		repoId: string,
+		before: string,
+		after: string,
+	): Promise<TrunkFastForward>;
 	diffPaths(source: GitSource, base: string, head: string): Promise<PathDiff>;
 	hunks(
 		source: GitSource,

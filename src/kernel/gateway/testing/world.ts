@@ -13,6 +13,7 @@ import {
 	type NodeDto,
 	ROLE,
 	ulid,
+	ZERO_SHA,
 } from "@tartan/contract";
 import type {
 	AuthContext,
@@ -82,6 +83,8 @@ export type World = {
 	config: GatewayConfig;
 	/** The installations' echo on accepted pushes; none by default. */
 	echo: GatewayDeps["echo"];
+	/** Project discovery of trunk pushes; none by default. */
+	discover: GatewayDeps["discoverProjects"];
 	/** Replaces RepoDO's facade methods the gateway calls (fault injection). */
 	repo: GatewayRepo;
 	principal(
@@ -233,6 +236,7 @@ export const createWorld = async (
 		forgeOwners,
 		config: defaultConfig(),
 		echo: undefined,
+		discover: undefined,
 		repo: realRepo,
 		principal: (kind, opts = {}) => {
 			const id = `${kind === "user" ? "u" : "a"}_${ulid()}`;
@@ -348,7 +352,33 @@ export const createWorld = async (
 				probeCalls.push({ source, after });
 				return Promise.resolve(probeDiff(source, after));
 			},
+			// RepoProbe's answer, from the bare repository the backend serves.
+			trunkFastForward: async (_repoId, before, after) => {
+				if (before === ZERO_SHA) return { fastForward: true, commits: [after] };
+				const ancestor = await git(sandbox, [
+					"merge-base",
+					"--is-ancestor",
+					before,
+					after,
+				], { cwd: bare, allowFail: true });
+				if (ancestor.code !== 0) {
+					return { fastForward: false, why: "diverged" as const };
+				}
+				const listed = await git(sandbox, [
+					"rev-list",
+					"--reverse",
+					"--topo-order",
+					`${before}..${after}`,
+				], { cwd: bare });
+				return {
+					fastForward: true,
+					commits: listed.stdout.trim().split("\n").filter((l) => l !== ""),
+				};
+			},
 		}),
+		...(world.discover === undefined
+			? {}
+			: { discoverProjects: world.discover }),
 		fetch: (request) => {
 			const url = request.url;
 			if (!url.startsWith(FAKE_REMOTE)) {

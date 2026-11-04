@@ -28,6 +28,12 @@ export class RepoProbe extends WorkerEntrypoint<Env> implements RepoProbeApi {
 		return this.#probe().laneDiff(...args);
 	}
 
+	trunkFastForward(
+		...args: Parameters<Api<"trunkFastForward">>
+	): ReturnType<Api<"trunkFastForward">> {
+		return this.#probe().trunkFastForward(...args);
+	}
+
 	diffPaths(
 		...args: Parameters<Api<"diffPaths">>
 	): ReturnType<Api<"diffPaths">> {

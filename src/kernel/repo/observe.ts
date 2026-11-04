@@ -14,7 +14,11 @@
 // is recorded with no pusher. Only a lane repo whose name equals the lane's
 // current `repo_name` feeds K1/K2; other `l-*` names are orphans.
 
-import { parseArtifactsName, ZERO_SHA } from "@tartan/contract";
+import {
+	DIRECT_PUSH_PREFIX,
+	parseArtifactsName,
+	ZERO_SHA,
+} from "@tartan/contract";
 import type {
 	LaneRow,
 	PendingObservationRow,
@@ -296,6 +300,11 @@ export const observeTransitionSync = (
 	obs: Observation,
 	protectedPatterns: readonly string[],
 ): ObserveOutcome => {
+	if (obs.side.repoName === null && obs.ref.startsWith(DIRECT_PUSH_PREFIX)) {
+		// The gateway's own short-lived quarantine ref (`gateway/direct.ts`):
+		// everyone else's push there is refused, and trunk is not touched.
+		return { kind: "ignored", why: "direct-push quarantine ref" };
+	}
 	const now = core.clock.now();
 	const [clause, bindings] = sideClause(obs);
 	const merged = rows<PushRow>(

@@ -20,6 +20,7 @@ import {
 	PUSH_COMMITS_MAX,
 	PUSH_PATHS_MAX,
 	truncateChars,
+	trunkRef,
 } from "@tartan/contract";
 import type {
 	DiffResult,
@@ -42,6 +43,7 @@ import {
 	rows,
 } from "./core.ts";
 import { laneRow } from "./lanes/rows.ts";
+import { recordTrunkPushSync } from "./trunk.ts";
 import {
 	CANONICAL,
 	canonicalTarget,
@@ -97,6 +99,12 @@ const validateReport = (report: PushReport): void => {
 		if (!isSha(r.before) || !isSha(r.after)) {
 			throw invalid(`invalid shas for ${r.ref}`);
 		}
+	}
+	if (
+		report.trunkCommits !== undefined &&
+		(report.via !== "gateway" || report.target !== "repo")
+	) {
+		throw invalid("only the gateway records a direct push to trunk");
 	}
 };
 
@@ -238,6 +246,14 @@ export const recordPushSync = (
 			const applied = applyTransition(core, t, row, { attributedTo });
 			if (applied.ref === "missed") missedRefs.push(update.ref);
 			if (applied.lane === "missed") missedLanes.push(target);
+		}
+		if (report.trunkCommits !== undefined && report.target === "repo") {
+			if (update.ref === trunkRef(repoIdentity(core.sql).defaultBranch)) {
+				recordTrunkPushSync(core, {
+					commits: report.trunkCommits,
+					...(report.bytes === undefined ? {} : { bytes: report.bytes }),
+				});
+			}
 		}
 		pushIds.push(row.id);
 		eventIds.push(appendAccepted(core, row).id);

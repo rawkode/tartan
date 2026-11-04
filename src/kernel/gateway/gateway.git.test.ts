@@ -68,9 +68,9 @@ test("a human pushes a branch: forwarded, recorded by phase 1 with attribution, 
 	});
 });
 
-test("a human push to main gets a synthesized ng that stock git prints; nothing is forwarded", async () => {
+test("a non-owner's push to main gets a synthesized ng that stock git prints; nothing is forwarded", async () => {
 	await withWorld(async (w) => {
-		const user = w.principal("user", { role: ROLE.owner });
+		const user = w.principal("user", { role: ROLE.maintainer });
 		const dir = await w.clone(user, "c1");
 		await commitFile(w.sandbox, dir, "x.txt", "x\n");
 		const out = await w.gitAs(user, ["push", "origin", "HEAD:main"], {
@@ -121,7 +121,7 @@ test("with ECHO_ENABLED, band-2 guidance reaches git as remote: lines, with no c
 		});
 		match(
 			out.stderr,
-			/remote: tartan ▸ main is woven by Tartan; nobody pushes it directly\./,
+			/remote: tartan ▸ main is woven by Tartan; only the repo's Owner pushes it directly\./,
 		);
 		ok(
 			out.stderr.includes(`git push origin HEAD:${laneRef(laneId)}`),

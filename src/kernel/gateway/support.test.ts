@@ -55,7 +55,7 @@ Deno.test("guidance: an agent pushing main is told its lane command; without a l
 	});
 	equal(
 		withLane[0],
-		"tartan ▸ main is woven by Tartan; nobody pushes it directly.",
+		"tartan ▸ main is woven by Tartan; only the repo's Owner pushes it directly.",
 	);
 	ok(withLane[1].includes(`git push origin HEAD:refs/heads/lanes/${LANE}`));
 	ok(withLane[1].includes(`(open lanes: ${LANE})`));
@@ -69,7 +69,7 @@ Deno.test("guidance: an agent pushing main is told its lane command; without a l
 	});
 	equal(
 		without[0],
-		"tartan ▸ trunk is woven by Tartan; nobody pushes it directly.",
+		"tartan ▸ trunk is woven by Tartan; only the repo's Owner pushes it directly.",
 	);
 	ok(without.some((l) => l.includes("MCP work_claim")));
 	// A human without a lane gets the branch + submit hint.

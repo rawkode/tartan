@@ -10,6 +10,7 @@
 // default branch tip for a non-lane branch). Committer dates are never
 // consulted, so forged dates cannot move the base.
 
+import type { TrunkFastForward } from "@tartan/contract";
 import type { RepoStoreCommit, ResolvedSha } from "@tartan/contract/kernel.ts";
 import { LANE_RANGE_MAX_COMMITS } from "../../constants.ts";
 
@@ -105,4 +106,74 @@ export const walkLaneRange = async (
 	return best === null
 		? stop("root-outside-trunk")
 		: { rangeBase: best.sha, truncated: false, commits: range, logPages };
+};
+
+/**
+ * Whether `after` descends from the trunk tip `before`. Walks every parent from
+ * `after`, stopping a chain at any trunk commit: the walk stays short on a
+ * rewrite (it reaches older trunk without meeting `before`), and a root is fine
+ * here (a merge of an unrelated history is still a fast-forward). The commits
+ * come back ancestors first, so `trunk_commits` seqs stay topological.
+ */
+export const walkFastForward = async (
+	deps: RangeWalkDeps,
+	before: string,
+	after: ResolvedSha,
+	options: { readonly maxCommits: number; readonly firstPage?: number },
+): Promise<TrunkFastForward> => {
+	const parents = new Map<string, readonly string[]>();
+	const visited = new Set<string>();
+	const chains: ResolvedSha[] = [after];
+	let reached = false;
+	while (chains.length > 0) {
+		let cursor: ResolvedSha | null = chains.shift()!;
+		while (cursor !== null && !visited.has(cursor)) {
+			const page: RepoStoreCommit[] = await deps.log(cursor, {
+				limit: Math.min(
+					1000,
+					options.firstPage ?? RANGE_FIRST_PAGE,
+				),
+			});
+			if (page.length === 0 || page[0].hash !== cursor) {
+				return { fastForward: false, why: "missing-commit" };
+			}
+			const seqs = await deps.trunkSeqs(
+				page.filter((c) => !visited.has(c.hash)).map((c) => c.hash),
+			);
+			let next: ResolvedSha | null = null;
+			for (const commit of page) {
+				next = null;
+				if (visited.has(commit.hash)) break;
+				visited.add(commit.hash);
+				if (commit.hash === before) reached = true;
+				if (commit.hash === before || seqs[commit.hash] !== undefined) break;
+				parents.set(commit.hash, commit.parents);
+				if (parents.size > options.maxCommits) {
+					return { fastForward: false, why: "too-many-commits" };
+				}
+				for (const parent of commit.parents.slice(1)) {
+					if (!visited.has(parent)) chains.push(parent as ResolvedSha);
+				}
+				next = (commit.parents[0] as ResolvedSha | undefined) ?? null;
+			}
+			cursor = next;
+		}
+	}
+	if (!reached) return { fastForward: false, why: "diverged" };
+	// Post-order over the range: every parent before its children.
+	const commits: string[] = [];
+	const done = new Set<string>();
+	const stack: { sha: string; next: number }[] = [{ sha: after, next: 0 }];
+	while (stack.length > 0) {
+		const top = stack[stack.length - 1];
+		const next = (parents.get(top.sha) ?? [])[top.next++];
+		if (next === undefined) {
+			stack.pop();
+			commits.push(top.sha);
+		} else if (parents.has(next) && !done.has(next)) {
+			done.add(next);
+			stack.push({ sha: next, next: 0 });
+		}
+	}
+	return { fastForward: true, commits };
 };

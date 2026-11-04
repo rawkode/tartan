@@ -162,4 +162,18 @@ export const CORE_MIGRATIONS: readonly Migration[] = [
 			"refs, trunk_commits, lanes, pushes, commit_firsts, kernel_writes, pending_observations",
 		sql: CORE_TABLES,
 	},
+	{
+		n: 101,
+		name: "trunk_commits: an Owner's direct push is a source",
+		sql: `
+CREATE TABLE trunk_commits_next (
+	sha TEXT PRIMARY KEY,
+	seq INTEGER NOT NULL UNIQUE,
+	source TEXT NOT NULL CHECK (source IN ('genesis','import','advance','seed','push'))
+);
+INSERT INTO trunk_commits_next (sha, seq, source) SELECT sha, seq, source FROM trunk_commits;
+DROP TABLE trunk_commits;
+ALTER TABLE trunk_commits_next RENAME TO trunk_commits;
+`.trim(),
+	},
 ];

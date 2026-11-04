@@ -68,8 +68,14 @@ export type GatewayDeps = {
 	 * importing repo refuses every push.
 	 */
 	readonly isForgeOwner: (principal: string) => Promise<boolean>;
-	/** RepoProbe (WP8) for phase 2 of push recording. */
-	readonly probe: () => Pick<RepoProbeApi, "laneDiff">;
+	/** RepoProbe (WP8): phase 2 of push recording, a direct push's ancestry. */
+	readonly probe: () => Pick<RepoProbeApi, "laneDiff" | "trunkFastForward">;
+	/**
+	 * Project discovery of a commit trunk just moved to: computes and caches its
+	 * graph. Best effort, never part of a push's outcome. Absent when the
+	 * forge's projects are off (a later read detects).
+	 */
+	readonly discoverProjects?: (repoId: string, sha: string) => Promise<void>;
 	/**
 	 * The push echo: the installations' echo of one `push.accepted` event
 	 * (`ExtDispatch.echo`, bounded by `budgetMs`), as sanitized `[ext] …`

@@ -279,6 +279,8 @@ export const BINDING_READS_CONCURRENCY = 16;
 
 /** K17: parent walk bound for a lane's range base. */
 export const LANE_RANGE_MAX_COMMITS = 500;
+/** Commits one direct push to trunk may add (more: refused, push in batches). */
+export const TRUNK_PUSH_MAX_COMMITS = 5000;
 /** K17: first-parent chain recorded into `trunk_commits` on import. */
 export const TRUNK_IMPORT_CHAIN = 1_000;
 /** Public-view wants may name a visible tip from this window. */

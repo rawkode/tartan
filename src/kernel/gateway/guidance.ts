@@ -90,8 +90,12 @@ const reasonLines = (
 	switch (reason) {
 		case "woven-by-tartan":
 			return [
-				`${PREFIX}${main} is woven by Tartan; nobody pushes it directly.`,
+				`${PREFIX}${main} is woven by Tartan; only the repo's Owner pushes it directly.`,
 				...laneLines(input),
+			];
+		case "non-fast-forward":
+			return [
+				`${PREFIX}${main} only moves forward: fetch, rebase onto it, then push again.`,
 			];
 		case "agents-lanes-only":
 			return [

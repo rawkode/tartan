@@ -71,6 +71,7 @@ const caller = (
 	role: ROLE.developer,
 	laneId: null,
 	forgeOwner: false,
+	trunkWrite: false,
 	...over,
 });
 

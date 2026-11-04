@@ -362,6 +362,8 @@ export const createUnitWorld = (): UnitWorld => {
 						paths: [],
 						truncated: false,
 					}),
+				trunkFastForward: (_repoId, _before, after) =>
+					Promise.resolve({ fastForward: true, commits: [after] }),
 			}),
 			fetch: (request) => world.upstream.fetch(request),
 			requestId: ulid,

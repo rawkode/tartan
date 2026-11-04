@@ -5,6 +5,7 @@
 // - `canonicalPushPolicy` classifies every command; the first matching row
 //   decides, and the gateway rejects the whole push when any command is
 //   rejected (nothing is forwarded upstream).
+// - `mayPushTrunk` says who may push the default branch directly (Owner only).
 // - `canonicalWritePrecheck` is an independent check: before a
 //   canonical write token is requested, a user needs a write credential and
 //   an agent an own active `branch`-backend lane in the repo.
@@ -309,6 +310,26 @@ const adoptedRef = (
 	return ctx.caller.writeCredential ? null : "no-write-credential";
 };
 
+/**
+ * Row 2: nobody writes a protected ref, except that the repo's Owner may push the
+ * default branch directly (a decided weakening of "trunk moves only through the
+ * Advance"; README.md). Fast-forwards only: `direct.ts` checks the ancestry,
+ * which needs the pushed objects, so this row refuses only what `new` alone shows.
+ */
+const protectedRef = (
+	command: PushCommand,
+	ctx: GatewayPushContext,
+	caller: PushCaller,
+): Verdict => {
+	const owner = caller.trunkWrite && caller.kind === "user" &&
+		caller.role >= ROLE.owner && caller.laneId === null;
+	if (!owner || command.ref !== trunkRef(ctx.defaultBranch)) {
+		return "woven-by-tartan";
+	}
+	if (isDelete(command)) return "non-fast-forward";
+	return ctx.caller.writeCredential ? null : "no-write-credential";
+};
+
 const classify = (
 	command: PushCommand,
 	ctx: GatewayPushContext,
@@ -319,7 +340,7 @@ const classify = (
 	if (row0 !== null) return row0;
 	if (ctx.importState === "importing") return importing(command, caller);
 	const { ref } = command;
-	if (isProtected(ref, ctx)) return "woven-by-tartan";
+	if (isProtected(ref, ctx)) return protectedRef(command, ctx, caller);
 	if (isKernelRef(ref)) return "kernel-only";
 	if (ref.startsWith(LANE_BRANCH_PREFIX)) return laneRef(command, ctx);
 	if (ref.startsWith(LANE_NOTES_PREFIX)) return laneNotes(command, ctx);
@@ -453,6 +474,23 @@ export const memberView = (
  */
 export const publicView: PublicView = (auth, repo) =>
 	repo.node.visibility === "public" && !memberView(auth, repo.role);
+
+/**
+ * Who may push the default branch directly: a user (never an agent, nor a token
+ * acting for one), not pinned to a lane, holding Owner on this repo through a
+ * credential that writes the repo. A `lanes`-only token cannot.
+ */
+export const mayPushTrunk = (
+	auth: AuthContext,
+	role: EffectiveRole,
+): boolean => {
+	if (auth.kind !== "user" || auth.onBehalfOf || auth.laneId !== null) {
+		return false;
+	}
+	if (role < ROLE.owner) return false;
+	const scopes = scopesOf(auth);
+	return scopes === null || scopes.includes("repo:write");
+};
 
 /**
  * Step 5 for receive-pack: Developer+ on the repo (credential-bounded) and a
