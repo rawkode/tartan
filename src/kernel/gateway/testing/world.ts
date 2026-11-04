@@ -83,6 +83,8 @@ export type World = {
 	config: GatewayConfig;
 	/** The installations' echo on accepted pushes; none by default. */
 	echo: GatewayDeps["echo"];
+	/** Makes RepoProbe's fast-forward check fail (fault injection). */
+	probeDown: boolean;
 	/** Project discovery of trunk pushes; none by default. */
 	discover: GatewayDeps["discoverProjects"];
 	/** Replaces RepoDO's facade methods the gateway calls (fault injection). */
@@ -236,6 +238,7 @@ export const createWorld = async (
 		forgeOwners,
 		config: defaultConfig(),
 		echo: undefined,
+		probeDown: false,
 		discover: undefined,
 		repo: realRepo,
 		principal: (kind, opts = {}) => {
@@ -354,6 +357,7 @@ export const createWorld = async (
 			},
 			// RepoProbe's answer, from the bare repository the backend serves.
 			trunkFastForward: async (_repoId, before, after) => {
+				if (world.probeDown) throw new Error("the probe is down");
 				if (before === ZERO_SHA) return { fastForward: true, commits: [after] };
 				const ancestor = await git(sandbox, [
 					"merge-base",

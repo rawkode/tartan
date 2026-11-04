@@ -136,6 +136,23 @@ test("a forced rewrite of main is refused by the server, and nothing moves", asy
 	});
 });
 
+test("a push the kernel cannot check does not land", async () => {
+	await withWorld(async (w) => {
+		const user = owner(w);
+		const dir = await w.clone(user, "c1");
+		await commitFile(w.sandbox, dir, "a.txt", "a\n");
+		w.probeDown = true;
+		const out = await w.gitAs(user, ["push", "origin", "HEAD:main"], {
+			cwd: dir,
+			allowFail: true,
+		});
+		ok(out.code !== 0);
+		match(out.stderr, /could not check the push/);
+		equal((await bareRefs(w.sandbox, w.bare))["refs/heads/main"], w.trunk);
+		await noQuarantine(w);
+	});
+});
+
 test("deleting main is refused before anything is sent", async () => {
 	await withWorld(async (w) => {
 		const user = owner(w);

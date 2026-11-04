@@ -14,7 +14,11 @@
 // A crash between the steps leaves only the hidden quarantine ref. The observers
 // ignore it (`repo/observe.ts`), so it never raises `ref.tampered`.
 
-import { DIRECT_PUSH_PREFIX, ZERO_SHA } from "@tartan/contract";
+import {
+	DIRECT_PUSH_PREFIX,
+	type TrunkFastForward,
+	ZERO_SHA,
+} from "@tartan/contract";
 import type {
 	DiffResult,
 	PushCommand,
@@ -223,11 +227,28 @@ export const pushDirect = async (
 	}
 
 	// 2. Check: the ancestry, now that the backend holds the objects.
-	const check = await deps.probe().trunkFastForward(
-		repoId,
-		trunk.old,
-		trunk.new,
-	);
+	let check: TrunkFastForward;
+	try {
+		check = await deps.probe().trunkFastForward(repoId, trunk.old, trunk.new);
+	} catch (error) {
+		// Unverified means unmoved: a probe failure never lands a push.
+		deps.log("[tartan] gateway: direct push check failed", {
+			repoId,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		await removeQuarantine();
+		return {
+			kind: "backend-refused",
+			report: {
+				unpack: "ok",
+				refs: commands.map((c) => ({
+					ref: c.ref,
+					ok: false,
+					reason: "could not check the push; try again",
+				})),
+			},
+		};
+	}
 	if (!check.fastForward) {
 		await removeQuarantine();
 		return { kind: "refused", why: check.why };
