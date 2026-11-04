@@ -721,6 +721,12 @@ const run = async (browser: Browser): Promise<void> => {
 			await see(page, "Nothing at that address"),
 			await textOf(page),
 		);
+		await go(page, `${KILN}/-/issues/abc`);
+		check(
+			"a page below Issues that isn't an issue says so",
+			await see(page, "Nothing at that address"),
+			await textOf(page),
+		);
 		await go(page, `${KILN}:lsp/-/issues/9999`);
 		check(
 			"an unknown issue says so",

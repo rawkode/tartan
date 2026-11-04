@@ -28,6 +28,7 @@ import ActivityList from "./ActivityList.vue";
 import GroupOverview from "./GroupOverview.vue";
 import IssueDetail from "./IssueDetail.vue";
 import IssueList from "./IssueList.vue";
+import IssuesRefused from "./IssuesRefused.vue";
 import JumpBox from "./JumpBox.vue";
 import LeafOverview from "./LeafOverview.vue";
 import MonoOverview from "./MonoOverview.vue";
@@ -332,6 +333,10 @@ const empty = panel();
 						<div
 							:class="[empty.root, empty.empty]">Issues belong to a repo or a project. Open one from there.</div>
 					</div>
+					<IssuesRefused
+						v-else-if="route.detail?.type === 'new-issue' && issuesOff"
+						:reason="last.issuesEnabled === false ? 'extension_disabled' : 'not_installed'"
+						message="" />
 					<NewIssue v-else-if="route.detail?.type === 'new-issue'"
 						:key="pathname" :node="last" :scope="scope" />
 					<ProjectList v-else-if="route.tab === 'projects'" :node="last"

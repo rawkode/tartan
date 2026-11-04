@@ -272,6 +272,7 @@ describe("addresses", () => {
 			detail: { type: "new-node", kind: "group" },
 		});
 		expect(parseUrl("/oss/-/nope").unknown).toBe(true);
+		expect(parseUrl("/oss/kiln/-/issues/abc").unknown).toBe(true);
 		expect(parseUrl("/%E0%A4%A").unknown).toBe(true);
 		expect(urlFor("oss/kiln:lsp", "issues")).toBe("/oss/kiln:lsp/-/issues");
 		expect(urlFor("", "projects")).toBe("/-/projects");
@@ -342,6 +343,30 @@ describe("forge data", () => {
 		expect((await store.reach("a//b")).status).toBe("missing");
 	});
 
+	it("says when the kernel can't answer, and when it has no projects route", async () => {
+		const broken = createForgeStore(
+			createApi(
+				createHttp(() =>
+					Promise.resolve(
+						new Response(
+							JSON.stringify({ error: "internal", message: "boom" }),
+							{ status: 500 },
+						),
+					)
+				),
+			),
+			session("signed-in"),
+		);
+		expect(await broken.reach("oss")).toEqual({
+			status: "error",
+			message: "boom",
+		});
+		const { store } = forge();
+		await store.reach(PLAIN);
+		expect(store.nodeAt(PLAIN)?.loaded).toBe(true);
+		expect(store.nodeAt(PLAIN)?.children).toEqual([]);
+	});
+
 	it("takes a project's facts from the graph", async () => {
 		const { store } = forge();
 		await store.reach(`${KILN}:docs`);
@@ -367,6 +392,7 @@ describe("forge data", () => {
 			status: "refused",
 			reason: "not_installed",
 		});
+		expect(store.openCount(store.nodeAt(PLAIN)!)).toBeUndefined();
 		expect(store.openCount(tree)).toBe(2);
 		expect(store.refusedUnder(tree)).toEqual([]);
 		expect(store.issuesUnder(tree).map((i) => i.where)).toEqual([

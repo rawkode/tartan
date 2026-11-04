@@ -203,7 +203,11 @@ export const createForgeStore = (
 				repo.loaded = true;
 				delete repo.loadError;
 			} catch (e) {
-				repo.loadError = errorMessage(e);
+				// A forge deployed without `--projects` answers 404: one project.
+				if (notFound(e)) {
+					repo.children = [];
+					repo.loaded = true;
+				} else repo.loadError = errorMessage(e);
 			}
 		}, force);
 
@@ -324,34 +328,35 @@ export const createForgeStore = (
 	const issuesOf = (repoAddr: string): IssuesState | undefined =>
 		state.issues[repoAddr];
 
+	const notInstalled = (repo: ForgeNode): boolean => {
+		const known = issuesOf(repo.addr);
+		return known?.status === "refused" && known.reason === "not_installed";
+	};
+
 	/** A repo-wide list says nothing of what `PAGE` cut off. */
 	const complete = (list: IssueList) =>
 		list.issues.length >= list.open + list.closed;
 
 	/**
 	 * Open issues at a node, from the repo-wide lists: undefined until each repo
-	 * below has answered, and when any of them won't say.
+	 * below has answered, when any of them won't say, and where there are no
+	 * Issues at all. A repo without them adds nothing to the groups above it.
 	 */
 	const openCount = (node: ForgeNode): number | undefined => {
 		if (node.kind === "group") {
 			if (!node.loaded) return undefined;
 			let sum = 0;
 			for (const child of node.children) {
-				const count = openCount(child);
+				const installed = child.kind === "group" || !notInstalled(child);
+				const count = installed ? openCount(child) : 0;
 				if (count === undefined) return undefined;
 				sum += count;
 			}
 			return sum;
 		}
 		if (node.issuesEnabled === false) return undefined;
-		const repoAddr = repoOf(node.addr);
-		const known = issuesOf(repoAddr);
-		if (known === undefined || known.status === "loading") return undefined;
-		if (known.status === "refused") {
-			// No Issues here is a true zero when adding up what is above; a group
-			// total never turns on someone's right to read.
-			return known.reason === "not_installed" ? 0 : undefined;
-		}
+		const known = issuesOf(repoOf(node.addr));
+		if (known?.status !== "ready") return undefined;
 		if (node.kind === "repo") return known.list.open;
 		if (!complete(known.list)) return undefined;
 		return known.list.issues.filter((i) =>
@@ -554,22 +559,24 @@ export const createForgeStore = (
 			commits(repo),
 		]);
 		const subjects = new Map(log.map((c) => [c.sha, c.subject]));
-		return [...events].reverse().map((event) => {
-			const { text, sha } = describeEvent(
-				event.type,
-				event.data as Readonly<Record<string, unknown>>,
-			);
-			const subject = sha === undefined ? undefined : subjects.get(sha);
-			return {
-				seq: event.seq,
-				type: event.type,
-				at: event.at,
-				actor: handle(event.actor.id) ?? event.actor.kind,
-				text,
-				...(sha === undefined ? {} : { sha }),
-				...(subject === undefined ? {} : { subject }),
-			};
-		});
+		return events.filter((e) => e.type !== "push.diffed").reverse().map(
+			(event) => {
+				const { text, sha } = describeEvent(
+					event.type,
+					event.data as Readonly<Record<string, unknown>>,
+				);
+				const subject = sha === undefined ? undefined : subjects.get(sha);
+				return {
+					seq: event.seq,
+					type: event.type,
+					at: event.at,
+					actor: handle(event.actor.id) ?? event.actor.kind,
+					text,
+					...(sha === undefined ? {} : { sha }),
+					...(subject === undefined ? {} : { subject }),
+				};
+			},
+		);
 	};
 
 	return {

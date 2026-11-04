@@ -208,7 +208,9 @@ export const parseUrl = (pathname: string): Route => {
 		return { addr, tab: "issues", detail: { type: "new-issue" } };
 	}
 	if (head === "issues" && sub) {
-		return { addr, tab: "issues", detail: { type: "issue", n: Number(sub) } };
+		return /^\d+$/.test(sub)
+			? { addr, tab: "issues", detail: { type: "issue", n: Number(sub) } }
+			: { addr, tab: "issues", unknown: true };
 	}
 	if (head === "projects" || head === "issues" || head === "activity") {
 		return { addr, tab: head };
