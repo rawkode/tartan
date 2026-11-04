@@ -3,6 +3,7 @@ import App from "./App.vue";
 import { createApi } from "./api/client.ts";
 import { createHttp, type FetchLike } from "./api/http.ts";
 import { API, LIVE, SESSION } from "./app/context.ts";
+import { syncRoleToDocument } from "./auth/role.ts";
 import { createSession } from "./auth/session.ts";
 import {
 	browserConnect,
@@ -49,6 +50,7 @@ const boot = async (): Promise<void> => {
 	const api = createApi(http);
 	const session = createSession(api);
 	const router = createAppRouter({ api });
+	syncRoleToDocument(session);
 	void session.load();
 	createApp(App)
 		.provide(SETUP_TOKEN, setupToken)
