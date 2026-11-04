@@ -602,6 +602,9 @@ export default {
 						paths: [],
 						truncated: false,
 					}),
+				// The harness's principals are not Owners: no direct trunk push.
+				trunkFastForward: () =>
+					Promise.reject(new Error("no direct trunk push in this harness")),
 			}),
 			fetch: (req) => fetch(req),
 			requestId: ulid,
