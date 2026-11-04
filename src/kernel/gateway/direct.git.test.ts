@@ -20,7 +20,11 @@ const trunkRows = (w: World) =>
 		"SELECT sha, seq, source FROM trunk_commits ORDER BY seq",
 	).toArray();
 
-const owner = (w: World) => w.principal("user", { role: ROLE.owner });
+const owner = (w: World) => {
+	const user = w.principal("user", { role: ROLE.owner });
+	w.forgeOwners.add(user.id);
+	return user;
+};
 
 const noQuarantine = async (w: World) =>
 	ok(
@@ -150,6 +154,22 @@ test("a push the kernel cannot check does not land", async () => {
 		match(out.stderr, /could not check the push/);
 		equal((await bareRefs(w.sandbox, w.bare))["refs/heads/main"], w.trunk);
 		await noQuarantine(w);
+	});
+});
+
+test("the Owner role alone does not push main: a grant to a third party is not the forge Owner", async () => {
+	await withWorld(async (w) => {
+		const contributor = w.principal("user", { role: ROLE.owner });
+		const dir = await w.clone(contributor, "c1");
+		await commitFile(w.sandbox, dir, "a.txt", "a\n");
+		const out = await w.gitAs(contributor, ["push", "origin", "HEAD:main"], {
+			cwd: dir,
+			allowFail: true,
+		});
+		ok(out.code !== 0);
+		match(out.stderr, /\(woven-by-tartan\)/);
+		equal(forwardedPushes(w).length, 0);
+		equal((await bareRefs(w.sandbox, w.bare))["refs/heads/main"], w.trunk);
 	});
 });
 

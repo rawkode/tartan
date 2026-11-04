@@ -578,7 +578,7 @@ Deno.test("row 10: everything else is unsupported-ref", () => {
 	}
 });
 
-Deno.test("row 2: the repo's Owner pushes main directly, and only main", () => {
+Deno.test("row 2: the forge Owner pushes main directly, and only main", () => {
 	const owner = user({ role: ROLE.owner, trunkWrite: true });
 	equal(verdict(update("refs/heads/main"), owner, userCtx()), "allow");
 	equal(

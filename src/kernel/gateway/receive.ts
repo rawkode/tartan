@@ -621,7 +621,8 @@ const receivePack = async (
 		forgeOwner: auth.kind === "user" &&
 			ctx.importState === "importing" &&
 			await deps.isForgeOwner(auth.principal),
-		trunkWrite: laneId === null && mayPushTrunk(auth, access.role),
+		trunkWrite: laneId === null && mayPushTrunk(auth, access.role) &&
+			await deps.isForgeOwner(auth.principal),
 	};
 	const rejectWith = (reasons: readonly (RefPolicyReason | null)[]) =>
 		reject(s, {

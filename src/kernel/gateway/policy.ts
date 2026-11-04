@@ -5,7 +5,8 @@
 // - `canonicalPushPolicy` classifies every command; the first matching row
 //   decides, and the gateway rejects the whole push when any command is
 //   rejected (nothing is forwarded upstream).
-// - `mayPushTrunk` says who may push the default branch directly (Owner only).
+// - `mayPushTrunk` says whose credential can push the default branch directly
+//   (a user's, at Owner); the gateway adds that the user must be the forge Owner.
 // - `canonicalWritePrecheck` is an independent check: before a
 //   canonical write token is requested, a user needs a write credential and
 //   an agent an own active `branch`-backend lane in the repo.
@@ -311,10 +312,12 @@ const adoptedRef = (
 };
 
 /**
- * Row 2: nobody writes a protected ref, except that the repo's Owner may push the
+ * Row 2: nobody writes a protected ref, except that the forge Owner may push the
  * default branch directly (a decided weakening of "trunk moves only through the
  * Advance"; README.md). Fast-forwards only: `direct.ts` checks the ancestry,
  * which needs the pushed objects, so this row refuses only what `new` alone shows.
+ * `trunkWrite` is the gateway's answer: a credential of the forge Owner, not
+ * merely someone holding the Owner role on this repo.
  */
 const protectedRef = (
 	command: PushCommand,
