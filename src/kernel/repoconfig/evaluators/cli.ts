@@ -99,6 +99,20 @@ const SIGNAL_EXIT: Readonly<Record<string, number>> = {
 export const unhost = (text: string, dir: string): string =>
 	dir.length > 1 ? text.split(`${dir}/`).join("").split(dir).join(".") : text;
 
+/**
+ * The `bash` that runs the job script: the first on this process's PATH, else
+ * `/bin/bash` (NixOS has none there; the job's own environment stays empty).
+ */
+export const findBash = async (): Promise<string> => {
+	const dirs = (Deno.env.get("PATH") ?? "").split(":").filter((d) => d !== "");
+	for (const dir of dirs) {
+		const path = `${dir}/bash`;
+		const found = await Deno.stat(path).then((s) => s.isFile, () => false);
+		if (found) return path;
+	}
+	return "/bin/bash";
+};
+
 export const createCliEvaluator = (options: CliEvaluatorOptions) => {
 	let version: Promise<string | null> | null = options.cueVersion === undefined
 		? null
@@ -136,7 +150,7 @@ export const createCliEvaluator = (options: CliEvaluatorOptions) => {
 			);
 			const out = `${root}/out.json`;
 			const started = Date.now();
-			const child = new Deno.Command("/bin/bash", {
+			const child = new Deno.Command(await findBash(), {
 				args: [
 					"-c",
 					'ulimit -f "$1" || exit 70; exec "$2" export -E --out json --force -o "$3" .:tartan',

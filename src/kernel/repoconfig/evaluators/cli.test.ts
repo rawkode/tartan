@@ -12,9 +12,12 @@ import {
 	FORGE_BINDING_FILE,
 	isEvalOk,
 } from "@tartan/contract";
-import { createCliEvaluator, unhost } from "./cli.ts";
+import { createCliEvaluator, findBash, unhost } from "./cli.ts";
 
-const FAKE_CUE = `#!/bin/bash
+const fakeCue = (bash: string) =>
+	`#!${bash}
+# The job's PATH is /usr/bin:/bin, which holds no head on NixOS.
+PATH=${Deno.env.get("PATH")}
 if [ "$1" = version ]; then echo "cue version v0.17.1"; exit 0; fi
 out=""
 while [ $# -gt 0 ]; do
@@ -33,7 +36,7 @@ const withFakeCue = async (fn: (bin: string) => Promise<void>) => {
 	const dir = await Deno.makeTempDir({ prefix: "tartan-fake-cue-" });
 	try {
 		const bin = `${dir}/cue`;
-		await Deno.writeTextFile(bin, FAKE_CUE);
+		await Deno.writeTextFile(bin, fakeCue(await findBash()));
 		await Deno.chmod(bin, 0o755);
 		await fn(bin);
 	} finally {
