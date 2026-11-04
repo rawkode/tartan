@@ -40,6 +40,7 @@ import type {
 	NodesResponse,
 	PackagesResponse,
 	PermissionSheet,
+	ProjectsResponse,
 	ReplaceProviderRequest,
 	ReplaceProviderResponse,
 	RepoCreateRequestSchema,
@@ -238,6 +239,30 @@ export const createApi = (http: Http) => ({
 		createRepo: (request: RepoCreate) =>
 			http.post<NodeDto>(ENDPOINTS.repos, request),
 	},
+
+	/** The graph at the trunk tip (`detector: null` without commits). */
+	projects: (repoId: string) =>
+		http.get<ProjectsResponse>(
+			`${ENDPOINTS.repoApi}/${enc(repoId)}/projects`,
+		),
+
+	/**
+	 * An extension's tool over the session (`projects/tools.ts`). With `project`,
+	 * the kernel resolves it at the trunk tip and scopes the call to its root.
+	 */
+	tool: async <T>(
+		repoId: string,
+		extensionId: string,
+		toolName: string,
+		args: Readonly<Record<string, unknown>>,
+		project?: string,
+	): Promise<T> =>
+		(await http.post<{ readonly result: T }>(
+			`${ENDPOINTS.repoApi}/${enc(repoId)}/ext/${enc(extensionId)}/tools/${
+				enc(toolName)
+			}`,
+			{ args, ...(project === undefined ? {} : { project }) },
+		)).result,
 
 	view: (path: string, view: string) =>
 		http.get<ViewResponse>(ENDPOINTS.view, { path, view }),

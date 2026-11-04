@@ -2,27 +2,27 @@
 import { computed } from "vue";
 import { css } from "../../styled-system/css";
 import { line, table } from "../../styled-system/recipes";
-import { Status } from "../design-system/index.ts";
 import {
 	type ForgeNode,
-	openIssues,
 	projectsUnder,
 	rel,
 	urlFor,
+	useForge,
 } from "./data/index.ts";
 
-const props = defineProps<{ trail: ForgeNode[]; scope: string }>();
+const props = defineProps<{ node: ForgeNode; scope: string }>();
+
+const store = useForge();
 
 const rows = computed(() =>
-	projectsUnder(props.trail[props.trail.length - 1], props.trail.slice(0, -1))
-		.map(({ addr, node }) => ({
-			addr,
-			node,
-			// Long addresses wrap after a separator, not in the middle of a name.
-			parts: rel(props.scope, addr).split(/(?<=[/:])/),
-			release: node.releases?.[0]?.[0] ?? "—",
-			issues: openIssues(addr).length,
-		}))
+	projectsUnder(props.node).map((project) => ({
+		project,
+		// Long addresses wrap after a separator, not in the middle of a name.
+		parts: rel(props.scope, project.addr).split(/(?<=[/:])/),
+		issues: project.issuesEnabled === false
+			? "off"
+			: store.openCount(project) ?? "—",
+	}))
 );
 
 const grid = table({ columns: "list" });
@@ -42,24 +42,18 @@ const page = css({
 		<div v-if="rows.length" :class="grid.scroll">
 			<div :class="grid.head">
 				<span :class="projectHead">Project</span>
-				<span>Release</span>
 				<span>Issues</span>
-				<span>CI</span>
+				<span>Depends on</span>
 			</div>
-			<a v-for="row in rows" :key="row.addr" :href="urlFor(row.addr)"
-				:class="grid.row">
+			<a v-for="row in rows" :key="row.project.addr"
+				:href="urlFor(row.project.addr)" :class="grid.row">
 				<span :class="grid.cell">
 					<span
 						:class="grid.name"><template v-for="(part, i) in row.parts" :key="i">{{ part }}<wbr /></template></span>
-					<span :class="grid.sub">{{ row.node.path ?? "Whole repo" }}</span>
+					<span :class="grid.sub">{{ row.project.root ?? "Whole repo" }}</span>
 				</span>
-				<span :class="grid.num">{{ row.release }}</span>
 				<span :class="grid.num">{{ row.issues }}</span>
-				<span>
-					<template v-if="row.node.empty">—</template>
-					<Status v-else-if="row.node.fail" state="fail">Failing</Status>
-					<Status v-else state="pass">Pass</Status>
-				</span>
+				<span :class="grid.num">{{ row.project.deps.join(", ") || "—" }}</span>
 			</a>
 		</div>
 		<p v-else :class="lines.empty">No projects here yet.</p>

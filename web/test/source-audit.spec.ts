@@ -65,7 +65,7 @@ describe("forge shell", () => {
 		expect(shell.length).toBeGreaterThan(20);
 	});
 
-	it("reaches the sample data only through forge/data/index.ts", () => {
+	it("reaches the data only through forge/data/index.ts", () => {
 		const outside = SOURCES.filter((p) => !p.includes("/src/forge/data/"));
 		const hits = outside.filter((file) =>
 			/["'][^"']*forge\/data\/(?!index\.ts)|["'][^"']*\.\/data\/(?!index\.ts)/

@@ -10,21 +10,17 @@ import {
 	tabs as tabsRecipe,
 } from "../../styled-system/recipes";
 import { SplitPane } from "../design-system/index.ts";
+import { logHref, treeHref } from "../router/params.ts";
 import {
-	addrOf,
-	findIssue,
 	type ForgeNode,
-	issueUrl,
-	named,
-	openIssues,
 	parseUrl,
 	plural,
 	projectsUnder,
-	store,
 	type Tab,
 	titleFor,
-	trailAt,
+	trailOf,
 	urlFor,
+	useForge,
 } from "./data/index.ts";
 import { useForgeNav } from "./nav.ts";
 import Account from "./Account.vue";
@@ -42,80 +38,156 @@ import TreeNav from "./TreeNav.vue";
 
 const location = useRoute();
 const nav = useForgeNav();
+const store = useForge();
 
 const pathname = computed(() => location.path);
 const route = computed(() => parseUrl(pathname.value));
-const trail = computed(() => trailAt(route.value.addr));
-const scope = computed(() => (trail.value ? addrOf(trail.value) : ""));
-const last = computed(() =>
-	trail.value?.[trail.value.length - 1] as ForgeNode | undefined
+
+// What came of asking the kernel for this address.
+const reached = ref<"loading" | "found" | "missing" | "error">("loading");
+const failure = ref("");
+let asked = 0;
+
+const ask = async (addr: string) => {
+	const mine = ++asked;
+	const known = trailOf(store.state.tree as ForgeNode, addr);
+	reached.value = known ? "found" : "loading";
+	const answer = await store.reach(addr);
+	if (mine !== asked) return;
+	reached.value = answer.status;
+	failure.value = answer.status === "error" ? answer.message : "";
+};
+
+watch(() => route.value.addr, ask, { immediate: true });
+
+const trail = computed(() =>
+	reached.value === "found"
+		? trailOf(store.state.tree as ForgeNode, route.value.addr)
+		: null
+);
+const scope = computed(() => route.value.addr);
+const last = computed(() => trail.value?.[trail.value.length - 1]);
+const repo = computed(() =>
+	last.value?.kind === "project"
+		? trail.value![trail.value!.length - 2]
+		: last.value?.kind === "repo"
+		? last.value
+		: undefined
 );
 
-const issue = computed(() => {
-	const detail = route.value.detail;
-	return detail?.type === "issue"
-		? findIssue(scope.value, detail.n)
-		: undefined;
+// Counts and which tabs exist come from these, whichever page is open.
+watch(
+	[last, pathname],
+	() => {
+		const node = last.value;
+		if (!node) return;
+		void store.ensureSubtree(node.kind === "project" ? repo.value! : node);
+	},
+	{ immediate: true },
+);
+
+const repoIssues = computed(() =>
+	repo.value ? store.issuesAt(repo.value.addr) : undefined
+);
+const issuesOff = computed(() => {
+	if (!repo.value) return false;
+	const installed = !(repoIssues.value?.status === "refused" &&
+		repoIssues.value.reason === "not_installed");
+	return !installed || last.value?.issuesEnabled === false;
 });
 
 const missing = computed(() => {
 	const detail = route.value.detail;
-	if (!trail.value || route.value.unknown) return true;
-	if (route.value.tab === "projects" && last.value?.kind !== "group") {
-		return true;
+	const node = last.value;
+	if (route.value.unknown) return true;
+	if (reached.value === "missing") return true;
+	if (reached.value !== "found") return false;
+	if (!node) return true;
+	if (route.value.tab === "projects" && node.kind !== "group") return true;
+	if (route.value.tab === "activity" && node.kind !== "repo") return true;
+	if (detail?.type === "new-node") {
+		if (node.kind !== "group") return true;
+		// The kernel keeps repos under a group or user: a repo needs a parent.
+		if (detail.kind === "repo" && node.addr === "") return true;
 	}
-	if (detail?.type === "new-node" && last.value?.kind !== "group") return true;
-	if (detail?.type === "issue") return !issue.value;
 	return false;
 });
 
-// The old address of a moved issue keeps working, and the bar shows where it lives now.
-watch([issue, pathname], ([found]) => {
-	if (found && issueUrl(found) !== pathname.value) {
-		void nav.replace(issueUrl(found));
-	}
-});
-
 const crumbs = computed(() => {
-	const nodes = trail.value ?? (store.tree ? [store.tree as ForgeNode] : []);
+	const nodes = trail.value ?? [store.state.tree as ForgeNode];
 	const detail = route.value.detail;
 	const out = nodes.map((node, i) => ({
 		name: node.name,
 		sep: i === 0 ? "" : node.kind === "project" ? ":" : "/",
-		href: urlFor(addrOf(nodes.slice(0, i + 1))),
+		href: urlFor(node.addr),
 	}));
 	if (detail?.type === "issue") {
-		if (last.value?.name === "root") out.pop();
 		out.push({ name: String(detail.n), sep: "#", href: "" });
 	}
 	if (detail?.type === "new-node") out.push({ name: "…", sep: "/", href: "" });
 	return out;
 });
 
-const tabDefs = computed(() => {
+type TabDef = {
+	key: Tab | "files" | "commits";
+	label: string;
+	href: string;
+	count?: number;
+	ownerOnly?: boolean;
+};
+
+const tabDefs = computed((): TabDef[] => {
 	const node = last.value;
 	if (!node) return [];
-	const defs: {
-		key: Tab;
-		label: string;
-		count?: number;
-		ownerOnly?: boolean;
-	}[] = [
-		{ key: "overview", label: "Overview" },
-		...(node.kind === "group"
-			? [{
-				key: "projects" as const,
-				label: "Projects",
-				count: projectsUnder(node, trail.value!.slice(0, -1)).length,
-			}]
-			: []),
-		{ key: "issues", label: "Issues", count: openIssues(scope.value).length },
-		{ key: "activity", label: "Activity" },
-		// Tartan's own settings pages. A project's only setting is in its file.
-		...(node.kind === "project"
-			? []
-			: [{ key: "settings" as const, label: "Settings", ownerOnly: true }]),
+	const open = store.openCount(node);
+	const count = open === undefined ? {} : { count: open };
+	const defs: TabDef[] = [
+		{ key: "overview", label: "Overview", href: urlFor(scope.value) },
 	];
+	if (node.kind === "group") {
+		defs.push({
+			key: "projects",
+			label: "Projects",
+			href: urlFor(scope.value, "projects"),
+			count: projectsUnder(node).length,
+		});
+	}
+	if (!issuesOff.value) {
+		defs.push({
+			key: "issues",
+			label: "Issues",
+			href: urlFor(scope.value, "issues"),
+			...count,
+		});
+	}
+	if (node.kind === "repo") {
+		defs.push({
+			key: "activity",
+			label: "Activity",
+			href: urlFor(scope.value, "activity"),
+		});
+	}
+	if (repo.value) {
+		const branch = repo.value.defaultBranch ?? "main";
+		defs.push({
+			key: "files",
+			label: "Files",
+			href: treeHref(repo.value.addr, branch, node.root ?? ""),
+		}, {
+			key: "commits",
+			label: "Commits",
+			href: logHref(repo.value.addr, branch, node.root ?? ""),
+		});
+	}
+	// Tartan's own settings pages. A project's only setting is in its file.
+	if (node.kind !== "project") {
+		defs.push({
+			key: "settings",
+			label: "Settings",
+			href: urlFor(scope.value, "settings"),
+			ownerOnly: true,
+		});
+	}
 	return defs;
 });
 
@@ -130,19 +202,19 @@ const head = computed(() => {
 			groups && plural(groups, "group"),
 			repos && plural(repos, "repo"),
 		].filter(Boolean);
-		kind = `Group · ${parts.join(", ") || "empty"}`;
+		kind = `${node.user ? "User" : "Group"} · ${parts.join(", ") || "empty"}`;
 	} else if (node.kind === "repo") {
-		kind = node.children.length
-			? `Monorepo · ${plural(named(node), "project")}`
-			: "Repo";
+		kind = !node.loaded
+			? "Repo"
+			: node.children.length
+			? `Monorepo · ${plural(node.children.length, "project")}`
+			: "Repo · a single project";
 	} else if (node.kind === "project") {
-		kind = node.name === "root"
-			? "Root project · files no other project claims"
-			: `Project · ${node.path}`;
+		kind = `Project · ${node.root}`;
 	}
 	return {
 		kind,
-		repo: node.kind === "project" ? parent.name : "",
+		repo: node.kind === "project" ? parent!.name : "",
 		name: node.name,
 		description: node.description,
 	};
@@ -174,7 +246,9 @@ watch(pathname, () => {
 }, { flush: "post" });
 
 const banner = computed(
-	() => (store.banner?.path === pathname.value ? store.banner.text : ""),
+	() => (store.state.banner?.path === pathname.value
+		? store.state.banner.text
+		: ""),
 );
 
 const styles = shell();
@@ -213,20 +287,28 @@ const empty = panel();
 				<div v-if="missing" :class="styles.pad">
 					<div :class="[empty.root, empty.empty]">Nothing at that address.</div>
 				</div>
+				<div v-else-if="reached === 'loading'" :class="styles.pad">
+					<div role="status" :class="[empty.root, empty.empty]">Loading…</div>
+				</div>
+				<div v-else-if="reached === 'error'" :class="styles.pad">
+					<div role="alert"
+						:class="[empty.root, empty.empty]">Could not read this address: {{ failure }}</div>
+				</div>
 
 				<template v-else-if="last">
 					<section v-if="!route.detail" :class="headStyles.root">
 						<span :class="headStyles.kind">{{ head.kind }}</span>
 						<h1
 							:class="headStyles.title"><template v-if="head.repo"><span :class="headStyles.dim">{{ head.repo }}</span><span :class="headStyles.mark">:</span></template>{{ head.name }}</h1>
-						<p :class="headStyles.lede">{{ head.description }}</p>
+						<p v-if="head.description"
+							:class="headStyles.lede">{{ head.description }}</p>
 					</section>
 
 					<nav aria-label="Views" :class="tabStyles.root">
 						<a
 							v-for="tab in tabDefs"
 							:key="tab.key"
-							:href="urlFor(scope, tab.key === 'overview' ? '' : tab.key)"
+							:href="tab.href"
 							:aria-current="route.tab === tab.key ? 'page' : undefined"
 							:class="[tabStyles.tab, tab.ownerOnly && 'owner-only']"
 						>
@@ -240,10 +322,10 @@ const empty = panel();
 					<div v-if="back"
 						:class="styles.back"><a :href="back.href">← {{ back.label }}</a></div>
 
-					<IssueDetail v-if="issue" :key="issue.id" :issue="issue"
-						:trail="trail!" :scope="scope" />
+					<IssueDetail v-if="route.detail?.type === 'issue'" :key="pathname"
+						:number="route.detail.n" :node="last" :scope="scope" />
 					<NewNode v-else-if="route.detail?.type === 'new-node'" :key="pathname"
-						:kind="route.detail.kind" :trail="trail!" :scope="scope" />
+						:kind="route.detail.kind" :node="last" />
 					<div
 						v-else-if="route.detail?.type === 'new-issue' && last.kind === 'group'"
 						:class="styles.pad">
@@ -252,17 +334,17 @@ const empty = panel();
 					</div>
 					<NewIssue v-else-if="route.detail?.type === 'new-issue'"
 						:key="pathname" :node="last" :scope="scope" />
-					<ProjectList v-else-if="route.tab === 'projects'" :trail="trail!"
+					<ProjectList v-else-if="route.tab === 'projects'" :node="last"
 						:scope="scope" />
 					<IssueList v-else-if="route.tab === 'issues'" :key="pathname"
 						:node="last" :scope="scope" />
-					<ActivityList v-else-if="route.tab === 'activity'" :node="last"
-						:scope="scope" />
-					<GroupOverview v-else-if="last.kind === 'group'" :trail="trail!"
+					<ActivityList v-else-if="route.tab === 'activity'" :node="last" />
+					<GroupOverview v-else-if="last.kind === 'group'" :node="last"
 						:scope="scope" />
 					<MonoOverview v-else-if="last.kind === 'repo' && last.children.length"
 						:key="pathname" :node="last" :scope="scope" />
-					<LeafOverview v-else :trail="trail!" :scope="scope" />
+					<LeafOverview v-else :key="pathname" :node="last" :repo="repo!"
+						:scope="scope" />
 				</template>
 			</main>
 		</SplitPane>

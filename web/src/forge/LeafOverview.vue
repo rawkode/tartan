@@ -1,161 +1,106 @@
 <script setup lang="ts">
+// A project, or a repo that is a single project.
 import { computed } from "vue";
 import { css } from "../../styled-system/css";
 import {
 	detail,
-	diff,
 	facts,
 	heading,
 	line,
-	terminal,
 	text,
 } from "../../styled-system/recipes";
-import { Status } from "../design-system/index.ts";
+import { blobHref, treeHref } from "../router/params.ts";
 import {
-	addrOf,
 	type ForgeNode,
-	openIssues,
-	projectFile,
+	type PlacedIssue,
 	rel,
 	urlFor,
+	useForge,
 } from "./data/index.ts";
+import CloneCommand from "./CloneCommand.vue";
+import CommitList from "./CommitList.vue";
 import IssueRow from "./IssueRow.vue";
+import RepoFile from "./RepoFile.vue";
+import RepoReadme from "./RepoReadme.vue";
 
-const props = defineProps<{ trail: ForgeNode[]; scope: string }>();
+const props = defineProps<{ node: ForgeNode; repo: ForgeNode; scope: string }>();
 
-const node = computed(() => props.trail[props.trail.length - 1]);
-const isProject = computed(() => node.value.kind === "project");
-const parent = computed(() => props.trail[props.trail.length - 2]);
-const siblings = computed(() => (isProject.value ? parent.value.children : []));
-const repoAddr = computed(() => addrOf(props.trail.slice(0, -1)));
+const store = useForge();
 
-const issues = computed(() => openIssues(props.scope).slice(0, 6));
+const isProject = computed(() => props.node.kind === "project");
+const branch = computed(() => props.repo.defaultBranch ?? "main");
+
+const issuesOn = computed(() => {
+	const known = store.issuesAt(props.repo.addr);
+	return props.node.issuesEnabled !== false && known?.status === "ready";
+});
+const issues = computed((): PlacedIssue[] => {
+	const known = store.issuesAt(props.repo.addr);
+	if (known?.status !== "ready") return [];
+	return known.list.issues
+		.filter((i) =>
+			i.state === "open" && (!isProject.value || i.project === props.node.root)
+		)
+		.map((i) => store.placed(props.repo, i))
+		.slice(0, 6);
+});
 const issueWidth = computed(() =>
 	issues.value.reduce(
 		(max, i) =>
-			Math.max(max, rel(props.scope, i.where).length + String(i.n).length + 1),
+			Math.max(
+				max,
+				rel(props.scope, i.where).length + String(i.number).length + 1,
+			),
 		0,
 	)
 );
 
-const usedBy = computed(() =>
-	siblings.value.filter((k) => k.deps.includes(node.value.name)).map((k) =>
-		k.name
-	)
-);
-const projectUrl = (name: string) => urlFor(`${repoAddr.value}:${name}`);
-
-const file = computed(() => (isProject.value ? projectFile(node.value) : null));
-
-const command = computed(
-	() => (isProject.value
-		? `forge clone ${props.scope}`
-		: `git clone forge:${props.scope}`),
-);
-const note = computed(() => {
-	if (!isProject.value) {
-		return "Just the root project, so issues sit directly on the repo.";
-	}
-	if (node.value.name === "root") {
-		return "Sparse checkout of files no other project claims.";
-	}
-	const depPaths = siblings.value.filter((k) =>
-		node.value.deps.includes(k.name)
-	).map((k) => k.path);
-	return `Sparse checkout of ${[node.value.path, ...depPaths].join(" and ")}.`;
-});
-const push = computed(() =>
-	`git remote add forge forge:${props.scope}\ngit push forge main`
-);
+const projectUrl = (name: string) => urlFor(`${props.repo.addr}:${name}`);
 
 const page = detail();
-const source = diff();
 const rows = line();
 const list = facts();
 const label = heading({ size: "rule" });
 const muted = text({ tone: "muted", size: "sm" });
-const mono = text({ mono: true, size: "xs" });
 const section = css({ display: "flex", flexDirection: "column" });
-const stack = css({ display: "flex", flexDirection: "column", gap: "2.5" });
-const prose = css({ maxWidth: "[64ch]" });
-const releaseAge = css({ flex: "none" });
-const cueSource = css({
-	margin: "0",
-	padding: "3",
-	fontFamily: "academy-mono",
-	fontSize: "xs",
-	lineHeight: "academy-reading",
-	overflowX: "auto",
-	tabSize: "2",
-});
-const release = css({
-	display: "flex",
-	justifyContent: "space-between",
-	alignItems: "center",
-	gap: "3",
-	minHeight: "11",
-	paddingInline: "2.5",
-	borderBlockEnd: "hairline",
-});
+const refs = css({ display: "flex", flexWrap: "wrap", columnGap: "2" });
 </script>
 
 <template>
 	<div :class="page.columns">
 		<div :class="page.main">
-			<section v-if="node.empty" :class="stack">
-				<h2 :class="label">Push to it</h2>
-				<pre :class="terminal()">{{ push }}</pre>
-				<p
-					:class="muted">To split it into projects later, commit a <code>.cue</code> file in <code>package tartan</code> to a directory.</p>
-			</section>
-
-			<section :class="section">
+			<section v-if="issuesOn" :class="section">
 				<h2 :class="label">Open issues</h2>
-				<IssueRow v-for="issue in issues" :key="issue.id" :issue="issue"
+				<IssueRow v-for="issue in issues" :key="issue.number" :issue="issue"
 					:scope="scope" :width="issueWidth" />
 				<p v-if="!issues.length" :class="rows.empty">No open issues here.</p>
 			</section>
 
-			<section v-if="file" :class="stack">
-				<h2 :class="label">Project file</h2>
-				<div :class="source.root">
-					<div :class="source.file">{{ file.path }}</div>
-					<pre :class="cueSource">{{ file.source }}</pre>
-				</div>
-			</section>
-
-			<section v-if="node.readme" :class="stack">
-				<h2 :class="label">{{ node.path }}/README.md</h2>
-				<p
-					:class="prose">Speaks LSP over stdio. The vscode project wraps this binary. Any other editor can start it with <code>kiln-lsp --stdio</code>.</p>
-				<pre :class="terminal()">kiln run lsp:build
-kiln run lsp:test</pre>
-			</section>
+			<RepoFile v-if="node.manifestPath" :repo="repo"
+				:path="node.manifestPath" title="Project file" />
+			<RepoReadme :repo="repo" :dir="node.root" />
+			<CommitList :repo="repo" :path="node.root" />
 		</div>
 
 		<aside aria-label="Details" :class="page.aside">
 			<dl :class="list.root">
 				<div :class="list.row">
 					<dt :class="list.term">Path</dt>
-					<dd :class="list.value">{{ isProject ? node.path : "." }}</dd>
-				</div>
-				<div :class="list.row">
-					<dt :class="list.term">CI on main</dt>
 					<dd :class="list.value">
-						<template
-							v-if="node.fail"><Status state="fail">Failing</Status><span>{{ node.fail }}</span></template>
-						<Status v-else state="pass">Passing</Status>
+						<a :href="treeHref(repo.addr, branch, node.root ?? '')">{{ node.root ?? "." }}</a>
 					</dd>
 				</div>
 				<template v-if="isProject">
 					<div :class="list.row">
 						<dt :class="list.term">Defined in</dt>
-						<dd
-							:class="list.value">{{ file ? file.path : "Implicit: the files no other project claims" }}</dd>
+						<dd :class="list.value">
+							<a v-if="node.manifestPath"
+								:href="blobHref(repo.addr, branch, node.manifestPath)">{{ node.manifestPath }}</a>
+						</dd>
 					</div>
 					<div :class="list.row">
 						<dt :class="list.term">Depends on</dt>
-						<dd :class="list.value">
+						<dd :class="[list.value, refs]">
 							<a v-for="dep in node.deps" :key="dep"
 								:href="projectUrl(dep)">{{ dep }}</a>
 							<template v-if="!node.deps.length">—</template>
@@ -163,30 +108,19 @@ kiln run lsp:test</pre>
 					</div>
 					<div :class="list.row">
 						<dt :class="list.term">Used by</dt>
-						<dd :class="list.value">
-							<a v-for="user in usedBy" :key="user"
+						<dd :class="[list.value, refs]">
+							<a v-for="user in node.dependents" :key="user"
 								:href="projectUrl(user)">{{ user }}</a>
-							<template v-if="!usedBy.length">—</template>
+							<template v-if="!node.dependents.length">—</template>
 						</dd>
 					</div>
 				</template>
 			</dl>
 
-			<div :class="stack">
-				<span :class="muted">Clone</span>
-				<code :class="terminal()">{{ command }}</code>
-				<span :class="muted">{{ note }}</span>
-			</div>
-
-			<section :class="section">
-				<h2 :class="label">Releases</h2>
-				<div v-for="[tag, age] in node.releases ?? []" :key="tag"
-					:class="release">
-					<span :class="mono">{{ tag }}</span>
-					<span :class="[rows.age, releaseAge]">{{ age }}</span>
-				</div>
-				<p v-if="!node.releases?.length" :class="rows.empty">None yet.</p>
-			</section>
+			<CloneCommand :repo="repo.addr"
+				:note="isProject ? `The whole repo. This project is under ${node.root}.` : undefined" />
+			<p v-if="!isProject"
+				:class="muted">To split this repo into projects, commit a <code>.cue</code> file in <code>package tartan</code> to a directory.</p>
 		</aside>
 	</div>
 </template>

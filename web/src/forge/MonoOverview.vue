@@ -1,86 +1,35 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { css } from "../../styled-system/css";
-import {
-	line,
-	shell,
-	table,
-	terminal,
-	text,
-	ticks as ticksRecipe,
-} from "../../styled-system/recipes";
-import { Badge, Button, Segmented, Status } from "../design-system/index.ts";
-import {
-	commitsFor,
-	type ForgeNode,
-	named,
-	openIssues,
-	plural,
-	urlFor,
-} from "./data/index.ts";
+import { shell, table, text } from "../../styled-system/recipes";
+import { treeHref } from "../router/params.ts";
+import { type ForgeNode, plural, urlFor, useForge } from "./data/index.ts";
+import CloneCommand from "./CloneCommand.vue";
+import CommitList from "./CommitList.vue";
+import RepoReadme from "./RepoReadme.vue";
 
 const props = defineProps<{ node: ForgeNode; scope: string }>();
 
-const commits = commitsFor(props.scope);
-const selected = ref(Math.max(0, commits.length - 3));
-const cloneMode = ref("repo");
-
-// The example for a sparse checkout: the first project that depends on another.
-const example = computed(() =>
-	props.node.children.find((k) => k.deps.length) ?? props.node.children[0]
-);
-
-const command = computed(() =>
-	cloneMode.value === "repo"
-		? `git clone forge:${props.scope}`
-		: `forge clone ${props.scope}:${example.value.name}`
-);
-const note = computed(() =>
-	cloneMode.value === "repo"
-		? `All ${plural(named(props.node), "project")} and the root.`
-		: `Sparse checkout of one project and what it depends on. Here, ${
-			[example.value.name, ...example.value.deps].join(" and ")
-		}.`
-);
+const store = useForge();
 
 const rows = computed(() =>
-	props.node.children.map((k) => {
-		const addr = `${props.scope}:${k.name}`;
-		return {
-			node: k,
-			addr,
-			release: k.releases?.[0]?.[0] ?? "—",
-			issues: openIssues(addr).length,
-		};
-	})
+	props.node.children.map((project) => ({
+		project,
+		issues: project.issuesEnabled === false
+			? "off"
+			: store.openCount(project) ?? "—",
+	}))
 );
 
-const commit = computed(() => commits[selected.value]);
-const headSha = commits[commits.length - 1].sha;
+const rootHref = computed(() =>
+	treeHref(props.node.addr, props.node.defaultBranch ?? "main")
+);
+const sha = computed(() => props.node.sha?.slice(0, 7) ?? "");
 
 const page = shell();
-const grid = table({ columns: "projects" });
-const tick = ticksRecipe();
-const rule = line();
+const grid = table({ columns: "list" });
 const muted = text({ tone: "muted", size: "sm" });
-const mono = text({ mono: true, size: "xs" });
 const monoMuted = text({ mono: true, tone: "muted", size: "xs" });
-const clone = css({
-	display: "flex",
-	flexDirection: "column",
-	gap: "2",
-	maxWidth: "[620px]",
-});
-const commitBar = css({
-	display: "flex",
-	flexWrap: "wrap",
-	alignItems: "center",
-	columnGap: "3.5",
-	rowGap: "2",
-	paddingBlock: "2",
-	borderBlockEnd: "rule",
-});
-const stepper = css({ display: "flex", gap: "1" });
 const discovered = css({ paddingBlockEnd: "3" });
 const projectHead = css({ paddingInlineStart: "2.5" });
 const discovery = css({ maxWidth: "[720px]" });
@@ -88,67 +37,43 @@ const discovery = css({ maxWidth: "[720px]" });
 
 <template>
 	<div :class="page.pad">
-		<div :class="clone">
-			<Segmented
-				v-model="cloneMode"
-				label="Clone"
-				:items="[{ label: 'Whole repo', value: 'repo' }, { label: 'One project', value: 'project' }]"
-			/>
-			<code :class="terminal()">{{ command }}</code>
-			<span :class="muted">{{ note }}</span>
-		</div>
+		<CloneCommand :repo="scope"
+			:note="`All ${plural(node.children.length, 'project')} and the root.`" />
 
 		<section>
 			<p
-				:class="[monoMuted, discovered]">Discovered from package tartan files at {{ headSha }}</p>
+				:class="[monoMuted, discovered]">Discovered from package tartan files at {{ sha }}</p>
 			<div :class="grid.scroll">
 				<div :class="grid.head">
 					<span :class="projectHead">Project</span>
-					<span>Release</span>
 					<span>Issues</span>
-					<span>CI</span>
-					<span>Depends</span>
-					<span>Last {{ commits.length }} commits</span>
+					<span>Depends on</span>
 				</div>
-				<a v-for="row in rows" :key="row.addr" :href="urlFor(row.addr)"
-					:class="grid.row">
+				<a v-for="row in rows" :key="row.project.addr"
+					:href="urlFor(row.project.addr)" :class="grid.row">
 					<span :class="grid.cell">
-						<span :class="grid.name">{{ row.node.name }}</span>
-						<span :class="grid.sub">{{ row.node.path }}</span>
+						<span :class="grid.name">{{ row.project.name }}</span>
+						<span
+							:class="grid.sub">{{ row.project.manifestPath ?? row.project.root }}</span>
 					</span>
-					<span :class="grid.num">{{ row.release }}</span>
 					<span :class="grid.num">{{ row.issues }}</span>
-					<span><Status v-if="row.node.fail" state="fail">Failing</Status><Status v-else state="pass">Pass</Status></span>
-					<span :class="monoMuted">{{ row.node.deps.join(", ") || "—" }}</span>
-					<span aria-hidden="true" :class="tick.root">
-						<span v-for="(c, i) in commits" :key="c.sha" :class="tick.cell"
-							@mouseenter="selected = i">
-							<span :class="tick.bar"
-								:data-on="c.projects.includes(row.node.name) ? '' : undefined"
-								:data-selected="i === selected ? '' : undefined"></span>
-						</span>
-					</span>
+					<span :class="grid.num">{{ row.project.deps.join(", ") || "—" }}</span>
 				</a>
-			</div>
-			<div :class="commitBar">
-				<span :class="muted">Commit</span>
-				<span :class="mono">{{ commit.sha }}</span>
-				<span :class="rule.title">{{ commit.subject }}</span>
-				<span
-					:class="rule.chips"><Badge v-for="project in commit.projects" :key="project">{{ project }}</Badge></span>
-				<span :class="monoMuted">{{ commit.age }}</span>
-				<div :class="stepper">
-					<Button type="button" aria-label="Older commit"
-						:disabled="selected === 0"
-						@click="selected = Math.max(0, selected - 1)">‹</Button>
-					<Button type="button" aria-label="Newer commit"
-						:disabled="selected === commits.length - 1"
-						@click="selected = Math.min(commits.length - 1, selected + 1)">›</Button>
-				</div>
+				<a :href="rootHref" :class="grid.row">
+					<span :class="grid.cell">
+						<span :class="grid.name">root</span>
+						<span :class="grid.sub">Files no other project claims</span>
+					</span>
+					<span :class="grid.num">—</span>
+					<span :class="grid.num">—</span>
+				</a>
 			</div>
 		</section>
 
 		<p
 			:class="[muted, discovery]">Projects are discovered from <code>package tartan</code> files on every push to main, and cached by commit. A project is any directory below the root that holds a <code>.cue</code> file in that package, so to add, rename or remove one, commit a change to its file.</p>
+
+		<RepoReadme :repo="node" />
+		<CommitList :repo="node" />
 	</div>
 </template>

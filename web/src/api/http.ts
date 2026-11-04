@@ -57,6 +57,19 @@ const isWireError = (value: unknown): value is WireError =>
 	typeof (value as { error?: unknown }).error === "string" &&
 	typeof (value as { message?: unknown }).message === "string";
 
+/** An extension tool's refusal: `{error: {code, message}}` (`projects/tools.ts`). */
+const toolError = (
+	value: unknown,
+): { readonly code: string; readonly message: string } | null => {
+	if (typeof value !== "object" || value === null) return null;
+	const error = (value as { error?: unknown }).error;
+	if (typeof error !== "object" || error === null) return null;
+	const { code, message } = error as { code?: unknown; message?: unknown };
+	return typeof code === "string" && typeof message === "string"
+		? { code, message }
+		: null;
+};
+
 /** One call's own bound, over the client's default for its method. */
 export type CallOptions = {
 	readonly timeoutMs?: number;
@@ -170,6 +183,10 @@ export const createHttp = (
 					parsed.message,
 					parsed.reason,
 				);
+			}
+			const refused = toolError(parsed);
+			if (refused !== null) {
+				throw new ApiError(response.status, refused.code, refused.message);
 			}
 			throw new ApiError(
 				response.status,

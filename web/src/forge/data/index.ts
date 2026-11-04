@@ -1,6 +1,5 @@
-// The forge shell's only data boundary: everything under `forge/` and the
-// design system imports from here. The sample store behind it is what the kernel
-// API replaces (`test/source-audit.spec.ts` keeps the boundary).
+// The forge shell's only data boundary: everything under `forge/` and the design
+// system imports from here (`test/source-audit.spec.ts` keeps it so).
 
 export * from "./model.ts";
 export * from "./store.ts";

@@ -2,38 +2,26 @@
 import { computed } from "vue";
 import { css } from "../../styled-system/css";
 import { heading, line, shell, stats, text } from "../../styled-system/recipes";
-import { Status } from "../design-system/index.ts";
 import {
-	eventsAt,
-	failingUnder,
 	type ForgeNode,
-	openIssues,
 	projectsUnder,
-	rel,
-	repoCount,
+	reposUnder,
 	urlFor,
+	useForge,
 } from "./data/index.ts";
 import IssueRow from "./IssueRow.vue";
 
-const props = defineProps<{ trail: ForgeNode[]; scope: string }>();
+const props = defineProps<{ node: ForgeNode; scope: string }>();
 
-const node = computed(() => props.trail[props.trail.length - 1]);
-const open = computed(() => openIssues(props.scope));
-const recent = computed(() => open.value.slice(0, 5));
-const repos = computed(() => repoCount(node.value));
-const projects = computed(() =>
-	projectsUnder(node.value, props.trail.slice(0, -1)).length
-);
-const activity = computed(() => eventsAt(node.value, props.scope, 5));
+const store = useForge();
 
-const attention = computed(() =>
-	failingUnder(node.value, props.trail.slice(0, -1)).map((f) => ({
-		key: f.addr,
-		address: rel(props.scope, f.addr),
-		text: f.node.fail!,
-		href: urlFor(f.addr),
-	}))
+const openCount = computed(() => store.openCount(props.node));
+const recent = computed(() =>
+	store.issuesUnder(props.node).filter((i) => i.state === "open").slice(0, 5)
 );
+const repos = computed(() => reposUnder(props.node).length);
+const projects = computed(() => projectsUnder(props.node).length);
+const refused = computed(() => store.refusedUnder(props.node).length > 0);
 
 const page = shell();
 const number = stats();
@@ -45,16 +33,16 @@ const columns = css({
 	gap: "8",
 });
 const column = css({ display: "flex", flexDirection: "column", minWidth: "0" });
-const place = text({ tone: "muted", mono: true, size: "xs" });
-const placeRow = css({ flex: "[1 1 100%]", overflowWrap: "anywhere" });
-const regular = css({ fontWeight: "normal" });
+const name = text({ mono: true, size: "sm" });
+const muted = css({ fontWeight: "normal", color: "academy.textMuted" });
 </script>
 
 <template>
 	<div :class="page.pad">
 		<div :class="number.root">
-			<a :href="urlFor(scope, 'issues')" :class="number.stat">
-				<span :class="number.numeral">{{ open.length }}</span>
+			<a v-if="openCount !== undefined" :href="urlFor(scope, 'issues')"
+				:class="number.stat">
+				<span :class="number.numeral">{{ openCount }}</span>
 				<span :class="number.unit">Open issues</span>
 			</a>
 			<a :href="urlFor(scope, 'projects')" :class="number.stat">
@@ -68,32 +56,29 @@ const regular = css({ fontWeight: "normal" });
 			</div>
 		</div>
 
-		<section v-if="attention.length" :class="column">
-			<h2 :class="label">Needs attention</h2>
-			<a v-for="item in attention" :key="item.key" :href="item.href"
-				:class="rows.root">
-				<Status state="fail">Failing</Status>
-				<span :class="rows.id">{{ item.address }}</span>
-				<span :class="[rows.title, regular]">{{ item.text }}</span>
-			</a>
-		</section>
-
 		<div :class="columns">
 			<section :class="column">
-				<h2 :class="label">Recently updated issues</h2>
-				<IssueRow v-for="issue in recent" :key="issue.id" :issue="issue"
-					:scope="scope" stacked />
-				<p v-if="!recent.length" :class="rows.empty">No open issues here.</p>
+				<h2 :class="label">Here</h2>
+				<a v-for="child in node.children" :key="child.addr"
+					:href="urlFor(child.addr)" :class="rows.root">
+					<span :class="name">{{ child.name }}</span>
+					<span :class="[rows.title, muted]">{{ child.description }}</span>
+				</a>
+				<p v-if="node.loaded && !node.children.length"
+					:class="rows.empty">Nothing here yet.</p>
+				<p v-if="!node.loaded" role="status"
+					:class="rows.empty">{{ node.loadError ?? "Loading…" }}</p>
 			</section>
 			<section :class="column">
-				<h2 :class="label">Recent activity</h2>
-				<div v-for="event in activity" :key="event.sha" :class="rows.root">
-					<span :class="[place, placeRow]">{{ event.place }}</span>
-					<span :class="[rows.title, regular]">{{ event.subject }}</span>
-					<span :class="rows.age">{{ event.age }}</span>
-				</div>
-				<p v-if="!activity.length"
-					:class="rows.empty">Nothing has happened here yet.</p>
+				<h2 :class="label">Recently updated issues</h2>
+				<IssueRow v-for="issue in recent" :key="`${issue.repo}#${issue.number}`"
+					:issue="issue" :scope="scope" stacked />
+				<p v-if="!recent.length && !refused"
+					:class="rows.empty">No open issues here.</p>
+				<p v-if="refused"
+					:class="rows.empty">Some issues here are not visible to you. <a
+						class="anon-only" href="/-/auth/login?return_to=/"
+						data-reload>Sign in</a></p>
 			</section>
 		</div>
 	</div>

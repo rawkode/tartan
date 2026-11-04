@@ -1,34 +1,37 @@
 <script setup lang="ts">
 import { Accordion } from "@ark-ui/vue/accordion";
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { tree } from "../../styled-system/recipes";
 import { Button } from "../design-system/index.ts";
 import {
 	type ForgeNode,
-	hasFailure,
-	named,
-	openIssues,
 	plural,
 	type Route,
+	under,
 	urlFor,
+	useForge,
 } from "./data/index.ts";
 
-const props = defineProps<
-	{ node: ForgeNode; addr: string; scope: string; route: Route }
->();
+const props = defineProps<{ node: ForgeNode; scope: string; route: Route }>();
 
-const addrFor = (child: ForgeNode) =>
-	props.addr
-		? `${props.addr}${child.kind === "project" ? ":" : "/"}${child.name}`
-		: child.name;
+const store = useForge();
+
+// A level reads its own children when it opens, and each repo on it says what
+// expands below it and how many issues it has.
+const load = () => {
+	if (props.node.kind === "group") void store.ensureChildren(props.node);
+	for (const child of props.node.children) {
+		if (child.kind !== "repo") continue;
+		void store.ensureProjects(child);
+		void store.ensureIssues(child.addr);
+	}
+};
+onMounted(load);
+watch(() => props.node.children.length, load);
 
 // The child on the way to the current address opens by itself, closing its siblings.
 const onPath = computed(() => {
-	const child = props.node.children.find((k) => {
-		const addr = addrFor(k);
-		return props.scope === addr || props.scope.startsWith(`${addr}/`) ||
-			props.scope.startsWith(`${addr}:`);
-	});
+	const child = props.node.children.find((k) => under(props.scope, k.addr));
 	return child && child.kind !== "project" &&
 			(child.kind === "group" || child.children.length)
 		? child.name
@@ -37,7 +40,7 @@ const onPath = computed(() => {
 
 const open = ref(onPath.value ? [onPath.value] : []);
 watch(
-	() => props.scope,
+	[() => props.scope, onPath],
 	() => {
 		if (onPath.value) open.value = [onPath.value];
 	},
@@ -47,9 +50,9 @@ const expandable = (child: ForgeNode) =>
 	child.kind === "group" || child.children.length > 0;
 const sub = (child: ForgeNode) =>
 	child.kind === "project"
-		? child.path
+		? child.root
 		: child.kind === "repo" && child.children.length
-		? plural(named(child), "project")
+		? plural(child.children.length, "project")
 		: "";
 
 const styles = tree();
@@ -60,10 +63,10 @@ const styles = tree();
 		<Accordion.Item v-for="child in node.children" :key="child.name"
 			:value="child.name">
 			<div :class="styles.row"
-				:data-current="addrFor(child) === scope && !route.detail ? '' : undefined"
+				:data-current="child.addr === scope && !route.detail ? '' : undefined"
 				:data-open="open.includes(child.name) ? '' : undefined">
-				<a :href="urlFor(addrFor(child))"
-					:aria-current="addrFor(child) === scope && !route.detail ? 'page' : undefined"
+				<a :href="urlFor(child.addr)"
+					:aria-current="child.addr === scope && !route.detail ? 'page' : undefined"
 					:class="styles.link">
 					<svg :class="styles.icon" width="16" height="16" viewBox="0 0 16 16"
 						fill="none" stroke="currentColor" stroke-width="1.4"
@@ -84,10 +87,8 @@ const styles = tree();
 						<span v-if="sub(child)" :class="styles.sub"
 							data-dim>{{ sub(child) }}</span>
 					</span>
-					<span v-if="!open.includes(child.name) && hasFailure(child)"
-						:class="styles.dot" data-dim>failing</span>
-					<span :class="styles.count"
-						data-dim>{{ openIssues(addrFor(child)).length }}</span>
+					<span v-if="store.openCount(child) !== undefined" :class="styles.count"
+						data-dim>{{ store.openCount(child) }}</span>
 				</a>
 				<Accordion.ItemTrigger v-if="expandable(child)"
 					:aria-label="`Show what is in ${child.name}`" :class="styles.toggle">
@@ -102,14 +103,13 @@ const styles = tree();
 				<span v-else :class="styles.spacer"></span>
 			</div>
 			<Accordion.ItemContent v-if="expandable(child)" :class="styles.section">
-				<TreeLevel :node="child" :addr="addrFor(child)" :scope="scope"
-					:route="route" />
+				<TreeLevel :node="child" :scope="scope" :route="route" />
 				<p v-if="!child.children.length"
 					:class="styles.note">Nothing here yet.</p>
-				<div v-if="child.kind === 'group' && addrFor(child) === scope"
+				<div v-if="child.kind === 'group' && child.addr === scope"
 					:class="[styles.actions, 'owner-only']">
-					<Button :href="urlFor(addrFor(child), 'new/group')">New group</Button>
-					<Button :href="urlFor(addrFor(child), 'new/repo')">New repo</Button>
+					<Button :href="urlFor(child.addr, 'new/group')">New group</Button>
+					<Button :href="urlFor(child.addr, 'new/repo')">New repo</Button>
 				</div>
 				<p v-if="child.kind === 'repo'"
 					:class="styles.note">Projects are discovered from <code>package tartan</code> files in this repo.</p>

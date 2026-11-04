@@ -8,40 +8,54 @@ import {
 	panel,
 	text,
 } from "../../styled-system/recipes";
-import { createNode, type ForgeNode } from "./data/index.ts";
+import { errorMessage } from "../api/http.ts";
+import { Segmented } from "../design-system/index.ts";
+import { type ForgeNode, useForge } from "./data/index.ts";
 import { useForgeNav } from "./nav.ts";
 
 // Only groups and repos are created here. Projects are discovered from their files.
-const props = defineProps<
-	{ kind: "group" | "repo"; trail: ForgeNode[]; scope: string }
->();
+const props = defineProps<{ kind: "group" | "repo"; node: ForgeNode }>();
 
-const parent = computed(() => props.trail[props.trail.length - 1]);
+const store = useForge();
+const nav = useForgeNav();
+
 const isGroup = computed(() => props.kind === "group");
 const name = ref("");
 const description = ref("");
-const nav = useForgeNav();
+const visibility = ref<string>("public");
+const refused = ref("");
+const sending = ref(false);
 
 const error = computed(() => {
 	if (name.value && !/^[a-z0-9][a-z0-9-]*$/.test(name.value)) {
 		return "Use lowercase letters, numbers and hyphens.";
 	}
-	if (parent.value.children.some((k) => k.name === name.value)) {
-		return `${parent.value.name} already has something called ${name.value}.`;
+	if (props.node.children.some((k) => k.name === name.value)) {
+		return `${props.node.name} already has something called ${name.value}.`;
 	}
 	return "";
 });
-const blocked = computed(() => !name.value || !!error.value);
+const blocked = computed(() => !name.value || !!error.value || sending.value);
 
-const create = () => {
+const create = async () => {
 	if (blocked.value) return;
-	const url = createNode(
-		props.scope,
-		props.kind,
-		name.value,
-		description.value,
-	);
-	if (url) void nav.go(url);
+	sending.value = true;
+	refused.value = "";
+	try {
+		void nav.go(
+			await store.createNode(
+				props.node,
+				props.kind,
+				name.value,
+				description.value,
+				visibility.value === "private" ? "private" : "public",
+			),
+		);
+	} catch (e) {
+		refused.value = errorMessage(e);
+	} finally {
+		sending.value = false;
+	}
 };
 
 const page = detail();
@@ -83,10 +97,10 @@ const deniedBox = css({ paddingInline: "7", paddingBlockEnd: "12" });
 	</div>
 	<div class="owner-only">
 		<section :class="headBox">
-			<h1 :class="page.title">New {{ kind }} in {{ parent.name }}</h1>
+			<h1 :class="page.title">New {{ kind }} in {{ node.name }}</h1>
 			<p :class="text({ tone: 'soft' })">{{ isGroup
         ? 'Groups hold other groups and repos.'
-        : 'A new repo starts empty and as a single project. To split it into projects, commit a .cue file in package tartan to a directory.' }}</p>
+        : 'A new repo starts as a single project. To split it into projects, commit a .cue file in package tartan to a directory.' }}</p>
 		</section>
 		<div :class="page.columns">
 			<form :class="formBox" @submit.prevent="create">
@@ -102,8 +116,12 @@ const deniedBox = css({ paddingInline: "7", paddingBlockEnd: "12" });
 					<input id="new-description" v-model="description" type="text"
 						autocomplete="off" :class="plain.input" />
 				</div>
+				<Segmented v-model="visibility" label="Visibility"
+					:items="[{ label: 'Public', value: 'public' }, { label: 'Private', value: 'private' }]" />
 				<div
-					:class="address"><span :class="page.dim">{{ scope ? `~/${scope}` : "~" }}</span><span :class="page.mark">/</span>{{ name || "…" }}</div>
+					:class="address"><span :class="page.dim">{{ node.addr ? `~/${node.addr}` : "~" }}</span><span :class="page.mark">/</span>{{ name || "…" }}</div>
+				<span v-if="refused" role="alert"
+					:class="input.error">{{ refused }}</span>
 				<button type="submit" :disabled="blocked"
 					:class="[button({ variant: 'solid' }), submit]">Create {{ kind }}</button>
 			</form>

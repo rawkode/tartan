@@ -405,7 +405,6 @@ const tree = defineSlotRecipe({
 		"text",
 		"name",
 		"sub",
-		"dot",
 		"count",
 		"chevron",
 		"note",
@@ -485,13 +484,6 @@ const tree = defineSlotRecipe({
 			fontFamily: "academy-mono",
 			fontSize: "academy-caption",
 			overflowWrap: "anywhere",
-		},
-		dot: {
-			flex: "none",
-			color: "academy.statusRust",
-			fontSize: "academy-caption",
-			fontWeight: "bold",
-			fontFamily: "academy-mono",
 		},
 		count: {
 			color: "academy.textMuted",
@@ -864,57 +856,16 @@ const table = defineSlotRecipe({
 	},
 	variants: {
 		columns: {
-			projects: {
-				head: {
-					gridTemplateColumns:
-						"minmax(150px, 1.3fr) 112px 46px 78px 70px 224px",
-					minWidth: "[794px]",
-				},
-				row: {
-					gridTemplateColumns:
-						"minmax(150px, 1.3fr) 112px 46px 78px 70px 224px",
-					minWidth: "[794px]",
-				},
-			},
 			list: {
 				head: {
-					gridTemplateColumns: "minmax(220px, 1fr) 130px 46px 78px",
-					minWidth: "[522px]",
+					gridTemplateColumns: "minmax(180px, 1fr) 56px minmax(80px, 160px)",
+					minWidth: "[340px]",
 				},
 				row: {
-					gridTemplateColumns: "minmax(220px, 1fr) 130px 46px 78px",
-					minWidth: "[522px]",
+					gridTemplateColumns: "minmax(180px, 1fr) 56px minmax(80px, 160px)",
+					minWidth: "[340px]",
 				},
 			},
-		},
-	},
-});
-
-// One column per recent commit. Tall where the commit touched this project.
-const ticks = defineSlotRecipe({
-	className: "ticks",
-	slots: ["root", "cell", "bar"],
-	base: {
-		root: { display: "flex", alignSelf: "stretch", minHeight: "[50px]" },
-		cell: {
-			flex: "none",
-			display: "flex",
-			alignItems: "center",
-			justifyContent: "center",
-			width: "2",
-		},
-		bar: {
-			display: "block",
-			width: "[5px]",
-			height: "[2px]",
-			backgroundColor: "academy.segmentOff",
-			"&[data-on]": { height: "full", backgroundColor: "academy.text" },
-			"&[data-selected]": {
-				height: "full",
-				backgroundColor:
-					"[color-mix(in srgb, var(--colors-academy-accent) 25%, transparent)]",
-			},
-			"&[data-selected][data-on]": { backgroundColor: "academy.accent" },
 		},
 	},
 });
@@ -1209,7 +1160,6 @@ export const slotRecipes = {
 	facts,
 	segmented,
 	table,
-	ticks,
 	diff,
 	detail,
 	field,

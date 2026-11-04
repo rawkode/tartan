@@ -3,16 +3,11 @@ import { Combobox, createListCollection } from "@ark-ui/vue/combobox";
 import { computed, ref } from "vue";
 import { jump } from "../../styled-system/recipes";
 import { css } from "../../styled-system/css";
-import {
-	type ForgeNode,
-	splitAddr,
-	store,
-	urlFor,
-	walk,
-} from "./data/index.ts";
+import { splitAddr, urlFor, useForge } from "./data/index.ts";
 import { useForgeNav } from "./nav.ts";
 
 const nav = useForgeNav();
+const store = useForge();
 const query = ref("");
 
 // Each part of the query must start a segment of the address, in order, so o/d/k:l finds oss/devtools/build/kiln:lsp.
@@ -21,7 +16,7 @@ const results = computed(() => {
 		/[/:]/,
 	).filter(Boolean);
 	if (!parts.length) return [];
-	return walk(store.tree as ForgeNode)
+	return store.everything()
 		.slice(1)
 		.map(({ addr }) => ({
 			addr,
@@ -46,6 +41,12 @@ const nothing = computed(() =>
 	query.value.trim().length > 0 && results.value.length === 0
 );
 
+// It can only match what is loaded, so the first keystroke loads the rest.
+const search = (value: string) => {
+	query.value = value;
+	if (value) void store.loadEverything();
+};
+
 const onSelect = (addr: string) => {
 	query.value = "";
 	void nav.go(urlFor(addr));
@@ -64,7 +65,7 @@ const control = css({ flex: "[1 1 auto]", minWidth: "0" });
 		:open-on-click="false"
 		:positioning="{ sameWidth: true, gutter: 8 }"
 		:class="styles.root"
-		@input-value-change="query = $event.inputValue"
+		@input-value-change="search($event.inputValue)"
 		@select="$event.itemValue && onSelect($event.itemValue)"
 	>
 		<Combobox.Label :class="styles.label">Jump</Combobox.Label>

@@ -10,6 +10,7 @@ import {
 	createLiveStore,
 	type SocketLike,
 } from "./live/store.ts";
+import { createForgeStore, FORGE } from "./forge/data/index.ts";
 import { createAppRouter } from "./router/index.ts";
 import { SETUP_TOKEN, takeSetupToken } from "./setup/fragment.ts";
 import { createToasts, TOASTS } from "./shell/toasts.ts";
@@ -25,6 +26,18 @@ import "./styles/panda.css";
 // and before the first render. This runs first,
 // synchronously, before any await.
 const setupToken = takeSetupToken(globalThis.location, globalThis.history);
+
+// The asset layer redirects a path with ":" in it to its `%3A` spelling. An
+// address reads with the colon, so put it back before the router reads it.
+if (globalThis.location.pathname.includes("%3A")) {
+	globalThis.history.replaceState(
+		globalThis.history.state,
+		"",
+		`${
+			globalThis.location.pathname.replaceAll("%3A", ":")
+		}${globalThis.location.search}${globalThis.location.hash}`,
+	);
+}
 
 applyThemePreference(readThemePreference());
 
@@ -51,12 +64,13 @@ const boot = async (): Promise<void> => {
 	const session = createSession(api);
 	const router = createAppRouter({ api });
 	syncRoleToDocument(session);
-	void session.load();
+	const signedIn = session.load();
 	createApp(App)
 		.provide(SETUP_TOKEN, setupToken)
 		.provide(API, api)
 		.provide(PROJECTS, createProjectsClient(http))
 		.provide(SESSION, session)
+		.provide(FORGE, createForgeStore(api, session, signedIn))
 		.provide(LIVE, createLiveStore({ connect }))
 		.provide(TOASTS, createToasts())
 		.use(router)
