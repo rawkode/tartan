@@ -91,3 +91,37 @@ POST /-/api/repos/<repoId>/ext/<extensionId>/tools/<toolName>
 - Without `project`: the tool runs repo-wide, and any `args.project` the caller sent is dropped.
 - The host's own role check applies. The router's refusals before the handler (401, CSRF) keep the shape of every
   other route: `{"error": "<code>", "message": "…"}`.
+
+## Issues in a project
+
+Issues (`rawkode.issues` 0.2.0) is installed on a repository, with one database per repository and one numbering. The
+route above passes the project's **root path** to the tool, and that path is what an issue stores in its nullable
+`project`. So a project's Issues are a filtered view of the repository's, and a repo-wide `list` shows them all.
+
+- Changing `name:` keeps a project's issues, because the root did not change. The old name stops resolving: a project
+  route with it answers 404 `not_found`.
+- **Moving a project's directory loses its issues from the project's view.** The new root starts empty, and the project's
+  `get`, `close` and `reopen` answer 404 for the old ones. They stay in the repository under the old path, reachable
+  repo-wide. Nothing rewrites them, and there is no tool to refile one. A deleted project's issues stay the same way.
+- **The switch and the project check are the route's, not the extension's.** The extension cannot see the graph. Over MCP
+  `issues_create` stores whatever `project` the caller writes, including an unknown path or a project with Issues off, and
+  an agent's repo-wide calls reach every issue.
+- There is no in-place upgrade. Installing another version at a node with one in force is 409 `conflict`, and uninstalling
+  deletes the data, so a repository on 0.1.0 cannot reach 0.2.0 and keep its issues through the API. Migration `0002` is
+  additive and tested on a database with rows, but only a fresh install has run it on workerd.
+
+## Trying it
+
+```sh
+nix develop -c deno task poc
+```
+
+This boots `deno task dev` on port 8801 (`--port` for another), runs setup and sign-in, builds and publishes
+`rawkode.issues`, creates a sample hierarchy (`scripts/poc/sample.ts`), installs Issues, pushes each repository's history
+directly to `main` as the Owner and opens sample issues through the route above. It prints the URL and how to sign in, and
+stays up until Ctrl-C. State is in memory, so re-seeding is the same command again.
+
+`nix develop -c deno task poc:proof --session .wrangler/poc/8801/session.json` then checks the result over HTTP.
+
+A repository cannot sit at the top of the tree: the kernel requires a repo to be below a group or a user. The sample's
+`dotfiles` is `dev/dotfiles`, under the Owner's own root.

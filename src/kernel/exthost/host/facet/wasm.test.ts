@@ -11,6 +11,7 @@ import { createUlid, type Manifest, parseManifest } from "@tartan/contract";
 import { createMemoryStorage } from "@tartan/ext-api/testing.ts";
 import { checkBundle } from "../../api/packages.ts";
 import { createExtensionHost, type HostStorage } from "../host.ts";
+import { migrateExtension, migrateHostTables } from "../schema.ts";
 import { builtinPackageLoader, packageLoader } from "../runtime.ts";
 import { builtins } from "../../../../builtins.ts";
 import { viewer } from "../testing/conformance.ts";
@@ -480,6 +481,36 @@ for (const runtime of ["wasm", "wasm-bundled"] as const) {
 		},
 	});
 }
+
+Deno.test({
+	name: "migration 0002 adds project to a database that already has issues",
+	ignore,
+	fn: () => {
+		const f = files!;
+		const sql = (n: string) =>
+			new TextDecoder().decode(f.get(`migrations/${n}.sql`));
+		const init = { n: 1, name: "init", sql: sql("0001_init") };
+		const project = { n: 2, name: "project", sql: sql("0002_project") };
+		const storage = createMemoryStorage();
+		migrateHostTables(storage, manualClock());
+		deepStrictEqual(
+			migrateExtension(storage, [init], manualClock()),
+			[1],
+		);
+		storage.sql.exec(
+			"INSERT INTO issues (number, title, author_kind, author_id, created_at, updated_at) VALUES (1, 'old', 'user', 'u', 1, 1)",
+		);
+		deepStrictEqual(
+			migrateExtension(storage, [init, project], manualClock()),
+			[2],
+			"only the new migration runs",
+		);
+		deepStrictEqual(
+			storage.sql.exec("SELECT number, title, project FROM issues").toArray(),
+			[{ number: 1, title: "old", project: null }],
+		);
+	},
+});
 
 Deno.test({
 	name: "wasm: migrations run once in the facet; abort restarts the component",
