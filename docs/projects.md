@@ -149,7 +149,10 @@ control, tab or link:
 - a one-project clone command. `git clone` of the whole repo is what works;
 - a page at `<repo>:root`. The implicit root project is a row linking to the repo's files, and issues with no project show
   only on the repo;
-- installing Issues from the shell. A new repo has no Issues until it is installed through Extensions.
+- installing Issues from the shell. A new repo has no Issues until it is installed through Extensions;
+- a way from a contributor's branch to `main`. A contributor can push a branch and nothing else, the Changes UI is hidden,
+  and the extensions that would ask for an Advance are gone. Today a branch reaches `main` only when the owner fetches it
+  and pushes it themselves.
 
 A number with no source is left out, not shown as 0: a stranger sees no issue counts, and a repo without Issues has none.
 

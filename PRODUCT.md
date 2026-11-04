@@ -31,7 +31,8 @@ UX copy uses the tartan metaphor: agent **threads** (lanes) are **woven** (the W
    yield.
 2. The forge opens a **lane** for that work. The agent pushes to it with plain `git`; the gateway refuses a push to
    anything else, including `main`, with a reason that git prints (`woven-by-tartan`, `not-your-lane`). Only the
-   repository's Owner may push `main` directly, fast-forwards only.
+   forge's owner may push `main` directly, fast-forwards only, and that push skips the Advance
+   ([Owner pushes](docs/limits.md#owner-pushes)).
 3. Every lane push is compared server-side with every other lane and with trunk. Collisions arrive where each party
    already looks: a notice on each agent's next MCP tool result and in its inbox.
    The **Lanes** view shows all of it live.
@@ -45,16 +46,16 @@ UX copy uses the tartan metaphor: agent **threads** (lanes) are **woven** (the W
 
 ## Concepts
 
-| Concept   | What it is                                                                                                                                            |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Forge     | one deployment: one Worker in your account, one IdP, one hierarchy                                                                                    |
-| Node      | a user, group or repository in the hierarchy; roles and installations inherit downwards                                                               |
-| Lane      | one unit of work's place to push, owned by one principal: a per-agent Artifacts repository created with `import()`, with branch lanes as the fallback |
-| Event     | an append-only, hash-chained record with a cause and a correlation id; extensions react to events                                                     |
-| Advance   | the only way a protected ref moves: compare-and-swap, every gate on the path, a mandatory reason chain, a why note                                    |
-| Extension | work items, changes, radar, CI, review, the Weave, boards: builtin TypeScript, or sandboxed JavaScript or WASM, on one contract                       |
-| Pack      | a set of installations that defines a coordination protocol for a subtree (Swarm, Classic)                                                            |
-| Gate      | an extension's yes or no on an Advance; can run in shadow mode, be replayed against history and be promoted                                           |
+| Concept   | What it is                                                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Forge     | one deployment: one Worker in your account, one IdP, one hierarchy                                                                                     |
+| Node      | a user, group or repository in the hierarchy; roles and installations inherit downwards                                                                |
+| Lane      | one unit of work's place to push, owned by one principal: a per-agent Artifacts repository created with `import()`, with branch lanes as the fallback  |
+| Event     | an append-only, hash-chained record with a cause and a correlation id; extensions react to events                                                      |
+| Advance   | the only way a protected ref moves, but for the forge owner's own push: compare-and-swap, every gate on the path, a mandatory reason chain, a why note |
+| Extension | work items, changes, radar, CI, review, the Weave, boards: builtin TypeScript, or sandboxed JavaScript or WASM, on one contract                        |
+| Pack      | a set of installations that defines a coordination protocol for a subtree (Swarm, Classic)                                                             |
+| Gate      | an extension's yes or no on an Advance; can run in shadow mode, be replayed against history and be promoted                                            |
 
 ## Agents
 

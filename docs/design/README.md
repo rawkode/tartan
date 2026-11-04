@@ -26,7 +26,8 @@ for names and signatures.
    wins, so different subtrees can run different coordination models. Agents learn the protocol in force from the
    forge (MCP instructions, the tool list, `context_get`).
 3. **Swappable coordination, non-swappable accountability.** Whatever extension asks, trunk moves only through the
-   Advance, with a reason chain and a why note.
+   Advance, with a reason chain and a why note. The POC adds one exception outside any extension's reach: the forge
+   owner's direct push ([Owner pushes](../limits.md#owner-pushes)).
 4. **The forge talks back through the agent's own tools**: notices on every MCP result, claim responses and lane
    handles, and a reason on every refused `git push`. An agent needs nothing but an MCP client and stock git.
    (`remote:` guidance on refused pushes is built behind the compile-time switch `ECHO_ENABLED`, which is off;

@@ -104,7 +104,7 @@ export type DeployOptions = PreflightPlan & {
 	readonly devTools: boolean;
 	/** `TARTAN_REPO_CONFIG = "on"` (ADR repo config): off unless asked; needs containers. */
 	readonly repoConfig: boolean;
-	/** `TARTAN_PROJECTS = "scan"` (WP25): cuenv projects; off unless asked. */
+	/** `TARTAN_PROJECTS = "scan"`: projects and their pages; off unless asked. */
 	readonly projects: boolean;
 	readonly printUrl: boolean;
 	readonly urlFile: string;
@@ -170,8 +170,9 @@ export const DEPLOY_USAGE =
   --dev-tools             TARTAN_DEV_TOOLS=1 (dev and dev-* stages only)
   --repo-config           TARTAN_REPO_CONFIG=on: evaluate each repo's root CUE
                           package tartan (needs containers; off by default)
-  --projects              TARTAN_PROJECTS=scan: cuenv #Projects become the repos'
-                          projects, with project pages (off by default)
+  --projects              TARTAN_PROJECTS=scan: directories with a package tartan
+                          file become the repos' projects, with project pages
+                          (off by default)
   --no-print-url          write the setup URL to a 0600 file instead of printing it
   --url-file <path>       that file (default .wrangler/deploy/setup-url.<stage>.txt)
   --keep-setup-token      do not issue a new setup token on an unclaimed forge

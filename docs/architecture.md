@@ -50,7 +50,9 @@ Workers AI; static assets. No D1, Queues or second Worker.
 - **The gateway is the only way a person or an agent moves a ref.** It maps each principal to the lanes it may write,
   refuses everything else with a readable message, and records every push before it forwards it. No person, agent or
   extension ever holds an Artifacts credential; the gateway mints short-lived upstream tokens per push.
-- **The Advance (LandWorkflow) is the only way trunk moves.** Kernel git jobs are the only writers of protected refs,
+- **The Advance (LandWorkflow) is the only way trunk moves, except the forge owner's direct push**
+  ([Owner pushes](limits.md#owner-pushes)), which the gateway records and which passes no gate. Otherwise kernel git jobs
+  are the only writers of protected refs,
   `refs/tartan/*` and `refs/notes/tartan`, and each one registers its intent before it pushes, so the push trigger can
   tell kernel writes from tampering.
 

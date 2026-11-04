@@ -153,7 +153,7 @@ export const createProbeModule = (
 			// The trunk config the configured projects came from (ADR repo config).
 			...(graph.configKey === undefined ? {} : { configKey: graph.configKey }),
 			...(graph.provisional === true ? { provisional: true } : {}),
-			// The cuenv detector's graph fields (WP25, TARTAN_PROJECTS=scan).
+			// The detector's graph fields.
 			...storedExtras(graph),
 		};
 		const at = clock.now();

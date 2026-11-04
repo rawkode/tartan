@@ -16,15 +16,17 @@ Advance moves protected branches, with one exception below. Agents may push only
 
 ### Owner pushes
 
-A user holding the Owner role on a repository may push its **default branch** directly, through a session or a token
-with `repo:write`. Other protected patterns stay with the Advance. Agents, tokens acting for agents, lane-pinned tokens,
-`lanes`-only tokens and non-owners keep `woven-by-tartan`.
+The forge's owner may push a repository's **default branch** directly, through a session or a token with `repo:write`
+that reaches the Owner role. Other protected patterns stay with the Advance. Everyone else keeps `woven-by-tartan`, and that
+includes a third party the owner granted the Owner role: the grant does not make them the forge's owner. So do tokens
+acting for agents, lane-pinned tokens and `lanes`-only tokens. An agent's push to the repository's own URL is refused
+sooner, with `agents-lanes-only`.
 
 This knowingly weakens "trunk moves only through the Advance". An Owner's push is not tested, gets no why-note, passes no
 gates and takes no sign-off, even for a root `*.cue` file, and the repository config module does not follow it: with
 `--repo-config` on, its config stays at the last commit that came through the Advance or an import.
 
-Only fast-forwards land. The server checks: the pack goes up under a hidden quarantine ref, and RepoProbe walks it before
+Only fast-forwards land. The server checks: the `old` a client sends must be trunk's tip, else `stale-old`; the pack goes up under a hidden quarantine ref, and RepoProbe walks it before
 trunk moves. A rewrite, even with `--force`, and a deletion get `non-fast-forward`. One push adds at most 5,000 commits to
 trunk (more is refused the same way; push in batches). A push races an Advance like any two writers: the backend's
 compare-and-swap lets one win, and the loser retries. The commits are recorded in trunk history, so

@@ -20,7 +20,7 @@
 //     config in CUE, ADR repo config; absent means off, the default); it
 //     needs containers, so `--no-containers` keeps it off;
 //   - `--projects scan` sets `vars.TARTAN_PROJECTS = "scan"` (monorepo
-//     projects from cuenv `#Project`s, WP25; absent means off, the default);
+//     projects from `package tartan` directories; absent means off, the default);
 //     it needs no containers (the scan runs in the Worker);
 //   - `--dev-tools` sets `vars.TARTAN_DEV_TOOLS = "1"` (swarm, bulk tokens,
 //     reset), only for a `dev` or `dev-*` stage;
@@ -116,7 +116,7 @@ export type RenderOptions = {
 	readonly repoConfig?: boolean;
 	/** The global log (WP26): absent = no stream, inline dispatch. */
 	readonly k2?: K2Render;
-	/** `TARTAN_PROJECTS = "scan"` (cuenv projects, WP25). */
+	/** `TARTAN_PROJECTS = "scan"` (projects from `package tartan` directories). */
 	readonly projects?: boolean;
 	/** `TARTAN_LANE_MODE`: the stage's lane mode (absent = the compiled default). */
 	readonly laneMode?: LaneModeOverride;
@@ -975,7 +975,7 @@ export const USAGE =
                            (32 hex) and set ${K2_STREAM_VAR}
   --k2-token-store <id>    the K2 Consume token's Secrets Store id (32 hex) …
   --k2-token-secret <name> … and secret name: bound as ${K2_TOKEN_BINDING}
-  --projects <off|scan>    ${PROJECTS_VAR}=scan detects cuenv #Projects as projects (default off)
+  --projects <off|scan>    ${PROJECTS_VAR}=scan detects package tartan directories as projects (default off)
   --lane-mode <mode>       ${LANE_MODE_VAR}: this stage's lane mode (${
 		LANE_MODE_VALUES.join(" | ")
 	}; default: the compiled LANE_MODE)

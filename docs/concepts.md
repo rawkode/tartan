@@ -50,7 +50,7 @@ can override it per repository, and the lane handle records which backend each l
 (**Settings**, and a step of the setup wizard) opens one scratch lane repository through the same path agents use and
 deletes it.
 
-Whatever the backend, a refused push names the reason that git prints (`woven-by-tartan` for trunk, unless the push is its Owner's ([`limits.md`](limits.md#owner-pushes)); `not-your-lane` for
+Whatever the backend, a refused push names the reason that git prints (`woven-by-tartan` for trunk, unless the push is the forge owner's ([`limits.md`](limits.md#owner-pushes)); `not-your-lane` for
 someone else's lane). A lane's diff is always the range from its merge base with trunk, so diffs and conflict detection
 stay correct after trunk moves. A lane is frozen while it lands; a lane whose lease expires becomes `lost`, and its
 owner can resume it for 24 hours.
@@ -121,7 +121,9 @@ An Owner can swap the provider on a live subtree (**Extensions â†’ Swap queue@1â
 waiting changes. Partitions (parallel sub-trains for disjoint projects), bisecting a failed batch and resolver work
 items are _not built yet_.
 
-The **Advance** is the only way a protected branch moves. Whatever extension asks for it, the kernel:
+The **Advance** is the only way a protected branch moves, except the forge owner's direct push to the default branch
+([Owner pushes](limits.md#owner-pushes)), which does none of what follows. Whatever extension asks for an Advance, the
+kernel:
 
 - runs every `ref.advance` gate installed on the path from the root to the repository (a gate cannot be removed below
   the node that installed it, and any enforcing veto blocks);

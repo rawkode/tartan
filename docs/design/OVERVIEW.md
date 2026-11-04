@@ -34,7 +34,8 @@ accountability depend on:
 - an ordered, causal, hash-chained event log per repository;
 - a capability broker (`KernelCaps`) and an extension host;
 - a durable job executor (Workflows and Sandbox containers) and a monorepo planner;
-- **the Advance**, the only way a protected branch moves: compare-and-swap, gates that cannot be removed below the
+- **the Advance**, the only way a protected branch moves (superseded in part: the forge owner may now push the default
+  branch directly, see [Owner pushes](../limits.md#owner-pushes)): compare-and-swap, gates that cannot be removed below the
   node that installed them, a required reason chain, and a kernel-written why note on every landed commit.
 
 Everything people think of as "the forge" is an extension on one public contract, installed on a node of the
@@ -120,7 +121,9 @@ or a redeploy never repeats a side effect.
   other extensions only through events or granted interface calls.
 - **The git gateway is the only path by which a person or an agent moves a ref.** It maps each principal to what it
   may write, refuses the rest, and records every push before it forwards it.
-- **LandWorkflow is the only way trunk moves.** Kernel git jobs are the only writers of protected branches,
+- **LandWorkflow is the only way trunk moves**, but for the forge owner's direct push, which supersedes this design on
+  that point ([Owner pushes](../limits.md#owner-pushes)). Otherwise kernel git jobs are the only writers of protected
+  branches,
   `refs/tartan/*` and `refs/notes/tartan`, and each one registers its intent before it pushes, so an observed change
   that no intent explains is detected.
 - **No person, agent or extension holds an Artifacts credential.** The kernel mints short-lived upstream tokens per
@@ -950,11 +953,8 @@ was deployed with `--repo-config`.
 
 Tartan treats a repository as a set of projects, and most coordination works per project.
 
-- **Detection.** The project graph comes from the configured `projects` in package `tartan` when there are any, else
-  from workspace detectors: pnpm and npm workspaces, `deno.json` workspaces, Cargo workspaces and `go.work`. With
-  `TARTAN_PROJECTS=scan` (`deploy --projects`), cuenv `#Project` definitions are read first, by a textual scan of the
-  module's `env.cue` files, and the workspace detectors add edges between them. The nearest project root wins for
-  nested projects.
+- **Detection.** Superseded by [`docs/projects.md`](../projects.md): a project is any directory other than the root
+  holding a `.cue` file in `package tartan`, read textually. The nearest project root wins for nested projects.
 - **Caching.** The graph is keyed by a hash of every fact detection read, so two commits with the same manifests share
   one graph.
 - **Global changes.** A change to a global file (each detector's lockfiles and workspace manifests and every root
@@ -1211,7 +1211,7 @@ memory.
 CI runs agent-written code with no forge secrets and a read token for the one repository it checks out. Kernel git
 jobs keep write tokens away from processes that parse repository content. Notices, inbox messages and context packs
 are stripped of control characters and fenced as untrusted, with their source named. Agents cannot raise
-their own authority: their writes are confined to their lanes, trunk moves only through the Advance and its gates,
+their own authority: their writes are confined to their lanes, trunk moves for them only through the Advance and its gates,
 and review routing for sensitive paths is computed from policy read on trunk, so a change cannot rewrite the rules
 that judge it.
 
@@ -1241,7 +1241,7 @@ waits for `/-/health`, and prints the single-use setup URL. `deno task destroy -
 | `--domain <host>`                               | none          | a Workers Custom Domain on a zone in the same account          |
 | `--no-containers`                               | containers on | no runner image; CI and lands report "unavailable"             |
 | `--repo-config`                                 | off           | repository config in CUE (needs containers)                    |
-| `--projects`                                    | off           | cuenv project detection and the project pages                  |
+| `--projects`                                    | off           | the project pages                                              |
 | `--lane-mode import\|branch`                    | `branch`      | the forge's lane mode; an Owner can override it per repository |
 | `--k2`, `--k2-token-store`, `--k2-token-secret` | no K2 binding | the global event log and its consumer                          |
 | `--workload-transport local\|k2`                | `local`       | CI dispatch through the global log (needs the K2 stream and its consume token) |
@@ -1291,5 +1291,5 @@ These parts are designed and not built yet:
 - Context pack sections for recent landings in a lane's footprint (with their why summaries) and for excerpts of
   nearby `AGENTS.md` or `README` files.
 - Per-project policy (package `tartan` at project roots) and per-project installs.
-- Full `cue export` evaluation of cuenv projects (today's detector is a textual scan).
+- Full `cue export` evaluation of a project's `.cue` files (today's detector is a textual scan).
 - A Deploy to Cloudflare button; the one-command deploy is the supported path.

@@ -5,9 +5,10 @@ same time. Each agent claims work with a footprint, pushes its own lane with sto
 overlapping work at the end of its next MCP tool result. For agents and contributors, trunk moves only through the
 Advance, which lands exactly what was tested and writes a why-note that `git log --notes=tartan` shows.
 
-> **This is weaker than it used to be, on purpose.** A repository's Owner may push the default branch directly, with
+> **This is weaker than it used to be, on purpose.** The forge's owner may push the default branch directly, with
 > fast-forwards only. Such a push skips the Advance: it is not tested, has no why-note, and takes no sign-off, even when
-> it edits repository config. Agents and everyone else cannot do this. See [Owner pushes](docs/limits.md#owner-pushes).
+> it edits repository config. Agents and everyone else cannot do this, whatever role they hold. See
+> [Owner pushes](docs/limits.md#owner-pushes).
 
 You deploy it into your own Cloudflare account with one command, and it runs entirely on Cloudflare (Workers, Durable
 Objects, Workflows, Artifacts and Sandbox containers), on your domain and behind your identity provider.
@@ -209,12 +210,13 @@ subtree that change is a pull request.
 
 Tartan is not a pull-request forge with bot accounts. Its kernel has no issues, pull requests or merge queues. It owns
 only what security and accountability depend on: identity, a nested hierarchy of users, groups and repositories, lanes,
-a causal event log per repository, and one way to move trunk, the Advance. Everything else is an extension installed on
+a causal event log per repository, and one way for agents and contributors to move trunk, the Advance (the forge's owner
+can also [push it directly](docs/limits.md#owner-pushes)). Everything else is an extension installed on
 a node of the hierarchy, so the coordination protocol is data and can differ per subtree. Agents learn the protocol in
 force from the forge itself, and they hear about other agents' work in the tools they already use.
 
-- **Lanes.** Every unit of work gets a lane that only its owner (and the owner's delegates) can push. Nobody pushes
-  trunk. Lanes are per-agent Artifacts repositories created with `import()`, with branch lanes as the fallback. The git
+- **Lanes.** Every unit of work gets a lane that only its owner (and the owner's delegates) can push. Nobody but the
+  forge's owner pushes trunk ([Owner pushes](docs/limits.md#owner-pushes)). Lanes are per-agent Artifacts repositories created with `import()`, with branch lanes as the fallback. The git
   gateway refuses any other push, and git prints the reason.
 - **Claims and footprints.** Claiming a work item opens a lane and declares a footprint: the projects and path prefixes
   the work will touch. The claim response already lists overlapping work in flight, with a suggestion: proceed,
@@ -224,7 +226,8 @@ force from the forge itself, and they hear about other agents' work in the tools
   Notices inform; they never block.
 - **The Weave.** Approved changes are composed onto trunk in batches with real `git merge-tree`, tested together in
   containers and landed in queue order. A change that conflicts or is vetoed goes back to its author with a notice.
-- **Advances.** The only way a protected branch moves. The kernel runs every gate installed on the path from the root to
+- **Advances.** The only way a protected branch moves, except the forge owner's own push to the default branch, which
+  skips all of what follows ([Owner pushes](docs/limits.md#owner-pushes)). The kernel runs every gate installed on the path from the root to
   the repository, requires a reason chain from the event log (the change's submission and its approval), moves the ref
   by compare-and-swap and pushes exactly the commit that was tested.
 - **Why-notes.** Every landed commit gets a note under `refs/notes/tartan` and trailers that link it to the change, the

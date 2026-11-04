@@ -104,7 +104,8 @@ integrator commits to `main`.
 
 ## Verification ladder
 
-Prerequisites: Deno 2.9 and Node 22. Run `npm ci` once.
+Prerequisites: Deno 2.9 and Node 22. Run `npm ci` once. In the Nix dev shell, `npm ci` replaces the patched workerd binary:
+re-enter the shell or run `deno task patch:workerd`, or workerd fails with `Could not start dynamically linked executable`.
 
 | Task                                          | Runs                                                                                                                                                        | Proves                                            |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
