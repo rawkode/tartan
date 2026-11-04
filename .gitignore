@@ -3,6 +3,7 @@ node_modules
 # agent worktrees nested in the main checkout
 .claude/worktrees/
 dist/
+.direnv/
 .wrangler/
 .dev.vars*
 !.dev.vars.example
