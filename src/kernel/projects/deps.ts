@@ -41,7 +41,9 @@ export type ProjectsDeps = {
 	reads(repoId: string): Promise<RepoReads>;
 	/** The nearest enforce provider of an interface at a node (WP7a). */
 	provider(iface: string, nodeId: string): Promise<InstallationInForce | null>;
-	/** An interface tool on the provider's ExtensionDO, as the viewer. */
+	/** Every installation in force at a node (`tools.ts`). */
+	inForce(nodeId: string): Promise<InstallationInForce[]>;
+	/** A tool on the installation's ExtensionDO, as the viewer. */
 	callTool(
 		provider: InstallationInForce,
 		repoId: string,
@@ -115,6 +117,12 @@ export const projectsDepsOf = (
 					registry.provider(iface, nodeId) as Promise<
 						InstallationInForce | null
 					>,
+			),
+		inForce: (nodeId) =>
+			withRpc(
+				() => forge().registry(),
+				(registry) =>
+					registry.inForce(nodeId) as Promise<InstallationInForce[]>,
 			),
 		callTool: (provider, repoId, name, args, toolCtx, bounds) =>
 			env.EXT.getByName(

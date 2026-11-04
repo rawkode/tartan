@@ -78,6 +78,10 @@ const SAMPLES: Readonly<Record<string, readonly [string, string]>> = {
 	"api.repos.lanes.settings": ["GET", `/-/api/repos/${REPO_ID}/lanes/settings`],
 	"api.repos.config": ["GET", `/-/api/repos/${REPO_ID}/config`],
 	"api.repos.projects": ["GET", `/-/api/repos/${REPO_ID}/projects`],
+	"api.repos.ext.tools": [
+		"POST",
+		`/-/api/repos/${REPO_ID}/ext/rawkode.issues/tools/list`,
+	],
 	"api.repos.lanes.config": [
 		"GET",
 		`/-/api/repos/${REPO_ID}/lanes/${LANE}/config`,
@@ -216,6 +220,7 @@ describe("router table", () => {
 		// WP25: the sample repo does not exist (a public read needs no
 		// caller); the dev route is invisible without dev tools and the key.
 		"api.repos.projects": 404,
+		"api.repos.ext.tools": 401,
 		"dev.projects": 404,
 		// WP11: MCP needs a token; forge discovery is tartan.json only (OAuth
 		// metadata is M2); agents.md serves the forge-level card anonymously.

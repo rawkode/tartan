@@ -74,7 +74,7 @@ type Target = {
 };
 
 /** A repo the caller may read, by id (404 for one it may not even see). */
-const openRepo = async (
+export const openRepo = async (
 	deps: ProjectsDeps,
 	auth: AuthContext | null,
 	repoId: string,

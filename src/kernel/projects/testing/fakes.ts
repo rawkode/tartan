@@ -120,6 +120,7 @@ export type Fakes = {
 	cached: Map<string, ProjectGraph>;
 	admit: (k: string) => boolean;
 	mode: "off" | "scan";
+	installed: InstallationInForce[];
 };
 
 export const fakes = (over: Partial<Fakes> = {}): Fakes => ({
@@ -134,6 +135,7 @@ export const fakes = (over: Partial<Fakes> = {}): Fakes => ({
 	cached: new Map([[OLD, { ...GRAPH, sha: OLD }]]),
 	admit: () => true,
 	mode: "scan",
+	installed: [],
 	...over,
 });
 
@@ -221,6 +223,7 @@ export const depsOf = (f: Fakes): ProjectsDeps => ({
 	},
 	reads: () => Promise.resolve(reads()),
 	provider: (iface) => Promise.resolve(f.providers ? providerOf(iface) : null),
+	inForce: () => Promise.resolve(f.installed),
 	callTool: (_provider, _repo, name, args, ctx) => {
 		const a = args as Record<string, unknown>;
 		f.calls.push({ name, args: a, ctx });

@@ -101,6 +101,7 @@ import {
 } from "./kernel/mcp/routes.ts";
 import { handleDevProjects } from "./kernel/projects/dev.ts";
 import { handleProjects } from "./kernel/projects/routes.ts";
+import { handleExtensionTool } from "./kernel/projects/tools.ts";
 import { handleLaneSelfTest } from "./kernel/repo/lanes/repo-backend/index.ts";
 import { handleLanes, handleLaneSettings } from "./kernel/repo/routes.ts";
 import {
@@ -779,6 +780,16 @@ export const ROUTES: readonly Route[] = [
 		policy: POLICY.apiPublic,
 		pattern: /^\/-\/api\/repos\/(?<repoId>[^/]+)\/projects(?:\/(?<rest>.+))?$/,
 		handler: handleProjects,
+	},
+	// An extension's tools as JSON for a session.
+	{
+		id: "api.repos.ext.tools",
+		owner: "WP25",
+		methods: ["POST"],
+		policy: POLICY.api,
+		pattern:
+			/^\/-\/api\/repos\/(?<repoId>[^/]+)\/ext\/(?<extensionId>[^/]+)\/tools\/(?<toolName>[^/]+)$/,
+		handler: handleExtensionTool,
 	},
 	// Repository config (WP23; ADR repo config).
 	{
