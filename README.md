@@ -68,7 +68,7 @@ These ran on workerd and through headless Chrome with stock git. None of it has 
 The forge shell shows only what the kernel can answer, so these have no control, tab or link
 ([full list](docs/projects.md#what-the-shell-leaves-out)): changes and pull requests, CI and releases, lanes in the shell's
 navigation, an issue's notes and labels, and installing Issues from the shell (a new repo needs Extensions for that). The
-older pages under `/-/` (HUD, Agents, Extensions, node settings) still work and are styled differently.
+older pages under `/-/` (HUD, Agents, Extensions, node settings) are still linked and load.
 
 ### Known gaps
 
