@@ -10,8 +10,9 @@
 	},
 	"scripts": {
 		"build:web": "vite build web",
-		"check:web": "vue-tsc --noEmit -p web",
-		"test:workers": "vitest run",
+		"codegen:web": "panda codegen --cwd web",
+		"check:web": "panda codegen --cwd web && vue-tsc --noEmit -p web",
+		"test:workers": "panda codegen --cwd web && vitest run",
 		"license:check": "deno run -A scripts/license-check.ts"
 	},
 	"dependencies": {

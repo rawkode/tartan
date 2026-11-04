@@ -23,8 +23,9 @@
 		"src/**/*.vue",
 		"test/**/*.ts",
 		"vite.config.ts",
+		"panda.config.ts",
 		"csp.ts",
 		"vitest.config.ts"
 	],
-	"exclude": ["dist", "node_modules"]
+	"exclude": ["dist", "node_modules", "styled-system"]
 }

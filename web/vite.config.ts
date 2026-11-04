@@ -21,9 +21,14 @@
 // import from the contract, and on any contract module that would pull zod
 // into the browser bundle.
 //
+// `pandacss()` generates `styled-system/` (gitignored) and the CSS behind
+// `src/styles/panda.css`. `deno task codegen:web` writes the same files without a
+// build, for the type check and the tests.
+//
 // `VITE_TARTAN_MOCK=1` builds against the in-browser mock API
 // (`src/api/mock`); production builds tree-shake it away.
 
+import pandacss from "@pandacss/vite";
 import vue from "@vitejs/plugin-vue";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
@@ -90,7 +95,7 @@ const SECURITY_HEADERS = {
 
 export default defineConfig({
 	base: "/",
-	plugins: [contractRuntime(), vue(), cspGuard()],
+	plugins: [contractRuntime(), vue(), pandacss(), cspGuard()],
 	build: {
 		outDir: "dist",
 		emptyOutDir: true,
