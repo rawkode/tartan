@@ -418,7 +418,7 @@ const run = async (browser: Browser): Promise<void> => {
 			await textOf(page),
 		);
 		await shot(page, "owner-kiln-docs-off");
-		await go(page, "/dev/dotfiles");
+		await go(page, "/dotfiles");
 		await see(page, "single project");
 		await page.waitForTimeout(300);
 		const dotfiles = await tabNames(page);
@@ -427,7 +427,7 @@ const run = async (browser: Browser): Promise<void> => {
 			!dotfiles.includes("Issues"),
 			dotfiles,
 		);
-		await go(page, "/dev/dotfiles/-/issues");
+		await go(page, "/dotfiles/-/issues");
 		check(
 			"and says so at the address",
 			await see(page, "not installed on this repo"),
@@ -479,6 +479,34 @@ const run = async (browser: Browser): Promise<void> => {
 			await textOf(page),
 		);
 		await shot(page, "owner-new-repo");
+	});
+
+	await step("A repo at the top of the tree", async () => {
+		await go(page, "/");
+		await page.getByRole("navigation", { name: "Tree" }).getByRole("link", {
+			name: "New repo",
+		}).last().click();
+		await page.waitForURL(`${ORIGIN}/-/new/repo`, { timeout: TIMEOUT_MS });
+		await page.getByLabel("Name").fill(`${slug}-top`);
+		await page.getByRole("button", { name: "Create repo" }).click();
+		await page.waitForURL(`${ORIGIN}/${slug}-top`, { timeout: TIMEOUT_MS });
+		check("it exists with no group above it", await see(page, "Repo created"));
+		const dir = workdir("top");
+		const url = `${ORIGIN}/${slug}-top.git`;
+		const cloned = git(dir, session.token, ["clone", url, "."]);
+		check("the Owner clones it", cloned.code === 0, cloned.output);
+		mkdirSync(join(dir, "svc"), { recursive: true });
+		writeFileSync(join(dir, "svc/forge.cue"), "package tartan\n");
+		git(dir, session.token, ["add", "."]);
+		git(dir, session.token, ["commit", "-m", "feat: add the svc project"]);
+		const pushed = git(dir, session.token, ["push", "origin", "HEAD:main"]);
+		check("and pushes to its main", pushed.code === 0, pushed.output);
+		await go(page, `/${slug}-top:svc`);
+		check(
+			"and its project has an address",
+			await see(page, "package tartan"),
+			await textOf(page),
+		);
 	});
 
 	await step("A private repo", async () => {
@@ -676,6 +704,99 @@ const run = async (browser: Browser): Promise<void> => {
 		await second.close();
 	});
 
+	await step("No grant or token makes anyone the owner", async () => {
+		const same = { origin: ORIGIN, "sec-fetch-site": "same-origin" };
+		const invited = await owner.request.post(`${ORIGIN}/-/api/invites`, {
+			headers: same,
+			data: { node: "oss", role: 40, note: "e2e maintainer" },
+		});
+		const { url } = await invited.json() as { url: string };
+		check("the Owner invites a Maintainer", invited.status() === 201, url);
+		const high = await contextFor(browser);
+		const view = watched(await high.newPage(), "maintainer");
+		await view.goto(url, { waitUntil: "networkidle" });
+		await view.getByRole("link", { name: "Accept and sign in" }).click();
+		await view.waitForLoadState("networkidle");
+		const me = await (await high.request.get(`${ORIGIN}/-/api/me`)).json() as {
+			readonly principal: { readonly id: string };
+		};
+		const tryCreating = async (
+			who: string,
+			context: BrowserContext,
+			headers: Record<string, string>,
+		): Promise<void> => {
+			const group = await context.request.post(`${ORIGIN}/-/api/nodes`, {
+				headers,
+				data: { parent: "oss", kind: "group", slug: "not-theirs" },
+			});
+			check(`${who}: no group`, group.status() === 403, group.status());
+			const repo = await context.request.post(
+				`${ORIGIN}/-/api/nodes/repos`,
+				{ headers, data: { parent: "oss", slug: "not-theirs" } },
+			);
+			check(`${who}: no repo`, repo.status() === 403, repo.status());
+			const top = await context.request.post(`${ORIGIN}/-/api/nodes/repos`, {
+				headers,
+				data: { slug: "not-theirs" },
+			});
+			check(`${who}: no repo at the top`, top.status() === 403, top.status());
+		};
+		await tryCreating("a Maintainer", high, same);
+
+		const granted = await owner.request.post(`${ORIGIN}/-/api/nodes/grants`, {
+			headers: same,
+			data: { node: "oss", principal: me.principal.id, role: 50 },
+		});
+		check("the Owner grants them Owner", granted.status() === 204);
+		await tryCreating("someone with an Owner grant", high, same);
+		const tokenReply = await high.request.post(`${ORIGIN}/-/api/tokens`, {
+			headers: same,
+			data: {
+				name: "e2e-owner-grant",
+				scopes: ["repo:read", "repo:write"],
+				maxRole: 50,
+				expiresInDays: 1,
+			},
+		});
+		const { token } = await tokenReply.json() as { token: string };
+		check("they make a git token", tokenReply.status() === 201);
+		const tryPushing = (who: string, name: string, credential: string) => {
+			const dir = workdir(name);
+			git(dir, credential, ["clone", `${ORIGIN}${KILN}.git`, "."]);
+			writeFileSync(join(dir, "CHANGE"), "not allowed\n");
+			git(dir, credential, ["add", "."]);
+			git(dir, credential, ["commit", "-m", "chore: try the trunk"]);
+			const pushed = git(dir, credential, ["push", "origin", "HEAD:main"]);
+			check(
+				`${who}: their push to main is refused`,
+				pushed.code !== 0 &&
+					/woven-by-tartan|agents-lanes-only/.test(pushed.output),
+				pushed.output,
+			);
+		};
+		tryPushing("someone with an Owner grant", "owner-grant", token);
+
+		const made = await owner.request.post(`${ORIGIN}/-/api/agents`, {
+			headers: same,
+			data: {
+				name: "e2e-bot",
+				tool: "claude-code",
+				node: "oss",
+				maxRole: 50,
+				ttlDays: 1,
+			},
+		});
+		const agent = await made.json() as { token: string };
+		check("the Owner makes an agent", made.status() === 201, agent);
+		const bare = await contextFor(browser);
+		await tryCreating("the Owner's agent", bare, {
+			authorization: `Bearer ${agent.token}`,
+		});
+		tryPushing("the Owner's agent", "agent", agent.token);
+		await bare.close();
+		await high.close();
+	});
+
 	const anon = await contextFor(browser);
 	const stranger = watched(await anon.newPage(), "anon");
 	await step("Anonymous", async () => {
@@ -713,7 +834,7 @@ const run = async (browser: Browser): Promise<void> => {
 			`${KILN}:lsp/-/issues/new`,
 			`${KILN}/-/issues`,
 			`${KILN}/-/activity`,
-			"/dev/dotfiles",
+			"/dotfiles",
 			"/oss/-/new/group",
 			"/oss/-/new/repo",
 		];
