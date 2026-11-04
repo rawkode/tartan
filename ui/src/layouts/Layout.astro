@@ -1,0 +1,86 @@
+---
+import { Font } from 'astro:assets';
+import '../styles/index.css';
+import { css } from '../../styled-system/css';
+import { shell } from '../../styled-system/recipes';
+import Account from '../components/Account.astro';
+import RoleSelect from '../components/RoleSelect.vue';
+
+// `app` pages draw their own address bar and tree. The rest get a plain bar and a centred column.
+const { title, app = false } = Astro.props;
+
+const bar = shell();
+const main = css({ paddingInline: 'edge', paddingBlock: '8' });
+const spacer = css({ flex: '1' });
+const mockBar = css({
+  position: 'fixed',
+  insetBlockEnd: '3',
+  insetInlineEnd: '3',
+  zIndex: 'overlay',
+  padding: '2',
+  backgroundColor: 'academy.panel',
+  border: 'hairline',
+  borderRadius: 'academy-m',
+  boxShadow: 'lg',
+});
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · t21</title>
+    <Font cssVariable="--font-red-hat-display" preload />
+    <Font cssVariable="--font-red-hat-text" preload />
+    <Font cssVariable="--font-red-hat-mono" />
+    <script is:inline>
+      const root = document.documentElement;
+      const dark = matchMedia('(prefers-color-scheme: dark)');
+      const applyScheme = () => root.classList.toggle('dark', dark.matches);
+      applyScheme();
+      dark.addEventListener('change', applyScheme);
+      try {
+        root.dataset.role = localStorage.getItem('role') || 'owner';
+      } catch {
+        root.dataset.role = 'owner';
+      }
+    </script>
+  </head>
+  <body>
+    {app ? <slot /> : (
+      <>
+        <header class={bar.bar}>
+          <a class={bar.logo} href="/">t21</a>
+          <span class={spacer}></span>
+          <div class={bar.account}><Account /></div>
+        </header>
+        <slot name="masthead" />
+        <main class={main}><slot /></main>
+      </>
+    )}
+
+    <div class={mockBar}>
+      <RoleSelect client:load />
+    </div>
+
+    <script>
+      document.querySelectorAll<HTMLFormElement>('form[data-mock]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          form.querySelector('[data-note]')?.removeAttribute('hidden');
+        });
+      });
+
+      document.querySelectorAll<HTMLFormElement>('form[data-signin]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          try {
+            localStorage.setItem('role', 'contributor');
+          } catch {}
+          location.href = '/';
+        });
+      });
+    </script>
+  </body>
+</html>

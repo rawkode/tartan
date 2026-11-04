@@ -1,0 +1,20 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { form, text } from '../../styled-system/recipes';
+import { Button, Field, Masthead } from '../design-system';
+---
+
+<Layout title="Register">
+  <Masthead
+    slot="masthead"
+    title="Register"
+    description="Contributors can open issues and changes, and add notes. They can't create groups or repos."
+  />
+  <form class={form()} data-signin>
+    <Field label="Username" name="username" autocomplete="off" required />
+    <Field label="Email" name="email" type="email" autocomplete="off" required />
+    <Field label="Password" name="password" type="password" autocomplete="off" required />
+    <Button variant="solid">Register</Button>
+    <p class={text({ tone: 'muted', size: 'sm' })}>This is a mockup. Your details aren't sent anywhere.</p>
+  </form>
+</Layout>

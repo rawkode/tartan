@@ -1,0 +1,18 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Account from '../components/Account.astro';
+import ForgeApp from '../components/forge/ForgeApp.vue';
+import { parseUrl, staticUrls, titleFor } from '../data/forge';
+
+export function getStaticPaths() {
+  return staticUrls().map((url) => ({ params: { path: url.replace(/^\//, '') || undefined } }));
+}
+
+const url = Astro.url.pathname;
+---
+
+<Layout title={titleFor(parseUrl(url))} app>
+  <ForgeApp client:load url={url}>
+    <Account />
+  </ForgeApp>
+</Layout>

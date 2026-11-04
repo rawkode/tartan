@@ -1,0 +1,30 @@
+{
+  "name": "t21",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "bun --bun astro dev",
+    "build": "bun --bun astro build",
+    "preview": "bun --bun astro preview",
+    "check": "bun --bun panda codegen && bun --bun astro check && bun --bun vue-tsc --noEmit",
+    "prepare": "bun --bun panda codegen"
+  },
+  "dependencies": {
+    "@ark-ui/vue": "^5.40.0",
+    "@astrojs/vue": "^7.1.2",
+    "astro": "^7.4.5",
+    "vue": "^3.5.44"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@fission-ai/openspec": "^1.16.0",
+    "@pandacss/dev": "^2.5.0",
+    "@pandacss/preset-base": "^2.5.0",
+    "@pandacss/preset-panda": "^2.5.0",
+    "@pandacss/vite": "^2.5.0",
+    "postcss": "^8.5.32",
+    "typescript": "^6",
+    "vue-tsc": "^3.3.14"
+  }
+}

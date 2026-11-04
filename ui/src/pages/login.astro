@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { form, text } from '../../styled-system/recipes';
+import { Button, Field, Masthead } from '../design-system';
+---
+
+<Layout title="Sign in">
+  <Masthead slot="masthead" title="Sign in">
+    <Fragment slot="description">No account? <a href="/register">Register</a> to contribute.</Fragment>
+  </Masthead>
+  <form class={form()} data-signin>
+    <Field label="Username" name="username" autocomplete="off" required />
+    <Field label="Password" name="password" type="password" autocomplete="off" required />
+    <Button variant="solid">Sign in</Button>
+    <p class={text({ tone: 'muted', size: 'sm' })}>This is a mockup. Your details aren't sent anywhere, and you'll sign in as a contributor.</p>
+  </form>
+</Layout>
