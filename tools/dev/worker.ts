@@ -42,6 +42,19 @@ export const DEV_USER = {
 	email_verified: true,
 } as const;
 
+/**
+ * Who accepts an invite: not the Owner who wrote it. A sign-in that carries an
+ * invite code is this person; every other sign-in stays `DEV_USER`, so one
+ * browser can't get back in as them. Only this dev Worker has it.
+ */
+export const DEV_INVITEE = {
+	sub: "dev-invitee",
+	preferred_username: "invitee",
+	name: "Dev Invitee",
+	email: "invitee@tartan-dev.test",
+	email_verified: true,
+} as const;
+
 const fake = createFakeArtifacts({
 	namespace: devEnv.ARTIFACTS_NAMESPACE,
 	host: "local.artifacts.tartan-dev.test",
@@ -218,7 +231,10 @@ export default {
 				{ status: 403 },
 			);
 		}
-		const callback = (await mockIdp()).authorize(location, DEV_USER);
+		const callback = (await mockIdp()).authorize(
+			location,
+			url.searchParams.has("invite") ? DEV_INVITEE : DEV_USER,
+		);
 		const headers = new Headers(response.headers);
 		headers.set("location", callback.href);
 		return new Response(null, { status: 302, headers });
