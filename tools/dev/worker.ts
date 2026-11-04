@@ -43,17 +43,20 @@ export const DEV_USER = {
 } as const;
 
 /**
- * Who accepts an invite: not the Owner who wrote it. A sign-in that carries an
- * invite code is this person; every other sign-in stays `DEV_USER`, so one
- * browser can't get back in as them. Only this dev Worker has it.
+ * Who accepts an invite: not the Owner who wrote it, and a new person for each
+ * invite, since the kernel ignores an invite from someone it already knows. Every
+ * sign-in without a code stays `DEV_USER`. Only this dev Worker has this.
  */
-export const DEV_INVITEE = {
-	sub: "dev-invitee",
-	preferred_username: "invitee",
-	name: "Dev Invitee",
-	email: "invitee@tartan-dev.test",
-	email_verified: true,
-} as const;
+const inviteeOf = (code: string) => {
+	const id = code.slice(0, 8).toLowerCase().replace(/[^a-z0-9]/g, "x");
+	return {
+		sub: `dev-invitee-${id}`,
+		preferred_username: `invitee-${id}`,
+		name: `Dev Invitee ${id}`,
+		email: `invitee-${id}@tartan-dev.test`,
+		email_verified: true,
+	};
+};
 
 const fake = createFakeArtifacts({
 	namespace: devEnv.ARTIFACTS_NAMESPACE,
@@ -231,9 +234,10 @@ export default {
 				{ status: 403 },
 			);
 		}
+		const invite = url.searchParams.get("invite");
 		const callback = (await mockIdp()).authorize(
 			location,
-			url.searchParams.has("invite") ? DEV_INVITEE : DEV_USER,
+			invite === null ? DEV_USER : inviteeOf(invite),
 		);
 		const headers = new Headers(response.headers);
 		headers.set("location", callback.href);

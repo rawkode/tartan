@@ -129,8 +129,8 @@ stays up until Ctrl-C. State is in memory, so re-seeding is the same command aga
 headless Chrome and stock git, as the Owner, as a contributor and anonymously. It adds to the seeded state, so like the
 proof it runs once per forge, and the two should not share one.
 
-The local IdP signs every browser in as the Owner, except a sign-in that carries an invite code, which is a second person
-(`tools/dev/worker.ts`). That is how `poc:e2e` gets a contributor. It does not exist outside `deno task dev`.
+The local IdP signs every browser in as the Owner, except a sign-in that carries an invite code, which is a new person for each
+invite (`tools/dev/worker.ts`). That is how `poc:e2e` gets a contributor. It does not exist outside `deno task dev`.
 
 ## What the shell leaves out
 

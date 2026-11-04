@@ -83,12 +83,16 @@ const problems: string[] = [];
  * The answers a page can't avoid asking for: whether Issues is installed on a
  * repo (404 not_installed), whether the viewer may read it (403 denied), and
  * whether an issue exists (404 not_found) only come from the tools, and Chrome
- * logs any 4xx. The UI shows each as a state, which the checks below assert.
+ * logs any 4xx. A Reporter's close is refused the same way (403 denied). The UI
+ * shows each as a state, which the checks below assert.
  */
-const expectedRefusal = (url: string, status: number): boolean =>
-	/\/-\/api\/repos\/[^/]+\/ext\/rawkode\.issues\/tools\/(list|get)$/
-		.test(new URL(url).pathname) &&
-	[403, 404].includes(status);
+const expectedRefusal = (url: string, status: number): boolean => {
+	const tool = new URL(url).pathname.match(
+		/\/-\/api\/repos\/[^/]+\/ext\/rawkode\.issues\/tools\/(\w+)$/,
+	)?.[1];
+	if (tool === "close") return status === 403;
+	return (tool === "list" || tool === "get") && [403, 404].includes(status);
+};
 
 const watched = (page: Page, who: string): Page => {
 	const refused = new Set<string>();
@@ -634,6 +638,42 @@ const run = async (browser: Browser): Promise<void> => {
 		await go(other, `${KILN}:lsp/-/issues`);
 		check("they see the issues", await see(other, title), await textOf(other));
 		await shot(other, "contributor-issues");
+
+		await go(other, "/writing/blog/-/issues");
+		check(
+			"where they have no role, the list says so",
+			await see(other, "do not have access to the issues here"),
+			await textOf(other),
+		);
+		await shot(other, "contributor-denied");
+
+		const reporter = await owner.request.post(`${ORIGIN}/-/api/invites`, {
+			headers: { origin: ORIGIN, "sec-fetch-site": "same-origin" },
+			data: { node: "infra", role: 20, note: "e2e reporter" },
+		});
+		const invite = await reporter.json() as { url: string };
+		const second = await contextFor(browser);
+		const low = watched(await second.newPage(), "reporter");
+		await low.goto(invite.url, { waitUntil: "networkidle" });
+		await low.getByRole("link", { name: "Accept and sign in" }).click();
+		await low.waitForLoadState("networkidle");
+		await go(low, "/infra/cloud/platform/-/issues");
+		await low.locator("#main a[href*='/-/issues/']:not([href$='/new'])").first()
+			.click();
+		await low.getByRole("button", { name: "Close issue" }).click();
+		check(
+			"a Reporter's close is refused, and the page says why",
+			await low.getByRole("alert").first().waitFor({ timeout: TIMEOUT_MS })
+				.then(() => true, () => false),
+			await textOf(low),
+		);
+		check(
+			"and the issue stays open",
+			(await textOf(low)).includes("Open"),
+			await textOf(low),
+		);
+		await shot(low, "reporter-close-refused");
+		await second.close();
 	});
 
 	const anon = await contextFor(browser);
