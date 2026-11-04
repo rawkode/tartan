@@ -15,6 +15,7 @@
 		"license:check": "deno run -A scripts/license-check.ts"
 	},
 	"dependencies": {
+		"@ark-ui/vue": "5.40.0",
 		"@cloudflare/sandbox": "0.12.1",
 		"@cloudflare/workers-oauth-provider": "1.2.1",
 		"@modelcontextprotocol/server": "2.0.0",
@@ -31,7 +32,12 @@
 		"@cloudflare/vitest-pool-workers": "0.22.0",
 		"@cloudflare/workers-types": "5.20261001.1",
 		"@e2e-dev/web": "0.11.2",
+		"@fission-ai/openspec": "1.16.0",
 		"@modelcontextprotocol/client": "2.0.0",
+		"@pandacss/dev": "2.5.0",
+		"@pandacss/preset-base": "2.5.0",
+		"@pandacss/preset-panda": "2.5.0",
+		"@pandacss/vite": "2.5.0",
 		"@types/node": "22.20.4",
 		"@vitejs/plugin-vue": "6.0.9",
 		"e2e": "0.16.0",
