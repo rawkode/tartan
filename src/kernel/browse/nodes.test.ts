@@ -60,9 +60,9 @@ const setup = async () => {
 	return { b, owner, dev, maint, stranger, acme };
 };
 
-Deno.test("POST /-/api/nodes: groups under a parent need Maintainer+ and a write scope; root groups need an admin", async () => {
+Deno.test("POST /-/api/nodes: only the forge Owner creates groups, with a write scope; root groups need an admin", async () => {
 	const { b, owner, dev, maint } = await setup();
-	const created = await nodes(b, "POST", "", session(maint), {
+	const created = await nodes(b, "POST", "", session(owner), {
 		parent: "acme",
 		kind: "group",
 		slug: "platform",
@@ -79,19 +79,53 @@ Deno.test("POST /-/api/nodes: groups under a parent need Maintainer+ and a write
 		})).status,
 		403,
 	);
-	// A Maintainer's PAT without repo:write.
+	// No role makes a third party or an agent the owner: Maintainer, Owner, and
+	// the Owner's own agent with a token that reaches Owner.
+	const refused = await nodes(b, "POST", "", session(maint), {
+		parent: "acme",
+		kind: "group",
+		slug: "x",
+	});
+	equal(refused.status, 403);
+	equal(refused.body.reason, "role");
+	const coOwner = b.identity.user("coowner");
+	await b.facade.grant(
+		owner,
+		(await b.facade.resolvePath("acme"))!.node.id,
+		coOwner,
+		ROLE.owner,
+	);
+	equal(
+		(await nodes(b, "POST", "", session(coOwner), {
+			parent: "acme",
+			kind: "group",
+			slug: "x",
+		})).status,
+		403,
+	);
+	equal(
+		(await nodes(
+			b,
+			"POST",
+			"",
+			agentToken(b.identity.agent(owner, "gbot"), { maxRole: 50 }),
+			{ parent: "acme", kind: "group", slug: "x" },
+		)).status,
+		403,
+	);
+	// The Owner's PAT without repo:write.
 	const readOnly = await nodes(
 		b,
 		"POST",
 		"",
-		pat(maint, { scopes: ["repo:read", "api"] }),
+		pat(owner, { scopes: ["repo:read", "api"] }),
 		{ parent: "acme", kind: "group", slug: "x" },
 	);
 	equal(readOnly.status, 403);
 	equal(readOnly.body.reason, "scopes");
-	// A Maintainer's token capped at Developer.
+	// The Owner's token capped at Developer.
 	equal(
-		(await nodes(b, "POST", "", pat(maint, { maxRole: 30 }), {
+		(await nodes(b, "POST", "", pat(owner, { maxRole: 30 }), {
 			parent: "acme",
 			kind: "group",
 			slug: "x",
@@ -129,7 +163,7 @@ Deno.test("POST /-/api/nodes: groups under a parent need Maintainer+ and a write
 		"reserved-slug",
 	);
 	equal(
-		(await nodes(b, "POST", "", session(maint), {
+		(await nodes(b, "POST", "", session(owner), {
 			parent: "acme",
 			kind: "group",
 			slug: "Bad_Slug",
@@ -137,7 +171,7 @@ Deno.test("POST /-/api/nodes: groups under a parent need Maintainer+ and a write
 		400,
 	);
 	equal(
-		(await nodes(b, "POST", "", session(maint), {
+		(await nodes(b, "POST", "", session(owner), {
 			parent: "nowhere",
 			kind: "group",
 			slug: "x",
@@ -146,10 +180,10 @@ Deno.test("POST /-/api/nodes: groups under a parent need Maintainer+ and a write
 	);
 });
 
-Deno.test("POST /-/api/nodes/repos: create, URL import and the Owner-only import mode", async () => {
+Deno.test("POST /-/api/nodes/repos: the forge Owner only: create, URL import and import mode", async () => {
 	const { b, owner, dev, maint } = await setup();
 	await b.groups(owner, "acme", "platform");
-	const repo = await nodes(b, "POST", "repos", session(maint), {
+	const repo = await nodes(b, "POST", "repos", session(owner), {
 		parent: "acme/platform",
 		slug: "router",
 		description: "edge",
@@ -164,8 +198,25 @@ Deno.test("POST /-/api/nodes/repos: create, URL import and the Owner-only import
 		})).status,
 		403,
 	);
+	// A Maintainer, and an agent with a token that reaches Owner.
+	const byMaintainer = await nodes(b, "POST", "repos", session(maint), {
+		parent: "acme/platform",
+		slug: "y",
+	});
+	equal(byMaintainer.status, 403);
+	equal(byMaintainer.body.reason, "role");
 	equal(
-		(await nodes(b, "POST", "repos", session(maint), {
+		(await nodes(
+			b,
+			"POST",
+			"repos",
+			agentToken(b.identity.agent(owner, "rbot"), { maxRole: 50 }),
+			{ parent: "acme/platform", slug: "y" },
+		)).status,
+		403,
+	);
+	equal(
+		(await nodes(b, "POST", "repos", session(owner), {
 			parent: "acme/platform",
 			slug: "z",
 			sample: true,
@@ -180,6 +231,12 @@ Deno.test("POST /-/api/nodes/repos: create, URL import and the Owner-only import
 	});
 	equal(byMaint.status, 403);
 	const ownerAgent = b.identity.agent(owner, "bot");
+	const byUrlMaint = await nodes(b, "POST", "repos", session(maint), {
+		parent: "acme/platform",
+		slug: "mono",
+		import: { url: "https://public.example.test/public-src.git" },
+	});
+	equal(byUrlMaint.status, 403);
 	const byAgent = await nodes(
 		b,
 		"POST",
@@ -197,7 +254,7 @@ Deno.test("POST /-/api/nodes/repos: create, URL import and the Owner-only import
 	equal(b.repos.inits.at(-1)?.importState, "importing");
 	// A URL import.
 	await b.fake.seed("public-src", { files: { "x.txt": "x\n" } });
-	const imported = await nodes(b, "POST", "repos", session(maint), {
+	const imported = await nodes(b, "POST", "repos", session(owner), {
 		parent: "acme/platform",
 		slug: "mirror",
 		import: { url: "https://public.example.test/public-src.git" },
@@ -206,7 +263,7 @@ Deno.test("POST /-/api/nodes/repos: create, URL import and the Owner-only import
 	equal(b.repos.completes.at(-1)?.repoId, imported.body.id);
 	// Schema: http URLs are refused before anything happens.
 	equal(
-		(await nodes(b, "POST", "repos", session(maint), {
+		(await nodes(b, "POST", "repos", session(owner), {
 			parent: "acme/platform",
 			slug: "bad",
 			import: { url: "http://example.test/x.git" },

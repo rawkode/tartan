@@ -69,7 +69,10 @@ const refuseAgent = (auth: AuthContext, what: string): void => {
 	if (auth.kind !== "user") throw denied("role", `agents cannot ${what}`);
 };
 
-/** Creating a node needs Maintainer+ at the parent and a write scope. */
+/**
+ * Placing a node under a parent: what the credential must reach there. The tree
+ * module adds the rule for creating one, which no role satisfies: forge Owner only.
+ */
 const CREATE = {
 	min: ROLE.maintainer,
 	scopes: ["repo:write"] as const,

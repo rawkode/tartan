@@ -20,13 +20,11 @@
 // The token `create`/`import` return is discarded unread (K11).
 
 import {
-	denied,
 	invalid,
 	isValidRefName,
 	type NodeDto,
 	repoArtifactsName,
 	type RepoImportSource,
-	ROLE,
 	SYS_KERNEL,
 	tartanError,
 	trunkRef,
@@ -40,8 +38,8 @@ import {
 	checkVisibility,
 	insertNodeSync,
 	nodeEventData,
+	requireForgeOwner,
 	requireNode,
-	requireRole,
 } from "./nodes.ts";
 import { checkSlug } from "./paths.ts";
 import { indexRow, nodeById, nodeDto } from "./store.ts";
@@ -160,7 +158,7 @@ export const createRepoCreation = (c: TreeContext): RepoCreation => {
 			const parent = requireNode(c, input.parentId);
 			if (parent.kind === "repo") throw invalid("a repo has no child nodes");
 			const slug = checkSlug(input.slug, { root: false });
-			requireRole(c, by, parent, ROLE.maintainer, "creating a repo");
+			requireForgeOwner(c, by, "creating a repo");
 			const id = c.ids.ulid();
 			const name = repoArtifactsName(id);
 			const description = checkDescription(input.description);
@@ -377,9 +375,6 @@ export const createRepoCreation = (c: TreeContext): RepoCreation => {
 		by: string,
 		input: ImportRepoInput,
 	): Promise<NodeDto> => {
-		if (!c.identity().isOwner(by)) {
-			throw denied("role", "import mode is for the forge Owner");
-		}
 		const node = begin(by, { ...input, defaultBranch: "main" });
 		return await run(node, async () => {
 			await c.ports.artifacts.create(node.artifacts_name as string, {

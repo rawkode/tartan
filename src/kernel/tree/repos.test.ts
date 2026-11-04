@@ -138,10 +138,24 @@ Deno.test("createRepo: Acme-X after acme-x, a taken path and a low role are refu
 		h.facade.createRepo(owner, { parentId: g.id, slug: "acme-x" }),
 	);
 	equal(taken.reason, "path-taken");
-	const dev = h.identity.user("dev");
-	await h.facade.grant(owner, g.id, dev, ROLE.developer);
+	// Only the forge Owner: no role makes a third party one, nor an agent.
+	for (const role of [ROLE.developer, ROLE.maintainer, ROLE.owner]) {
+		const other = h.identity.user(`r${role}`);
+		await h.facade.grant(owner, g.id, other, role);
+		equal(
+			(await code(h.facade.createRepo(other, { parentId: g.id, slug: "y" })))
+				.code,
+			"denied",
+			`role ${role}`,
+		);
+	}
 	equal(
-		(await code(h.facade.createRepo(dev, { parentId: g.id, slug: "y" }))).code,
+		(await code(
+			h.facade.createRepo(h.identity.agent(owner, "bot"), {
+				parentId: g.id,
+				slug: "y",
+			}),
+		)).code,
 		"denied",
 	);
 	const repo = (await h.facade.resolvePath("acme/g/acme-x"))!.node;

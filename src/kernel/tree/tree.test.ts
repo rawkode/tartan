@@ -64,6 +64,7 @@ Deno.test("roots: users and groups share one root slug space; UNIQUE(path) dedup
 Deno.test("roots: reserved root slugs and invalid slugs are refused", async () => {
 	const h = createTreeHarness();
 	const user = h.identity.user("u");
+	h.identity.setOwner(user);
 	for (const slug of RESERVED_ROOT_SLUGS) {
 		const error = await code(
 			h.facade.createRoot({ kind: "group", slug, owner: user }),
@@ -340,7 +341,7 @@ Deno.test("children: pages by slug; roots when the parent is null", async () => 
 	);
 });
 
-Deno.test("groups: Maintainer+ at the parent; never under a repo-free check bypass; visibility and description", async () => {
+Deno.test("groups: the forge Owner only, whatever role anyone else or an agent holds; visibility and description", async () => {
 	const h = createTreeHarness();
 	const { id: owner } = await h.owner("acme");
 	const acme = (await h.facade.resolvePath("acme"))!.node;
@@ -354,9 +355,26 @@ Deno.test("groups: Maintainer+ at the parent; never under a repo-free check bypa
 		}))).code,
 		"denied",
 	);
-	const m = h.identity.user("m");
-	await h.facade.grant(owner, acme.id, m, ROLE.maintainer);
-	const g = await h.facade.createNode(m, {
+	for (const role of [ROLE.maintainer, ROLE.owner]) {
+		const other = h.identity.user(`r${role}`);
+		await h.facade.grant(owner, acme.id, other, role);
+		const refused = await code(h.facade.createNode(other, {
+			parentId: acme.id,
+			kind: "group",
+			slug: "x",
+		}));
+		equal(refused.code, "denied", `role ${role}`);
+		equal(refused.reason, "role", `role ${role}`);
+	}
+	equal(
+		(await code(h.facade.createNode(h.identity.agent(owner, "bot"), {
+			parentId: acme.id,
+			kind: "group",
+			slug: "x",
+		}))).code,
+		"denied",
+	);
+	const g = await h.facade.createNode(owner, {
 		parentId: acme.id,
 		kind: "group",
 		slug: "x",
@@ -366,7 +384,7 @@ Deno.test("groups: Maintainer+ at the parent; never under a repo-free check bypa
 	equal(g.visibility, "public");
 	equal(g.description, "hello");
 	equal(
-		(await code(h.facade.createNode(m, {
+		(await code(h.facade.createNode(owner, {
 			parentId: acme.id,
 			kind: "group",
 			slug: "y",
@@ -375,7 +393,7 @@ Deno.test("groups: Maintainer+ at the parent; never under a repo-free check bypa
 		"invalid",
 	);
 	equal(
-		(await code(h.facade.createNode(m, {
+		(await code(h.facade.createNode(owner, {
 			parentId: acme.id,
 			kind: "group",
 			slug: "x",

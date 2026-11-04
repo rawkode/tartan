@@ -8,6 +8,8 @@
 // Every write checks the acting principal's grants role (defence in depth:
 // the HTTP routes already ran `authorize` with the caller's credential
 // bounds) and appends one forge event plus an audit row in its transaction.
+// Creating a group or a repo is not a matter of role: only the forge Owner
+// does it, whatever anyone else holds at the parent.
 
 import {
 	denied,
@@ -82,6 +84,21 @@ export const requireRole = (
 ): void => {
 	if (roleOf(c, by, node) < min) {
 		throw denied("role", `${what} needs a higher role at ${node.path}`);
+	}
+};
+
+/**
+ * The forge has one owner, and everyone else contributes: no grant, however
+ * high, lets a third party or an agent (the Owner's own included) create a
+ * group or a repo. Checked here so that no route or token can get around it.
+ */
+export const requireForgeOwner = (
+	c: TreeContext,
+	by: string,
+	what: string,
+): void => {
+	if (by !== SYS_KERNEL && !c.identity().isOwner(by)) {
+		throw denied("role", `${what} is for the forge owner`);
 	}
 };
 
@@ -267,7 +284,7 @@ export type GroupInput = {
 	readonly description?: string;
 };
 
-/** A group below `parentId`: Maintainer+ at the parent. */
+/** A group below `parentId`: the forge Owner only. */
 export const createGroupSync = (
 	c: TreeContext,
 	by: string,
@@ -277,7 +294,7 @@ export const createGroupSync = (
 	const parent = requireNode(c, input.parentId);
 	if (parent.kind === "repo") throw invalid("a repo has no child nodes");
 	const slug = checkSlug(input.slug, { root: false });
-	requireRole(c, by, parent, ROLE.maintainer, "creating a group");
+	requireForgeOwner(c, by, "creating a group");
 	const row = insertNodeSync(c, {
 		id: c.ids.ulid(),
 		parent,
