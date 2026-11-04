@@ -228,6 +228,7 @@ export const createGitContexts = (deps: {
 				? []
 				: [...new Set([trunkRef(defaultBranch), ...protection.patterns()])],
 			defaultBranch,
+			trunkSha: getMeta(core.sql, "trunk_sha"),
 			caseFoldedRefs: [
 				...new Set([...indexRefs, ...laneRefs].map((ref) => ref.toLowerCase())),
 			],

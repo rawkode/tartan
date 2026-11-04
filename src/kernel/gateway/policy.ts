@@ -314,8 +314,8 @@ const adoptedRef = (
 /**
  * Row 2: nobody writes a protected ref, except that the forge Owner may push the
  * default branch directly (a decided weakening of "trunk moves only through the
- * Advance"; README.md). Fast-forwards only: `direct.ts` checks the ancestry,
- * which needs the pushed objects, so this row refuses only what `new` alone shows.
+ * Advance"; README.md). Fast-forwards only: `old` must be trunk's tip here, and
+ * `direct.ts` checks that `new` descends from it, which needs the pushed objects.
  * `trunkWrite` is the gateway's answer: a credential of the forge Owner, not
  * merely someone holding the Owner role on this repo.
  */
@@ -330,7 +330,10 @@ const protectedRef = (
 		return "woven-by-tartan";
 	}
 	if (isDelete(command)) return "non-fast-forward";
-	return ctx.caller.writeCredential ? null : "no-write-credential";
+	if (!ctx.caller.writeCredential) return "no-write-credential";
+	// A client's `old` is not evidence: a stale one, or all zeros, would make the
+	// ancestry check answer for a commit trunk has already moved past.
+	return command.old === (ctx.trunkSha ?? ZERO_SHA) ? null : "stale-old";
 };
 
 const classify = (

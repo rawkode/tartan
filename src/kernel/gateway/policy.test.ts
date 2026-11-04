@@ -63,6 +63,7 @@ const context = (
 	adopted: [],
 	protectedPatterns: ["refs/heads/main", "release/*"],
 	defaultBranch: "main",
+	trunkSha: H1,
 	caseFoldedRefs: [
 		"refs/heads/main",
 		"refs/heads/feat",
@@ -600,6 +601,30 @@ Deno.test("row 2: the forge Owner pushes main directly, and only main", () => {
 			}),
 		),
 		"no-write-credential",
+	);
+});
+
+Deno.test("row 2: a direct push's old must be trunk's tip, so a client cannot claim one", () => {
+	const owner = user({ role: ROLE.owner, trunkWrite: true });
+	equal(
+		verdict(update("refs/heads/main", sha(3)), owner, userCtx()),
+		"stale-old",
+		"an older commit of trunk",
+	);
+	equal(
+		verdict(create("refs/heads/main"), owner, userCtx()),
+		"stale-old",
+		"all zeros while trunk has commits",
+	);
+	equal(
+		verdict(create("refs/heads/main"), owner, userCtx({ trunkSha: null })),
+		"allow",
+		"all zeros while trunk has none",
+	);
+	equal(
+		verdict(update("refs/heads/main"), owner, userCtx({ trunkSha: null })),
+		"stale-old",
+		"a claimed old while trunk has none",
 	);
 });
 

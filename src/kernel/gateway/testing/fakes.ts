@@ -155,6 +155,7 @@ export const createFakeRepo = (): FakeRepo => {
 				}),
 				adopted: [],
 				protectedPatterns: ["refs/heads/main"],
+				trunkSha: null,
 				defaultBranch: "main",
 				caseFoldedRefs: ["refs/heads/main"],
 				importState: "none",

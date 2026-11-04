@@ -56,6 +56,7 @@ const context = (
 	target: target(over),
 	adopted: [],
 	protectedPatterns: ["refs/heads/main"],
+	trunkSha: null,
 	defaultBranch: "main",
 	caseFoldedRefs: ["refs/heads/main"],
 	importState: "none",

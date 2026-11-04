@@ -697,6 +697,8 @@ export type PushContext = {
 	}[];
 	readonly protectedPatterns: readonly string[];
 	readonly defaultBranch: string;
+	/** Trunk's tip in the index; null while trunk has no commits. */
+	readonly trunkSha: string | null;
 	/** Every ref in the index, case-folded. */
 	readonly caseFoldedRefs: readonly string[];
 	readonly importState: "none" | "importing";
