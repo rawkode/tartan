@@ -20,9 +20,10 @@ one-command deploy and how to connect an agent.
 
 ## Running a forge
 
-| Page                     | For                                                                                       |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| [`deploy.md`](deploy.md) | deploying, upgrading and destroying a forge: every step, flag, secret and preflight check |
+| Page                             | For                                                                                       |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| [`deploy.md`](deploy.md)         | deploying, upgrading and destroying a forge: every step, flag, secret and preflight check |
+| [`poc-deploy.md`](poc-deploy.md) | the plan for deploying the POC branch: what it needs, what is unproven, rollback, risks   |
 
 ## Extending Tartan
 
