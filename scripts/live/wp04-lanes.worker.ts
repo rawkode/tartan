@@ -625,6 +625,8 @@ export class HarnessLanes extends DurableObject<HarnessEnv> {
 				`refs/heads/${this.#meta("default_branch") ?? "main"}`,
 			],
 			defaultBranch: this.#meta("default_branch") ?? "main",
+			// No direct trunk push in this harness.
+			trunkSha: null,
 			caseFoldedRefs: [],
 			importState: "none",
 			landingPaused: false,

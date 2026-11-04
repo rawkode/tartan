@@ -314,6 +314,8 @@ export class HarnessRepo extends DurableObject<HarnessEnv> {
 			adopted: [],
 			protectedPatterns: importing ? [] : [trunkRef("main")],
 			defaultBranch: "main",
+			// No direct trunk push in this harness.
+			trunkSha: null,
 			caseFoldedRefs: [
 				...new Set([...refs, ...lanes].map((r) => r.toLowerCase())),
 			],
