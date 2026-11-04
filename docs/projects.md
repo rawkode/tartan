@@ -28,7 +28,9 @@ extensions: "rawkode.issues": enabled: false   // optional: on unless a project 
   lockfiles to the global files.
 
 Addresses: `/` joins groups and repos, `:` joins a project to its repo (`oss/devtools/build/kiln:lsp`), and `/-/`
-separates a page.
+separates a page. These are the SPA's addresses (`web/src/router/address.ts`); the kernel's API only knows node paths and
+repo ids. The Worker's asset layer redirects a path with a `:` to its `%3A` spelling, and the SPA puts the colon back in the
+address bar when it loads.
 
 ## This is a textual read
 
@@ -122,6 +124,29 @@ directly to `main` as the Owner and opens sample issues through the route above.
 stays up until Ctrl-C. State is in memory, so re-seeding is the same command again.
 
 `nix develop -c deno task poc:proof --session .wrangler/poc/8801/session.json` then checks the result over HTTP.
+
+`nix develop -c deno task poc:e2e --session .wrangler/poc/8801/session.json [--shots <dir>]` drives the same forge through
+headless Chrome and stock git, as the Owner, as a contributor and anonymously. It adds to the seeded state, so like the
+proof it runs once per forge, and the two should not share one.
+
+The local IdP signs every browser in as the Owner, except a sign-in that carries an invite code, which is a second person
+(`tools/dev/worker.ts`). That is how `poc:e2e` gets a contributor. It does not exist outside `deno task dev`.
+
+## What the shell leaves out
+
+The forge shell (`web/src/forge`) shows only what the kernel can answer. These have no backend here, so they have no
+control, tab or link:
+
+- changes and pull requests, CI status and releases;
+- the settings matrix: Settings goes to Tartan's own node settings;
+- an issue's notes, labels, affected projects, moves and "found in", since `rawkode.issues` has none of them;
+- rollups of activity above a repo, or per project: Activity is one repo's event log, and a project shows its commits;
+- a one-project clone command. `git clone` of the whole repo is what works;
+- a page at `<repo>:root`. The implicit root project is a row linking to the repo's files, and issues with no project show
+  only on the repo;
+- installing Issues from the shell. A new repo has no Issues until it is installed through Extensions.
+
+A number with no source is left out, not shown as 0: a stranger sees no issue counts, and a repo without Issues has none.
 
 A repository cannot sit at the top of the tree: the kernel requires a repo to be below a group or a user. The sample's
 `dotfiles` is `dev/dotfiles`, under the Owner's own root.
