@@ -17,7 +17,7 @@ const byRoot = (a: ProjectDto, b: ProjectDto) =>
 	a.root < b.root ? -1 : a.root > b.root ? 1 : 0;
 
 /**
- * Projects grouped by the deepest cuenv layer above them (`byLayer`), or by
+ * Projects grouped by the deepest layer above them (`byLayer`), or by
  * their top-level directory; groups and projects sorted by path.
  */
 export const groupProjects = (
@@ -53,18 +53,18 @@ export type Note = {
 /** Chips for what the scan could not settle about a project. */
 export const projectNotes = (p: ProjectDto): Note[] => {
 	const notes: Note[] = [];
-	if (p.nameSource === "unresolved") {
+	if (p.nameSource === "directory") {
 		notes.push({
 			label: "name from the directory",
-			tone: "warning",
-			title: "No literal name in env.cue; the directory name is used",
+			tone: "info",
+			title: "No literal name in its .cue file; the directory name is used",
 		});
 	}
-	if (p.cuenvName !== undefined) {
+	if (p.declaredName !== undefined) {
 		notes.push({
 			label: "duplicate name",
 			tone: "warning",
-			title: `Another project is also named ${p.cuenvName}`,
+			title: `Another project is also named ${p.declaredName}`,
 		});
 	}
 	if (p.issues.some((i) => i.code === "nested-project")) {
@@ -77,27 +77,9 @@ export const projectNotes = (p: ProjectDto): Note[] => {
 	return notes;
 };
 
-/** "cuenv · textual scan", "pnpm workspace", … */
-export const sourceLabel = (p: ProjectDto): string => {
-	switch (p.source) {
-		case "cuenv":
-			return p.fidelity === "scan" ? "cuenv · textual scan" : "cuenv";
-		case "tartan-config":
-			return "package tartan";
-		case "pnpm-workspace":
-			return "pnpm workspace";
-		case "npm-workspaces":
-			return "npm/Bun workspace";
-		case "deno-workspace":
-			return "Deno workspace";
-		case "cargo":
-			return "Cargo workspace";
-		case "go.work":
-			return "Go workspace";
-		default:
-			return p.source;
-	}
-};
+/** Where the project came from, for its chip. */
+export const sourceLabel = (p: ProjectDto): string =>
+	p.source === "tartan" ? "package tartan" : p.source;
 
 /** "matched by footprint" captions of a work item. */
 export const matchLabel = (item: ProjectWorkItemDto): string =>

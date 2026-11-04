@@ -149,7 +149,7 @@ describe("Projects card", () => {
 		unmounts.push(unmount);
 		await flush(20);
 		expect(text(byAttr(root, "data-testid", "projects-summary")[0]!)).toBe(
-			"38 cuenv projects found (textual scan) · 3 layers · 1 nested module skipped",
+			"38 projects found in package tartan files · 3 layers · 1 nested module skipped",
 		);
 		const hrefs = links(root);
 		expect(hrefs).toContain(`/${REPO}/-/p`);
@@ -198,7 +198,7 @@ describe("projects list", () => {
 	it("groups the 38 projects by their deepest layer, with edges and notes", async () => {
 		const { root, paths } = await mountPage(`/${REPO}/-/p`);
 		expect(paths).toContain(`/-/api/repos/${REPO_ID}/projects`);
-		expect(text(root)).toContain("38 cuenv projects found (textual scan)");
+		expect(text(root)).toContain("38 projects found in package tartan files");
 		expect(byAttr(root, "data-project", DS)).toHaveLength(1);
 		const rows = findRows(root);
 		expect(rows).toHaveLength(38);
@@ -219,7 +219,7 @@ describe("project page", () => {
 		const page = byAttr(root, "data-project", DS)[0]!;
 		const body = text(page);
 		expect(body).toContain(DS);
-		expect(body).toContain("cuenv · textual scan");
+		expect(body).toContain("package tartan");
 		expect(body).toContain("packages/design-system/env.cue");
 		expect(body).toContain("Shared components for every site.");
 		expect(links(page)).toContain(`/${REPO}/-/p/${WEB}`);
@@ -272,23 +272,16 @@ describe("project page", () => {
 describe("captions", () => {
 	it("follow the detector and the graph", () => {
 		const list = createMockProjects().list(REPO_ID)!;
-		expect(
-			graphSummary({
-				...list,
-				detector: "workspaces",
-				layers: [],
-				skipped: [],
-			}),
-		)
-			.toBe("38 projects detected");
+		expect(graphSummary({ ...list, layers: [], skipped: [] }))
+			.toBe("38 projects found in package tartan files");
 		const one = { ...list, projects: list.projects.slice(0, 1), skipped: [] };
 		expect(graphSummary(one)).toBe(
-			"1 cuenv project found (textual scan) · 3 layers",
+			"1 project found in package tartan files · 3 layers",
 		);
 		const ds = list.projects.find((p) => p.name === DS)!;
 		expect(projectNotes(ds)).toEqual([]);
 		expect(
-			projectNotes({ ...ds, nameSource: "unresolved", cuenvName: "x" }).map((
+			projectNotes({ ...ds, nameSource: "directory", declaredName: "x" }).map((
 				n,
 			) => n.label),
 		).toEqual(["name from the directory", "duplicate name"]);

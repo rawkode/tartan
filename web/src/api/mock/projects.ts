@@ -48,7 +48,8 @@ const PROJECTS: readonly ProjectDto[] = CUENV_DEMO_PROJECTS
 		name,
 		slug: name,
 		root,
-		source: "cuenv",
+		source: "tartan",
+		extensions: {},
 		nameSource: "literal" as const,
 		fidelity: "scan" as const,
 		layers: CUENV_DEMO_LAYERS.filter((l) => isUnder(root, l)),
@@ -86,7 +87,7 @@ const LAYERS: readonly ProjectLayerDto[] = CUENV_DEMO_LAYERS.map((root) => ({
 const LIST: ProjectsResponse = {
 	repo: REPO,
 	sha: SHAS.c3,
-	detector: "cuenv",
+	detector: "tartan",
 	fidelity: "scan",
 	projects: PROJECTS,
 	layers: LAYERS,
@@ -142,7 +143,7 @@ const detailOf = (p: ProjectDto): ProjectDetailResponse => {
 	return {
 		repo: REPO,
 		sha: SHAS.c3,
-		detector: "cuenv",
+		detector: "tartan",
 		fidelity: "scan",
 		project: p,
 		layers: p.layers.flatMap((root) => LAYERS.filter((l) => l.root === root)),
@@ -240,7 +241,7 @@ const strip = <T extends { readonly on: readonly string[] }>(
 
 const find = (ref: string): ProjectDto | undefined =>
 	PROJECTS.find((p) =>
-		p.slug === ref || p.root === ref || p.name === ref || p.cuenvName === ref
+		p.slug === ref || p.root === ref || p.name === ref || p.declaredName === ref
 	);
 
 export type MockProjects = {

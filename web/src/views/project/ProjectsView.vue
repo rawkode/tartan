@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // `/<repo>/-/p`: every project of the repo at the trunk tip (WP25 slice
-// A′), grouped by the cuenv layer that holds it (or by top-level directory
+// A′), grouped by the layer that holds it (or by top-level directory
 // for workspace graphs), with what each depends on and what depends on it,
 // the detector's warnings and what the scan skipped.
 import { computed, ref } from "vue";

@@ -88,13 +88,7 @@ export const workHref = (repoPath: string, ref: string): string =>
 export const graphSummary = (graph: ProjectsResponse): string => {
 	const n = graph.projects.length;
 	const parts = [
-		graph.detector === "cuenv"
-			? `${n} cuenv ${n === 1 ? "project" : "projects"} found${
-				graph.fidelity === "scan" ? " (textual scan)" : ""
-			}`
-			: `${n} ${n === 1 ? "project" : "projects"} detected${
-				graph.detector === "config" ? " from package tartan" : ""
-			}`,
+		`${n} ${n === 1 ? "project" : "projects"} found in package tartan files`,
 	];
 	if (graph.layers.length > 0) {
 		parts.push(

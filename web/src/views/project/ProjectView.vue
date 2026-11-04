@@ -106,7 +106,7 @@ const signInHref = computed(() => loginHref(route.fullPath));
 						</div>
 						<p class="tt-muted project__root">
 							<RouterLink :to="treeHref(repoPath, defaultBranch, project.root)">{{ project.root }}</RouterLink>
-							<span v-if="project.cuenvName"> · cuenv name {{ project.cuenvName }}</span>
+							<span v-if="project.declaredName"> · declared name {{ project.declaredName }}</span>
 						</p>
 						<nav class="project__tabs" aria-label="Project">
 							<RouterLink

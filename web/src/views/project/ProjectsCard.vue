@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // The repo overview's Projects card (WP25 slice A′):
-// "38 cuenv projects found (textual scan) · 3 layers · 1 nested module
+// "38 projects found in package tartan files · 3 layers · 1 nested module
 // skipped", the first projects as links, and a link to the full list. It
 // renders nothing while projects are off on the forge (404), when the repo
 // has no projects, or when the request fails: the overview never breaks
