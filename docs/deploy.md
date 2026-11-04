@@ -72,7 +72,7 @@ Every check passes, warns (it could not decide; the setup wizard re-checks) or f
 | `--no-eviction-flag`           | drop `durable_object_io_tasks_prevent_eviction` from the rendered config                                                                             |
 | `--dev-tools`                  | `TARTAN_DEV_TOOLS=1` (swarm, bulk agent tokens, reset); only for `dev` and `dev-*` stages, and the UI shows a red bar                                |
 | `--repo-config`                | `TARTAN_REPO_CONFIG=on`: evaluate each repository's root CUE package `tartan` ([`repo-config.md`](repo-config.md)); needs containers; off by default |
-| `--projects`                   | `TARTAN_PROJECTS=scan`: cuenv `#Project` definitions become the repositories' projects, with project pages; off by default                           |
+| `--projects`                   | `TARTAN_PROJECTS=scan`: serves the project pages and API ([`projects.md`](projects.md)) and discovers each trunk push; off by default                |
 | `--lane-mode <mode>`           | `TARTAN_LANE_MODE`: `import` (per-agent Artifacts repositories) or `branch` (branch lanes); without it, the compiled default, `branch`               |
 | `--workload-transport <t>`     | `TARTAN_WORKLOAD_TRANSPORT`: `local` (the default) or `k2`, which needs `--k2` and the token flags below                                             |
 | `--build-ext`                  | also build the Rust → WASM extension packages (needs `cargo` with the `wasm32-unknown-unknown` target, `wasm-tools` and jco)                         |

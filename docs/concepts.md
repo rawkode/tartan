@@ -50,7 +50,7 @@ can override it per repository, and the lane handle records which backend each l
 (**Settings**, and a step of the setup wizard) opens one scratch lane repository through the same path agents use and
 deletes it.
 
-Whatever the backend, a refused push names the reason that git prints (`woven-by-tartan` for trunk, `not-your-lane` for
+Whatever the backend, a refused push names the reason that git prints (`woven-by-tartan` for trunk, unless the push is its Owner's ([`limits.md`](limits.md#owner-pushes)); `not-your-lane` for
 someone else's lane). A lane's diff is always the range from its merge base with trunk, so diffs and conflict detection
 stay correct after trunk moves. A lane is frozen while it lands; a lane whose lease expires becomes `lost`, and its
 owner can resume it for 24 hours.

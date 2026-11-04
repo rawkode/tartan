@@ -2,14 +2,19 @@
 
 Tartan is a Git forge for teams in which several coding agents and a few people change the same repositories at the
 same time. Each agent claims work with a footprint, pushes its own lane with stock git, and finds other agents'
-overlapping work at the end of its next MCP tool result. Trunk moves only through the Advance, which lands exactly what
-was tested and writes a why-note that `git log --notes=tartan` shows.
+overlapping work at the end of its next MCP tool result. For agents and contributors, trunk moves only through the
+Advance, which lands exactly what was tested and writes a why-note that `git log --notes=tartan` shows.
+
+> **This is weaker than it used to be, on purpose.** A repository's Owner may push the default branch directly, with
+> fast-forwards only. Such a push skips the Advance: it is not tested, has no why-note, and takes no sign-off, even when
+> it edits repository config. Agents and everyone else cannot do this. See [Owner pushes](docs/limits.md#owner-pushes).
 
 You deploy it into your own Cloudflare account with one command, and it runs entirely on Cloudflare (Workers, Durable
 Objects, Workflows, Artifacts and Sandbox containers), on your domain and behind your identity provider.
 
 > **Spike branch (`spike/strip-down`).** This branch strips Tartan down to the forge (git over HTTPS, lanes, the
-> Advance, MCP, projects), repository config in CUE, and Issues as the first WASM extension (not written yet). It
+> Advance, MCP, projects), repository config in CUE, and Issues as the first WASM extension
+> ([`extensions/issues`](extensions/issues), `rawkode.issues`). It
 > removed every first-party extension: `tartan.work`, `tartan.changes`, `tartan.board`, `tartan.radar`, `tartan.ci`, `tartan.review`, `tartan.weave`,
 > `tartan.fifo`, `tartan.epics`, `tartan.hud` and the Swarm and Classic packs, plus the `acme.no-secrets` Rust → WASM
 > demo and `packages/pipeline`. The rest of this README still describes the full forge,
@@ -126,7 +131,7 @@ deno task destroy -- --stage prod                      # remove the stage (asks 
 ```
 
 Several features are off by default and switch on per deploy: `--repo-config` (the CUE package `tartan`; needs
-containers), `--projects` (cuenv projects), `--lane-mode import` (per-agent Artifacts repositories), `--k2` with its
+containers), `--projects` ([`package tartan` projects](docs/projects.md)), `--lane-mode import` (per-agent Artifacts repositories), `--k2` with its
 consume token and `--workload-transport k2` (CI dispatch through K2; see [`docs/deploy.md`](docs/deploy.md#switches))
 and `--build-ext` (the Rust → WASM example). The stage names everything, so several forges can share one account.
 [`docs/deploy.md`](docs/deploy.md) explains every step, flag and secret, custom domains, the runner image and
@@ -246,8 +251,8 @@ force from the forge itself, and they hear about other agents' work in the tools
 | Your own domain                                                                             | Live-proven      | `--domain`: a Workers Custom Domain on a zone in the same account                                                                                                                                        |
 | Your own OIDC identity provider                                                             | Live-proven      | dynamic client registration as a public PKCE client, or a client id entered by hand                                                                                                                      |
 | Nested hierarchy: owner/group/subgroup/…/repository                                         | Live-proven      | roles and installations inherit down the tree; moves leave redirects. Unit tests nest 40 levels                                                                                                          |
-| Affected-only CI for monorepos                                                              | Live-proven      | workspace detectors for pnpm, npm, Deno, Cargo and `go.work`; earlier successes are reused by input hash                                                                                                 |
-| cuenv `#Project`s as projects, with project pages                                           | Built and tested | off by default; `deploy --projects`                                                                                                                                                                      |
+| Affected-only CI for monorepos                                                              | Live-proven      | projects from `package tartan` directories; earlier successes are reused by input hash                                                                                                                   |
+| Projects discovered from `package tartan` directories, with project pages                   | Built and tested | surfaces off by default; `deploy --projects`                                                                                                                                                             |
 | CI on Workflows and Sandbox containers                                                      | Live-proven      | job graphs with live logs and a Runs view; `--no-containers` turns off CI and landing (the Advance composes in a container)                                                                              |
 | CI dispatch through a K2 global event log                                                   | In progress      | the relay and the consumer are built and tested; dispatch through K2 is not yet proven on a deployed forge. `--k2 --k2-token-store <id> --k2-token-secret <name> --workload-transport k2` switches it on |
 | Extensions on one contract: event hooks, gates, UI slots, MCP tools, their own SQLite       | Live-proven      | every first-party feature runs this way                                                                                                                                                                  |
@@ -375,7 +380,7 @@ verification ladder, the house style and the rules for working on the code.
 | -------------------------- | ------------------------------------------------------------------------------------------ |
 | `src/`                     | the Worker: router, kernel modules, Durable Objects, Workflows                             |
 | `packages/`                | the contract (`@tartan/contract`), the extension API, git protocol, diff, monorepo planner |
-| `extensions/`              | extension packages (none on this branch; Issues will be the first)                         |
+| `extensions/`              | extension packages: `extensions/issues` (`rawkode.issues`, Rust → WASM)                    |
 | `sdk/rust/`                | the Rust SDK for `wasm` extensions (`tartan-ext`)                                          |
 | `web/`                     | the Vue SPA served from the Worker's static assets                                         |
 | `containers/runner/`       | the runner image for CI and kernel git jobs                                                |

@@ -1,28 +1,35 @@
 # Repository config: the CUE package `tartan`
 
-A repository configures its CI pipeline, its review owners, its projects and some of its extensions in
+A repository configures its CI pipeline, its review owners, its global files and some of its extensions in
 [CUE](https://cuelang.org), in an ordinary CUE package named `tartan` in the repository root. The forge evaluates it
 with the official `cue` command-line tool (v0.17.1) in a sandbox, checks the result, and applies it from the
 default branch only. Design: [`design/ADR-repo-config-cue.md`](design/ADR-repo-config-cue.md).
 
 > **Spike branch (`spike/strip-down`).** The CI pipeline (`tartan.ci`), review owners (`tartan.review`) and Weave
 > settings below came from first-party extensions that this branch removed. What stays is the kernel's part: the root
-> package `tartan`, its evaluation, previews and sign-offs, and the `projects` and `global` keys.
+> package `tartan`, its evaluation, previews and sign-offs, and the `global` key.
+
+> **Projects are not configured here.** They are discovered from `package tartan` files in non-root directories
+> ([`projects.md`](projects.md)); a `projects` key here names nothing. Those files are read textually, are **not**
+> evaluated by this page's pipeline and are **not** policy-gated: a project-root `.cue` edit lands without a sign-off.
+>
+> **An Owner's direct push is outside all of this.** It takes no sign-off, even for a root `*.cue` file, and the config
+> in force does not follow it ([`limits.md`](limits.md#owner-pushes)). `deno task dev` keeps repository config off for that reason.
 
 Repository config is **off** unless the forge was deployed with `--repo-config` ([`deploy.md`](deploy.md)). While it
-is off, nothing is evaluated: CI runs zero-config, review has no owners rules, and the project graph uses its
-detectors only.
+is off, nothing is evaluated: CI runs zero-config and review has no owners rules.
 
 ## Writing it
 
 Tartan config is every `*.cue` file directly in the repository root whose package clause is `package tartan`. Name and
 split the files as you like. Files of other packages in the same directory (for example a cuenv `env.cue` with
-`package cuenv`) are left alone, and subdirectories are never read. The `cue` tool decides which files belong to
+`package cuenv`) are left alone, and subdirectories are never read by this config (a `package tartan` file there makes
+a [project](projects.md)). The `cue` tool decides which files belong to
 package `tartan`, with its own rules (`_`-prefixed names, `*_tool.cue`, `*_test.cue` and `@if(…)` attributes
 included).
 
 ```text
-tartan.cue    package tartan: projects, global files, extension installs and overlays
+tartan.cue    package tartan: global files, extension installs and overlays
 ci.cue        package tartan: extensions: "tartan.ci": settings: pipeline {…}
 review.cue    package tartan: extensions: "tartan.review": settings: owners {…}
 env.cue       package cuenv: another tool's file, left alone
@@ -54,27 +61,18 @@ extensions: "tartan.review": settings: owners: rules: [
 ```cue
 package tartan
 
-_services: ["api", "web", "worker"]
-
-projects: {
-	shared: root: "packages/shared"
-	for s in _services {
-		(s): {root: "services/\(s)", deps: ["shared"]}
-	}
-}
 global: ["package.json", "pnpm-lock.yaml"]
 
 // Weave is installed above this repository and its Owner allowed repo overrides.
 extensions: "tartan.weave": settings: batch: 2
 ```
 
-Hidden fields (`_services`) and definitions are not exported. Without a pipeline, CI keeps its zero-config detection.
+Hidden fields and definitions are not exported. Without a pipeline, CI keeps its zero-config detection.
 
 ## What it can set
 
 | Top-level field | Meaning                                                                                                      |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |
-| `projects`      | the project graph's projects: `{root, deps?, sensitive?, owners?, test?}` each                               |
 | `global`        | globs whose change affects every project (root `*.cue` files always do)                                      |
 | `extensions`    | one entry per extension id; what an entry may hold depends on the extension's place in the hierarchy (below) |
 
@@ -117,7 +115,7 @@ the plan, the CUE errors and the forge's denials. The MCP tools `repo_config_get
   **Approve policy change** on the change page's "Repo config" card. The sign-off names the lane head and its root
   `*.cue` files; a new push needs a new one. Agents, tokens and review extensions cannot sign off. At most one such
   change lands per batch.
-- **Policy is read at the base.** CI, review and the project graph read the config in force at each change's base on
+- **Policy is read at the base.** CI, review and the global files read the config in force at each change's base on
   the default branch, never the lane's own version.
 - **Lands wait for the new config.** After a config change lands, other lands of that repository wait until it has
   been evaluated and applied. If it fails, the last good config stays in force and the settings page shows the
@@ -148,7 +146,7 @@ The file, preview and history numbers are starting values.
 | Was                                                      | Now                                                                       |
 | -------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `.tartan/pipeline.yaml` `timeout`, `jobs`, `on`, `lanes` | `extensions: "tartan.ci": settings: pipeline: {…}`                        |
-| `.tartan/pipeline.yaml` `projects`, `global`             | top-level `projects` and `global`                                         |
+| `.tartan/pipeline.yaml` `global`                         | top-level `global`                                                        |
 | `.tartan/owners.yaml` `rules`                            | `extensions: "tartan.review": settings: owners: rules: [{paths: […], …}]` |
 | `version: 1`                                             | dropped: the forge versions the schema                                    |
 

@@ -30,7 +30,8 @@ UX copy uses the tartan metaphor: agent **threads** (lanes) are **woven** (the W
    response already lists overlapping work in flight and suggests what to do: proceed, coordinate, stack, rebase or
    yield.
 2. The forge opens a **lane** for that work. The agent pushes to it with plain `git`; the gateway refuses a push to
-   anything else, including `main`, with a reason that git prints (`woven-by-tartan`, `not-your-lane`).
+   anything else, including `main`, with a reason that git prints (`woven-by-tartan`, `not-your-lane`). Only the
+   repository's Owner may push `main` directly, fast-forwards only.
 3. Every lane push is compared server-side with every other lane and with trunk. Collisions arrive where each party
    already looks: a notice on each agent's next MCP tool result and in its inbox.
    The **Lanes** view shows all of it live.
