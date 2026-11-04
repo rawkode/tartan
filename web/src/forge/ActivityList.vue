@@ -6,10 +6,12 @@ import { useSession } from "../app/context.ts";
 import { useResource } from "../composables/resource.ts";
 import { commitHref } from "../router/params.ts";
 import { age, type ForgeNode, useForge } from "./data/index.ts";
+import { useSignInHref } from "./nav.ts";
 
 const props = defineProps<{ node: ForgeNode }>();
 
 const store = useForge();
+const signIn = useSignInHref();
 const session = useSession();
 
 const handle = (id: string): string | null => {
@@ -49,7 +51,7 @@ const by = css({ overflowWrap: "anywhere" });
 		<p v-if="events.loading.value && !events.data.value" role="status"
 			:class="rows.empty">Loading…</p>
 		<p v-else-if="signedOut" :class="rows.empty"><a
-				href="/-/auth/login?return_to=/" data-reload>Sign in</a> to see this repo's activity.</p>
+				:href="signIn" data-reload>Sign in</a> to see this repo's activity.</p>
 		<p v-else-if="events.error.value" role="alert"
 			:class="rows.empty">Could not read the activity: {{ events.error.value }}</p>
 		<p v-else-if="events.data.value && !events.data.value.length"

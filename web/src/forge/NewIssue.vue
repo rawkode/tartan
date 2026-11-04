@@ -5,12 +5,13 @@ import { detail, field, form, panel } from "../../styled-system/recipes";
 import { errorMessage } from "../api/http.ts";
 import { Button, Field, Select } from "../design-system/index.ts";
 import { type ForgeNode, useForge } from "./data/index.ts";
-import { useForgeNav } from "./nav.ts";
+import { useForgeNav, useSignInHref } from "./nav.ts";
 
 // Opening an issue is what a contributor can do. A monorepo asks which project it belongs to.
 const props = defineProps<{ node: ForgeNode; scope: string }>();
 
 const nav = useForgeNav();
+const signIn = useSignInHref();
 const store = useForge();
 
 const WHOLE_REPO = "~";
@@ -62,7 +63,7 @@ const stack = css({ display: "grid", gap: "4" });
 <template>
 	<div :class="[box, 'anon-only']">
 		<div
-			:class="[denied.root, denied.empty]"><a href="/-/auth/login?return_to=/"
+			:class="[denied.root, denied.empty]"><a :href="signIn"
 				data-reload>Sign in</a> to contribute.</div>
 	</div>
 	<div :class="[box, stack, 'member-only']">

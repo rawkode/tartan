@@ -2,7 +2,16 @@
 // shell root hands same-origin ones to the router. A link the Worker answers
 // itself (sign-in) carries `data-reload` and stays a real page load.
 
-import { useRouter } from "vue-router";
+import { computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useSession } from "../app/context.ts";
+
+/** Back to this page after signing in. The Worker answers it, so a real page load. */
+export const useSignInHref = () => {
+	const session = useSession();
+	const route = useRoute();
+	return computed(() => session.loginUrl(route.fullPath));
+};
 
 export const useForgeNav = () => {
 	const router = useRouter();

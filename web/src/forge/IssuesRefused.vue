@@ -4,8 +4,10 @@ import { computed } from "vue";
 import { css } from "../../styled-system/css";
 import { panel } from "../../styled-system/recipes";
 import type { IssuesRefusal } from "./data/index.ts";
+import { useSignInHref } from "./nav.ts";
 
 const props = defineProps<{ reason: IssuesRefusal; message: string }>();
+const signIn = useSignInHref();
 
 const text = computed(() => {
 	switch (props.reason) {
@@ -36,7 +38,7 @@ const pad = css({
 <template>
 	<div :class="pad">
 		<div v-if="reason === 'unauthenticated'"
-			:class="[box.root, box.empty]"><a href="/-/auth/login?return_to=/"
+			:class="[box.root, box.empty]"><a :href="signIn"
 				data-reload>Sign in</a> to see the issues here.</div>
 		<div v-else :role="reason === 'error' ? 'alert' : undefined"
 			:class="[box.root, box.empty]">{{ text }}</div>

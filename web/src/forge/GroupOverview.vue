@@ -9,11 +9,13 @@ import {
 	urlFor,
 	useForge,
 } from "./data/index.ts";
+import { useSignInHref } from "./nav.ts";
 import IssueRow from "./IssueRow.vue";
 
 const props = defineProps<{ node: ForgeNode; scope: string }>();
 
 const store = useForge();
+const signIn = useSignInHref();
 
 const openCount = computed(() => store.openCount(props.node));
 const recent = computed(() =>
@@ -77,7 +79,7 @@ const muted = css({ fontWeight: "normal", color: "academy.textMuted" });
 					:class="rows.empty">No open issues here.</p>
 				<p v-if="refused"
 					:class="rows.empty">Some issues here are not visible to you. <a
-						class="anon-only" href="/-/auth/login?return_to=/"
+						class="anon-only" :href="signIn"
 						data-reload>Sign in</a></p>
 			</section>
 		</div>

@@ -8,7 +8,7 @@ Issues are `rawkode.issues` tools, called over `POST /-/api/repos/<id>/ext/rawko
 
 ## Model
 
-- **One owner.** Only the owner creates groups and repos. Contributors can open issues and add notes. `<html data-role>` comes from the session and only decides which controls show; the kernel still authorises every action.
+- **One owner.** Only the owner creates groups and repos. Contributors can open issues. `<html data-role>` comes from the session and only decides which controls show; the kernel still authorises every action.
 - **Addresses.** Groups and repos join with `/`, a project joins its repo with `:`, as in `oss/devtools/build/kiln:lsp`. `router/address.ts` splits them before anything reaches the kernel. The Jump box matches prefixes of each segment, so `o/d/k:l` finds that address.
 - **Projects** are the non-root directories holding a `.cue` file in `package tartan`, discovered on every push to main and cached by commit. A repo with none is a single project. Files no other project claims belong to an implicit root project, which has no address of its own: its row on a monorepo links to the repo's files, and an issue with no project sits on the repo.
 
