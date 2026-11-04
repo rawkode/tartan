@@ -18,8 +18,73 @@ Objects, Workflows, Artifacts and Sandbox containers), on your domain and behind
 > ([`extensions/issues`](extensions/issues), `rawkode.issues`). It
 > removed every first-party extension: `tartan.work`, `tartan.changes`, `tartan.board`, `tartan.radar`, `tartan.ci`, `tartan.review`, `tartan.weave`,
 > `tartan.fifo`, `tartan.epics`, `tartan.hud` and the Swarm and Classic packs, plus the `acme.no-secrets` Rust → WASM
-> demo and `packages/pipeline`. The rest of this README still describes the full forge,
+> demo and `packages/pipeline`. Apart from the [POC](#poc) section, this README still describes the full forge,
 > including those extensions.
+
+## POC
+
+Branch `poc/tartan` is a proof of concept of a single-owner forge. One owner has infinitely nested groups and repos at any
+level, the top included. Third parties are contributors: they cannot create groups or repos, whatever role they hold. A repo
+has projects: any directory other than the root holding a `.cue` file in `package tartan`, discovered on every push to
+`main` with no central list ([`docs/projects.md`](docs/projects.md)). Issues is a WASM extension, `rawkode.issues`,
+installed on a repo, and each project has it unless its `.cue` file says `extensions: "rawkode.issues": enabled: false`.
+
+### Run it
+
+It runs locally on workerd. Nothing here deploys it; [`docs/poc-deploy.md`](docs/poc-deploy.md) is the plan for Cloudflare.
+
+```sh
+nix develop
+npm ci
+deno task patch:workerd   # npm ci replaced the patched workerd binary (or leave the shell and enter it again)
+deno task poc             # port 8801; --port for another. Stays up until Ctrl-C
+```
+
+It seeds a sample tree in memory and prints the URL. Then, from another shell, once per fresh forge:
+
+```sh
+nix develop -c deno task poc:e2e --session .wrangler/poc/8801/session.json --shots <dir>
+```
+
+`deno task poc:proof --session <session.json>` checks the same result over HTTP. Run it on its own forge, since both add to the
+seeded state. `deno task check:web` and `deno task test:web` cover the shell.
+
+### What works
+
+These ran on workerd and through headless Chrome with stock git. None of it has run on Cloudflare.
+
+- Addresses: `/` joins groups and repos, `:` joins a project to its repo (`oss/devtools/build/kiln:lsp`), `/-/` separates a page.
+- Browsing the tree, a repo and a project: files, commits, activity, a project's deps and its Issues.
+- Issues per repo and per project, filed, closed and reopened through the UI, with the per-project off switch honoured.
+- Creating groups and repos, as the owner only. The kernel refuses anyone else: a Maintainer, someone the owner granted the
+  Owner role, and an agent, including the owner's own.
+- Pushing `main` with stock git, as the owner only, fast-forwards only. A new project shows up after the push, and goes when
+  it is removed.
+- Contributors clone and push branches, and read and file Issues where they have a role. Anonymous viewers read public repos.
+- A hostile `.cue` file on trunk costs its project only its own facts. It cannot fail or stall the repo's address.
+
+### What is hidden
+
+The forge shell shows only what the kernel can answer, so these have no control, tab or link
+([full list](docs/projects.md#what-the-shell-leaves-out)): changes and pull requests, CI and releases, lanes in the shell's
+navigation, an issue's notes and labels, and installing Issues from the shell (a new repo needs Extensions for that). The
+older pages under `/-/` (HUD, Agents, Extensions, node settings) still work and are styled differently.
+
+### Known gaps
+
+- **The trunk guarantee is weaker, on purpose.** "Trunk moves only through the Advance" holds for agents and contributors only.
+  The forge's owner can push `main` directly: untested, with no why-note, no gates and no sign-off
+  ([Owner pushes](docs/limits.md#owner-pushes)).
+- **The per-project switch is not policy-gated.** It is read textually from project `.cue` files, on or off only. A project-root
+  `.cue` edit lands without the ADR's sign-off. The switch scopes the Issues route for the UI and is not a security boundary
+  ([Per-project config is not enforced](docs/projects.md#per-project-config-is-not-enforced)).
+- **A contributor's branch has no way to `main`** except the owner fetching and pushing it. Changes and the extensions that
+  would ask for an Advance are absent, so the Advance has nothing asking for it.
+- **Never run on Cloudflare.** The local git backend is a fake (`packages/testkit`), so the direct push on real Artifacts is
+  unproven, as are Worker CPU limits on project detection.
+- **`--repo-config` must stay off.** An owner's push does not reach that module, so its config would go stale silently.
+- A third party with no role on a public repo gets 403 on Issues, so contributing needs an invite.
+- A move still needs a new parent, so nothing moves up to the top of the tree; create it there.
 
 Demo: [code.rawkode.academy](https://code.rawkode.academy) · [Deploy your own](#quickstart) ·
 [Connect an agent](#connecting-an-agent)
