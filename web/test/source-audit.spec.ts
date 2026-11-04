@@ -54,6 +54,53 @@ describe("SPA source audit", () => {
 	});
 });
 
+describe("forge shell", () => {
+	const shell = SOURCES.filter((p) =>
+		p.includes("/src/forge/") || p.includes("/src/design-system/")
+	);
+	const read = (file: string): string => readFileSync(file, "utf8");
+	const rel = (file: string): string => file.slice(WEB.length);
+
+	it("finds the shell", () => {
+		expect(shell.length).toBeGreaterThan(20);
+	});
+
+	it("reaches the sample data only through forge/data/index.ts", () => {
+		const outside = SOURCES.filter((p) => !p.includes("/src/forge/data/"));
+		const hits = outside.filter((file) =>
+			/["'][^"']*forge\/data\/(?!index\.ts)|["'][^"']*\.\/data\/(?!index\.ts)/
+				.test(read(file))
+		).map(rel);
+		expect(hits).toEqual([]);
+	});
+
+	it("has no leftovers of the old project model, name or mock controls", () => {
+		const stale = [
+			/\bt21\b/i,
+			/projects\.cue/,
+			/package forge/,
+			/cueFile/,
+			/RoleSelect/,
+			/this is a mockup/i,
+			/\/register/,
+		];
+		const hits = shell.filter((file) =>
+			stale.some((pattern) => pattern.test(read(file)))
+		).map(rel);
+		expect(hits).toEqual([]);
+	});
+
+	it("keeps Panda's element rules and preflight scoped to the shell", () => {
+		const config = readFileSync(join(WEB, "panda.config.ts"), "utf8");
+		expect(config).toMatch(/preflight: \{ scope: "\[data-forge\]"/);
+		const base = readFileSync(join(WEB, "src/styles/base.css"), "utf8");
+		expect(base.indexOf("@layer tartan-base {")).toBeGreaterThan(-1);
+		expect(base.indexOf("@layer tartan-base {")).toBeLessThan(
+			base.indexOf("body {"),
+		);
+	});
+});
+
 describe("CSP", () => {
 	it("uses the shell CSP", () => {
 		expect(SHELL_CSP).toBe(

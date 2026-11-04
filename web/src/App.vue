@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Application shell (WP18): header with primary navigation, the signed-in
 // principal (or "Sign in"), theme toggle, the routed view and toasts. At
-// 375 px the navigation folds behind a menu button.
+// 375 px the navigation folds behind a menu button. Forge shell routes draw their
+// own bar (`forge/ForgeApp.vue`), so they get the routed view and toasts only.
 import { computed, ref, watch } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import { useSession } from "./app/context.ts";
@@ -26,6 +27,11 @@ const cycleTheme = (): void => {
 	theme.value = nextThemePreference(theme.value);
 	applyThemePreference(theme.value);
 };
+
+// Nothing has matched until the first navigation settles, so the header cannot
+// flash on a forge route.
+const matched = computed(() => route.matched.length > 0);
+const forgeRoute = computed(() => route.meta["forge"] === true);
 
 const menuOpen = ref(false);
 watch(() => route.fullPath, () => {
@@ -61,7 +67,8 @@ const signOut = async (): Promise<void> => {
 
 <template>
 	<a class="visually-hidden skip-link" href="#main">Skip to content</a>
-	<header class="shell-header">
+	<RouterView v-if="forgeRoute" />
+	<header v-else-if="matched" class="shell-header">
 		<RouterLink class="shell-brand" to="/">
 			<svg class="shell-logo" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
 				<path d="M2 7h20M2 12h20M2 17h20M7 2v20M12 2v20M17 2v20" />
@@ -126,7 +133,7 @@ const signOut = async (): Promise<void> => {
 			>Sign in</a>
 		</div>
 	</header>
-	<main id="main" class="shell-main" tabindex="-1">
+	<main v-if="matched && !forgeRoute" id="main" class="shell-main" tabindex="-1">
 		<RouterView />
 	</main>
 	<ToastRegion />

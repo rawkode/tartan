@@ -44,6 +44,66 @@ describe("routes", () => {
 		expect((await resolve("/-/nope")).name).toBe("forge-not-found");
 	});
 
+	it("sends the forge shell's pages to the shell, and only those", async () => {
+		const shell = [
+			"/",
+			"/-/projects",
+			"/-/activity",
+			"/-/new/repo",
+			"/-/new/group",
+			"/-/issues",
+			"/-/issues/new",
+			"/-/issues/128",
+			"/-/design-system",
+			"/oss/devtools/build",
+			"/oss/devtools/build/kiln",
+			"/oss/devtools/build/kiln:lsp",
+			"/oss/-/projects",
+			"/oss/-/activity",
+			"/oss/-/new/repo",
+			"/oss/devtools/build/kiln:lsp/-/issues",
+			"/oss/devtools/build/kiln:lsp/-/issues/new",
+			"/oss/devtools/build/kiln:lsp/-/issues/128",
+			"/oss/devtools/build/kiln:lsp/-/activity",
+		];
+		for (const path of shell) {
+			expect([path, (await resolve(path)).meta["forge"]]).toEqual([path, true]);
+		}
+		expect((await resolve("/oss/kiln:lsp")).name).toBe("node");
+		expect((await resolve("/oss/kiln:lsp/-/issues/128")).params["n"]).toBe(
+			"128",
+		);
+		expect((await resolve("/oss/-/new/repo")).params["kind"]).toBe("repo");
+
+		const tartan: [string, string][] = [
+			["/-/setup", "setup"],
+			["/-/login", "login"],
+			["/-/invite/abc", "invite"],
+			["/-/hud", "hud"],
+			["/-/settings", "settings"],
+			["/-/extensions", "extensions"],
+			["/acme/r/-/settings", "node-settings"],
+			["/acme/r/-/settings/extensions", "repo-config"],
+			["/-/ui", "ui-gallery"],
+		];
+		for (const [path, name] of tartan) {
+			const route = await resolve(path);
+			expect([path, route.name, route.meta["forge"]]).toEqual([
+				path,
+				name,
+				undefined,
+			]);
+		}
+	});
+
+	it("does not treat other shapes as shell pages", async () => {
+		expect((await resolve("/-/new/project")).name).toBe("forge-not-found");
+		expect((await resolve("/-/issues/abc")).name).toBe("forge-not-found");
+		expect((await resolve("/-/changes")).name).toBe("forge-not-found");
+		expect((await resolve("/acme/-/new/project")).name).toBe("slot-tab");
+		expect((await resolve("/acme/r/-/issues/abc")).name).toBe("slot-tab");
+	});
+
 	it("keeps a ref with slashes as one segment and the rest as the path", async () => {
 		const href = blobHref("acme/r", "lanes/ln_x", "src/a b.ts");
 		expect(href).toBe("/acme/r/-/blob/lanes%2Fln_x/src/a%20b.ts");

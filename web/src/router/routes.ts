@@ -9,6 +9,12 @@
 // The kernel re-derives node, repo, ref and path server-side; route params are
 // hints only.
 //
+// The forge shell (`forge/ForgeApp.vue`) owns the forge root, nodes and their
+// projects, issues, activity and new-node pages. `:` joins a project to its repo
+// inside one path segment, so `kiln:lsp` reaches these routes as a node segment and
+// `router/address.ts` splits it. Every other route keeps its own view and Tartan's
+// header (`meta.forge` is what App.vue checks).
+//
 // Ownership: coordination views live in
 // `views/coord/` (WP19); repository config in `views/repoconfig/` (WP23);
 // everything else belongs to WP18.
@@ -32,6 +38,8 @@ export type RouteOwner = "WP18" | "WP19" | "WP23" | "WP25";
 export type ViewMeta = {
 	readonly title: string;
 	readonly owner: RouteOwner;
+	/** The page draws its own bar, so App.vue leaves out the header. */
+	readonly forge?: boolean;
 };
 
 const meta = (title: string, owner: RouteOwner = "WP18"): ViewMeta => ({
@@ -39,14 +47,48 @@ const meta = (title: string, owner: RouteOwner = "WP18"): ViewMeta => ({
 	owner,
 });
 
+const forgeMeta = (title: string): ViewMeta => ({
+	...meta(title),
+	forge: true,
+});
+
+const ForgeApp = () => import("../forge/ForgeApp.vue");
+
+/** The shell's pages, at the forge root and on every node. */
+const forgePages = (
+	prefix: string,
+	at: (suffix: string) => string,
+): readonly RouteRecordRaw[] =>
+	[
+		["projects", "/-/projects", "Projects"],
+		["activity", "/-/activity", "Activity"],
+		["new", "/-/new/:kind(group|repo)", "New"],
+		["issues", "/-/issues", "Issues"],
+		["issue-new", "/-/issues/new", "New issue"],
+		["issue", "/-/issues/:n(\\d+)", "Issue"],
+	].map(([name, suffix, title]) => ({
+		path: at(suffix!),
+		name: `${prefix}-${name}`,
+		component: ForgeApp,
+		meta: forgeMeta(title!),
+	}));
+
 export const routes: readonly RouteRecordRaw[] = [
-	// Forge home and HUD (WP19): every judge question is ≤ 2 clicks away.
+	// The forge root: everything the owner keeps here.
 	{
 		path: "/",
-		alias: "/-/hud",
 		name: "home",
+		component: ForgeApp,
+		meta: forgeMeta("Everything"),
+	},
+	...forgePages("forge", (suffix) => suffix),
+
+	// HUD (WP19): every judge question is ≤ 2 clicks away.
+	{
+		path: "/-/hud",
+		name: "hud",
 		component: () => import("../views/coord/HudView.vue"),
-		meta: meta("Home", "WP19"),
+		meta: meta("HUD", "WP19"),
 	},
 
 	// First run and sign-in.
@@ -121,6 +163,12 @@ export const routes: readonly RouteRecordRaw[] = [
 		meta: meta("UI nodes"),
 	},
 	{
+		path: "/-/design-system",
+		name: "design-system",
+		component: () => import("../forge/DesignSystemView.vue"),
+		meta: forgeMeta("Design system"),
+	},
+	{
 		path: "/-/:rest(.*)*",
 		name: "forge-not-found",
 		component: () => import("../views/shell/NotFoundView.vue"),
@@ -137,9 +185,10 @@ export const routes: readonly RouteRecordRaw[] = [
 	{
 		path: node(),
 		name: "node",
-		component: () => import("../views/node/NodeView.vue"),
-		meta: meta("Namespace"),
+		component: ForgeApp,
+		meta: forgeMeta("Namespace"),
 	},
+	...forgePages("node", node),
 	{
 		path: node("/-/settings"),
 		name: "node-settings",

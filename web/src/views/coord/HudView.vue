@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The HUD (WP19; `/`, `/-/hud`, `/-/hud?node=<path>`). It hosts the
+// The HUD (WP19; `/-/hud`, `/-/hud?node=<path>`). It hosts the
 // `hud.metric` and `home.section` slots of whatever extensions are installed
 // on each namespace. `GET /-/api/view` needs a node
 // path, so the forge home shows the HUD of each top-level namespace that has

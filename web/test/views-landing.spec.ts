@@ -274,7 +274,7 @@ describe("advances and why (WP10 API)", () => {
 
 describe("forge home", () => {
 	it("shows real namespaces and the HUD of each namespace that has one", async () => {
-		const app = await mountApp("/");
+		const app = await mountApp("/-/hud");
 		const paths = app.calls.map((c) => c.path);
 		expect(paths).toContain("/-/api/nodes");
 		expect(paths).toContain("/-/api/view?path=acme&view=hud");

@@ -38,7 +38,7 @@ const settle = async (app: Awaited<ReturnType<typeof mountApp>>) => {
 
 describe("the forge home hosts each namespace's HUD", () => {
 	it("renders the metrics and sections installed on acme", async () => {
-		const app = await mountApp("/");
+		const app = await mountApp("/-/hud");
 		await settle(app);
 		const notes = instId(NOTES);
 		const renders = app.calls
@@ -65,14 +65,14 @@ describe("the forge home hosts each namespace's HUD", () => {
 	});
 
 	it("says what to install when no namespace has a HUD", async () => {
-		const app = await mountApp("/", { mock: { catalog: EMPTY_CATALOG } });
+		const app = await mountApp("/-/hud", { mock: { catalog: EMPTY_CATALOG } });
 		await vi.waitFor(() => expect(text(app.root)).toContain("No HUD yet"));
 		expect(byAttr(app.root, "data-hud-node")).toEqual([]);
 		expect(links(app.root)).toContain("/-/extensions");
 	});
 
 	it("leaves out namespaces without a HUD and keeps the namespace list", async () => {
-		const app = await mountApp("/");
+		const app = await mountApp("/-/hud");
 		await settle(app);
 		expect(byAttr(app.root, "data-hud-node", "rawkode")).toEqual([]);
 		expect(links(app.root)).toContain("/rawkode");
@@ -82,7 +82,7 @@ describe("the forge home hosts each namespace's HUD", () => {
 
 describe("where to look: every judge question in one click", () => {
 	it("lists the repositories found with a link per question", async () => {
-		const app = await mountApp("/");
+		const app = await mountApp("/-/hud");
 		await settle(app);
 		const rows = byAttr(app.root, "data-guide-repo");
 		expect(rows.map((r) => r.attrs["data-guide-repo"])).toContain(
@@ -112,7 +112,7 @@ describe("where to look: every judge question in one click", () => {
 	});
 
 	it("each question's page is one click away and routes", async () => {
-		const app = await mountApp("/");
+		const app = await mountApp("/-/hud");
 		await settle(app);
 		const router = byAttr(app.root, "data-guide-repo", "acme/platform/router")[
 			0

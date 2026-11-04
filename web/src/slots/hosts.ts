@@ -22,7 +22,7 @@ export const SLOT_HOSTS: Readonly<Partial<Record<SlotId, readonly string[]>>> =
 		"change.panel": ["views/repo/ChangeView.vue"],
 		"change.sidebar": ["views/repo/ChangeView.vue"],
 		"change.gate": ["views/repo/ChangeView.vue"],
-		// The HUD page (`/`, `/-/hud?node=<path>`): each node's `hud` and `home` views.
+		// The HUD page (`/-/hud`, `/-/hud?node=<path>`): each node's `hud` and `home` views.
 		"hud.metric": ["views/coord/hud/HudNode.vue"],
 		"home.section": ["views/coord/hud/HudNode.vue"],
 	};

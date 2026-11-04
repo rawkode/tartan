@@ -16,12 +16,14 @@ import { createSession, type Session } from "../../src/auth/session.ts";
 import { SCHEDULER } from "../../src/live/scheduler.ts";
 import { createLiveStore, type SocketLike } from "../../src/live/store.ts";
 import { createAppRouter } from "../../src/router/index.ts";
+import { NODE_SEGMENT } from "../../src/router/routes.ts";
 import { SETUP_TOKEN } from "../../src/setup/fragment.ts";
 import { createToasts, TOASTS, type Toasts } from "../../src/shell/toasts.ts";
 import {
 	createProjectsClient,
 	PROJECTS,
 } from "../../src/views/project/client.ts";
+import NodeView from "../../src/views/node/NodeView.vue";
 import { SAMPLE_CATALOG } from "./catalog.ts";
 import { type FakeClock, fakeClock } from "./fakes.ts";
 import { flush, mount, type TestElement } from "./renderer.ts";
@@ -73,6 +75,16 @@ export type AppHarness = {
 	readonly unmount: () => void;
 };
 
+// The `node` route mounts the forge shell, whose Ark UI needs a real DOM, and this
+// harness renders in memory (`forge-shell.spec.ts` renders the shell to a string).
+// So node pages here are NodeView, which still holds the kernel-backed node page
+// until the shell has real data, at the same address.
+const NODE_VIEW_ROUTE = {
+	path: `/:nodePath(${NODE_SEGMENT})+`,
+	name: "node",
+	component: NodeView,
+};
+
 export const mountApp = async (
 	path: string,
 	options: {
@@ -101,6 +113,7 @@ export const mountApp = async (
 		history: createMemoryHistory(),
 		...(options.guard ? { api } : {}),
 	});
+	router.addRoute(NODE_VIEW_ROUTE);
 	const toasts = createToasts(() => undefined);
 	const clock = options.clock ?? fakeClock();
 	const live = createLiveStore({
