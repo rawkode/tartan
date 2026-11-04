@@ -2,7 +2,7 @@
 // A′). Projects are a filter, not a store:
 //
 // - a work item is the project's when its footprint names the project (by
-//   graph name, raw cuenv name, slug or root) or a footprint prefix lies in
+//   graph name, raw declared name, slug or root) or a footprint prefix lies in
 //   the project's root (the longest root holding it, as radar maps paths);
 // - a change is the project's when its latest revision's affected set holds
 //   the project's name, or `*` (a global file changed: every project is
@@ -30,7 +30,7 @@ export const workMatch = (
 	projectOf: (path: string) => string | null,
 ): ProjectWorkItemDto["matched"] | null => {
 	const names = new Set(
-		[project.name, project.cuenvName, project.slug, project.root].filter((
+		[project.name, project.declaredName, project.slug, project.root].filter((
 			n,
 		): n is string => typeof n === "string" && n !== ""),
 	);

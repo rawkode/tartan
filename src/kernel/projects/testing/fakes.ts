@@ -1,5 +1,5 @@
-// Fakes for the projects API's Deno tests (WP25 slice A′): the demo-shaped
-// cuenv graph at a trunk tip, a repo node, SHA reads over the fixture's
+// Fakes for the projects API's Deno tests (WP25 slice A′): the demo
+// graph at a trunk tip, a repo node, SHA reads over the fixture's
 // objects, the providers of work@1 and changes@1, and their list tools with
 // the tools' own role check. Plain module (no `cloudflare:*`).
 
@@ -15,7 +15,7 @@ import {
 import type { AuthContext } from "@tartan/contract/kernel.ts";
 import { createTreeView, detectProjects } from "@tartan/monorepo";
 import { createMemGit } from "../../../../packages/monorepo/test/memgit.ts";
-import { CUENV_DEMO_FILES } from "../../../../packages/monorepo/test/fixtures/cuenv-demo.ts";
+import { TARTAN_DEMO_FILES } from "../../../../packages/monorepo/test/fixtures/tartan-demo.ts";
 import type { RouteContext } from "../../../router.ts";
 import type { RepoReads } from "../../browse/reader.ts";
 import { createProjectsHandler } from "../api.ts";
@@ -30,19 +30,12 @@ export const DS = "rawkode-academy-design-system";
 export const WEB = "rawkode-academy-website";
 
 const git = createMemGit();
-const TREE = git.writeTree(CUENV_DEMO_FILES);
-const detected = await detectProjects(
-	createTreeView(git.objects, TREE),
-	undefined,
-	{ cuenv: true },
-);
+const TREE = git.writeTree(TARTAN_DEMO_FILES);
+const detected = await detectProjects(createTreeView(git.objects, TREE));
 export const GRAPH = {
+	...detected,
 	sha: TIP,
-	manifestsTreeSha: detected.manifestsTreeSha,
-	projects: detected.projects,
-	globalFiles: detected.globalFiles,
 	configKey: "off",
-	...detected.extras,
 } as ProjectGraph;
 
 export const item = (

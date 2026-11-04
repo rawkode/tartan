@@ -1,10 +1,10 @@
 // Projects of a graph as the API shows them, and `resolveProject`: a
 // project named by its slug, its root (the key), its graph name or its raw
-// cuenv name (agents type either a name or a root; URLs carry the slug).
-// Graphs without slugs (the workspace detectors) get them here by the
-// same rule as the cuenv detector, so every project has a page.
+// declared name (agents type either a name or a root; URLs carry the slug).
+// A stored project without a slug gets one here by the detector's rule, so
+// every project has a page.
 
-import { slugOf } from "@tartan/monorepo/cuenv/identity.ts";
+import { slugOf } from "@tartan/monorepo/tartan/identity.ts";
 import type {
 	Project,
 	ProjectDto,
@@ -13,6 +13,7 @@ import type {
 	ProjectsRepoDto,
 	ProjectsResponse,
 } from "@tartan/contract";
+import { ISSUES_EXTENSION } from "@tartan/monorepo/tartan/manifest.ts";
 
 /** Slugs for every project: the graph's own, else `slugOf(name)` made unique by `-<n>`. */
 const slugsOf = (projects: readonly Project[]): Map<string, string> => {
@@ -47,15 +48,17 @@ const dtoOf = (p: Project, slug: string): ProjectDto => ({
 	name: p.name,
 	slug,
 	root: p.root,
-	...(p.cuenvName !== undefined ? { cuenvName: p.cuenvName } : {}),
+	...(p.declaredName !== undefined ? { declaredName: p.declaredName } : {}),
 	source: p.source,
 	...(p.nameSource !== undefined ? { nameSource: p.nameSource } : {}),
 	...(p.fidelity !== undefined ? { fidelity: p.fidelity } : {}),
-	layers: p.layers ?? [],
+	layers: [],
 	deps: p.deps,
 	dependents: p.dependents,
 	...(p.manifestPath !== undefined ? { manifestPath: p.manifestPath } : {}),
 	issues: p.issues ?? [],
+	// Every project has the extension unless its `.cue` file says otherwise.
+	extensions: p.extensions ?? { [ISSUES_EXTENSION]: { enabled: true } },
 });
 
 /** The DTOs of a graph's projects, sorted by root. */
@@ -78,7 +81,7 @@ export const projectView = (graph: ProjectGraph): ProjectView => {
 };
 
 /**
- * A project by slug, root, graph name or raw cuenv name (in that order of
+ * A project by slug, root, graph name or raw declared name (in that order of
  * precedence); null when none matches.
  */
 export const resolveProject = (
@@ -88,7 +91,7 @@ export const resolveProject = (
 	view.bySlug.get(ref) ??
 		view.projects.find((p) => p.root === ref) ??
 		view.projects.find((p) => p.name === ref) ??
-		view.projects.find((p) => p.cuenvName === ref) ??
+		view.projects.find((p) => p.declaredName === ref) ??
 		null;
 
 /** The list response for a graph (or for a repo without commits). */
@@ -118,11 +121,10 @@ export const projectsResponse = (
 		detector: g.detector ?? null,
 		fidelity: g.fidelity ?? null,
 		projects: view.projects,
-		layers: g.layers ?? [],
+		layers: [],
 		skipped: g.skipped ?? [],
 		warnings: g.warnings ?? [],
 		truncated: g.truncated === true,
-		...(g.rootProject ? { rootProject: g.rootProject } : {}),
 		global: g.globalFiles.map((f) => f.glob),
 	};
 };

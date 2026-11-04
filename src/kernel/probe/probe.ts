@@ -62,8 +62,7 @@ import {
 import { BINDING_READS_CONCURRENCY } from "../../constants.ts";
 import type { TokenBucket } from "./bucket.ts";
 import type { ObjectCache } from "./cache.ts";
-import type { ProjectsMode } from "../projects/mode.ts";
-import { graphMode } from "./projects.ts";
+import { isCurrentGraph } from "./projects.ts";
 import { walkLaneRange } from "./range.ts";
 import {
 	createProbeReader,
@@ -123,11 +122,6 @@ export type RepoProbeDeps = {
 	 * config (ADR repo config). Off (the default): detectors only, no RPC.
 	 */
 	readonly repoConfig?: boolean;
-	/**
-	 * `TARTAN_PROJECTS` (WP25): `scan` runs the cuenv detector first. A
-	 * cached graph computed under the other mode is recomputed.
-	 */
-	readonly projects?: ProjectsMode;
 };
 
 // ---------------------------------------------------------------------------
@@ -465,7 +459,7 @@ export const createRepoProbe = (deps: RepoProbeDeps): RepoProbeApi => {
 	});
 
 	/**
-	 * The configured projects and global files at a commit's trunk base
+	 * The configured global files at a commit's trunk base
 	 * (ADR repo config): the commit itself when it is on trunk, else its K17
 	 * merge base with trunk (the lane's base, or the trunk tip, as fallback).
 	 * The probe never runs CUE and never parses it.
@@ -513,9 +507,8 @@ export const createRepoProbe = (deps: RepoProbeDeps): RepoProbeApi => {
 		if (graph !== null && (graph.configKey ?? "off") !== config.key) {
 			graph = null; // computed under another trunk config
 		}
-		const mode = deps.projects ?? "off";
-		if (graph !== null && graphMode(graph) !== mode) {
-			graph = null; // computed under the other TARTAN_PROJECTS mode
+		if (graph !== null && !isCurrentGraph(graph)) {
+			graph = null; // computed by an earlier detector
 		}
 		if (graph === null) {
 			const reader = await s.reader(source);
@@ -523,16 +516,12 @@ export const createRepoProbe = (deps: RepoProbeDeps): RepoProbeApi => {
 			const detected = await detectProjects(
 				createTreeView(reader.objects, tree),
 				config,
-				{ cuenv: mode === "scan" },
 			);
 			graph = {
+				...detected,
 				sha: commit,
-				manifestsTreeSha: detected.manifestsTreeSha,
-				projects: detected.projects,
-				globalFiles: detected.globalFiles,
 				configKey: config.key,
 				...(config.provisional ? { provisional: true } : {}),
-				...detected.extras,
 			};
 			await port.putProjects(graph);
 		}

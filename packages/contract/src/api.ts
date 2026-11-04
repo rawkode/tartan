@@ -1203,35 +1203,40 @@ export type ProjectIssueDto = {
 	readonly message: string;
 };
 
+/** No detector produces layers any more: the wire field is always empty. */
 export type ProjectLayerDto = {
-	/** The `#Base` directory ("" is the repo root). */
 	readonly root: string;
-	/** `.cue` paths under it outside every project root. */
 	readonly paths: readonly string[];
 };
 
 export type ProjectDto = {
 	/** The root: the stable key (storage, footprints, installations later). */
 	readonly key: string;
-	/** Unique in the graph (cuenv names carry `@<root slug>` on a duplicate). */
+	/** Unique in the graph (a duplicate declared name carries `@<root slug>`). */
 	readonly name: string;
 	/** The URL segment of `/<repo>/-/p/<slug>`. */
 	readonly slug: string;
 	readonly root: string;
-	/** The raw cuenv name when `name` carries a uniqueness suffix. */
-	readonly cuenvName?: string;
-	/** `cuenv`, `tartan-config`, `pnpm-workspace`, `npm-workspaces`, … */
+	/** The raw declared name when `name` carries a uniqueness suffix. */
+	readonly declaredName?: string;
+	/** `tartan`: a directory holding a `package tartan` file. */
 	readonly source: string;
-	readonly nameSource?: "literal" | "manifest" | "unresolved";
+	/** `literal`: a top-level `name: "x"`; `directory`: the directory's name. */
+	readonly nameSource?: "literal" | "directory";
 	readonly fidelity?: "scan" | "eval";
-	/** `#Base` directories above the root, root first. */
+	/** Always empty: no detector produces layers any more. */
 	readonly layers: readonly string[];
-	/** Names of the projects this one depends on (lifted workspace edges). */
+	/** Names of the projects this one depends on (literal `deps`). */
 	readonly deps: readonly string[];
 	readonly dependents: readonly string[];
 	/** A change to it is global (every project is affected). */
 	readonly manifestPath?: string;
 	readonly issues: readonly ProjectIssueDto[];
+	/**
+	 * Per-project extension switches, read textually from the project's `.cue`
+	 * files: an extension is on unless a project says otherwise. Not policy-gated.
+	 */
+	readonly extensions: Readonly<Record<string, { readonly enabled: boolean }>>;
 };
 
 export type ProjectsRepoDto = { readonly id: string; readonly path: string };
@@ -1241,18 +1246,17 @@ export type ProjectsResponse = {
 	readonly repo: ProjectsRepoDto;
 	/** The commit the graph is at; null for a repo without commits. */
 	readonly sha: string | null;
-	/** `cuenv` (the scan), `config` (package tartan's `projects`), `workspaces`. */
-	readonly detector: "cuenv" | "config" | "workspaces" | null;
+	/** `tartan`: the scan for `package tartan` directories; null without commits. */
+	readonly detector: "tartan" | null;
 	readonly fidelity: "scan" | "eval" | "exact" | null;
 	readonly projects: readonly ProjectDto[];
+	/** Always empty: no detector produces layers any more. */
 	readonly layers: readonly ProjectLayerDto[];
-	/** Nested CUE modules and walk limits (`depth-limit`, `dir-limit`, `project-limit`). */
+	/** Walk limits hit (`depth-limit`, `dir-limit`, `project-limit`, `packages-limit`). */
 	readonly skipped: readonly string[];
 	readonly warnings: readonly ProjectIssueDto[];
 	/** A walk limit was hit: every change counts as touching every project. */
 	readonly truncated: boolean;
-	/** A root `env.cue` with `#Project` names the repository itself. */
-	readonly rootProject?: { readonly name: string };
 	/** Global file globs: a change to one affects every project. */
 	readonly global: readonly string[];
 };
@@ -1270,7 +1274,7 @@ export type ProjectDetailResponse = {
 	readonly detector: ProjectsResponse["detector"];
 	readonly fidelity: ProjectsResponse["fidelity"];
 	readonly project: ProjectDto;
-	/** The project's layers, root first, with their `.cue` paths. */
+	/** Always empty: no detector produces layers any more. */
 	readonly layers: readonly ProjectLayerDto[];
 	readonly deps: readonly ProjectRefDto[];
 	readonly dependents: readonly ProjectRefDto[];

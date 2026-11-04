@@ -1,10 +1,8 @@
-// A small CUE tokenizer for the Tier 0 scan (WP25 slice A′; written for
-// Tartan, no cuenv code or text is copied). It is no parser: it removes comments, replaces every string
-// literal by `""` (keeping the literal's text aside) and records the bracket
-// nesting at the start of each line, so the classifier can ask "is there a
-// top-level `#Project` reference" and "is there a literal `name`" without
-// being fooled by a `#Project` inside a string, a comment, a multi-line
-// string or a hidden field.
+// A small CUE tokenizer for the textual project read (`./manifest.ts`). It is
+// no parser: it removes comments, replaces every string literal by `""`
+// (keeping the literal's text aside) and records the bracket nesting at the
+// start of each line, so the reader is not fooled by a declaration inside a
+// string, a comment or a multi-line string.
 //
 // Strings: `"…"`, `'…'`, `"""…"""`, `'''…'''`, and each with `#` delimiters
 // (`#"…"#`, `##"""…"""##`); escapes `\x` (`\#x` in a `#` string) and
@@ -212,70 +210,4 @@ export const scanCue = (text: string): CueLine[] => {
 	}
 	endLine();
 	return lines;
-};
-
-// ---------------------------------------------------------------------------
-// env.cue classification (cuenv's discovery rules, re-implemented)
-// ---------------------------------------------------------------------------
-
-const QUALIFIED = String.raw`(?:[A-Za-z_$][\w$]*\.)?`;
-/** A top-level embedding of `#Project` (`schema.#Project`, `schema.#Project & {`). */
-const PROJECT_RE = new RegExp(String.raw`^\s*${QUALIFIED}#Project\b`);
-const PROJECT_BLOCK_RE = new RegExp(
-	String.raw`^\s*${QUALIFIED}#Project\s*&\s*\{`,
-);
-const BASE_RE = new RegExp(String.raw`^\s*${QUALIFIED}#Base\b`);
-/** `name: "<one simple literal>"` (the literal is replaced by `""` in `code`). */
-const NAME_LINE_RE = /^\s*name\s*:\s*""\s*,?\s*$/;
-/** The characters a literal name may hold (`FootprintSchema`-safe). */
-export const NAME_CHARS_RE = /^[A-Za-z0-9._-]+$/;
-
-export type EnvCueKind = "project" | "base" | "unknown";
-
-export type EnvCueFacts = {
-	readonly kind: EnvCueKind;
-	/** Line of the `#Project` / `#Base` embedding. */
-	readonly kindLine?: number;
-	/** The first literal `name` at the top level or in the `#Project & {…}` block (any length). */
-	readonly name?: string;
-	readonly nameLine?: number;
-};
-
-/**
- * cuenv's textual classification of one `env.cue` (already known to be
- * `package cuenv`): a top-level `#Project` reference makes a project, a
- * `#Base` reference alone a layer, neither is unknown. The name is the
- * first `name: "<literal>"` at brace depth 0, or at depth 1 directly inside
- * the block a top-level `#Project & {` opens.
- */
-export const classifyEnvCue = (text: string): EnvCueFacts => {
-	const lines = scanCue(text);
-	const top = lines.filter((l) => l.depth === 0 && !l.continued);
-	const projectLine = top.find((l) => PROJECT_RE.test(l.code));
-	const baseLine = top.find((l) => BASE_RE.test(l.code));
-	const projectBlocks = new Set(
-		top.filter((l) => PROJECT_BLOCK_RE.test(l.code)).flatMap((l) => {
-			const brace = l.opened.find((b) => b.ch === "{");
-			return brace ? [brace.id] : [];
-		}),
-	);
-	const nameLine = lines.find((l) =>
-		!l.continued &&
-		(l.depth === 0 || (l.depth === 1 && projectBlocks.has(l.block))) &&
-		NAME_LINE_RE.test(l.code) && l.strings.length === 1 &&
-		l.strings[0].simple && NAME_CHARS_RE.test(l.strings[0].raw)
-	);
-	const kind: EnvCueKind = projectLine
-		? "project"
-		: baseLine
-		? "base"
-		: "unknown";
-	const kindAt = projectLine ?? baseLine;
-	return {
-		kind,
-		...(kindAt ? { kindLine: kindAt.n } : {}),
-		...(nameLine
-			? { name: nameLine.strings[0].raw, nameLine: nameLine.n }
-			: {}),
-	};
 };

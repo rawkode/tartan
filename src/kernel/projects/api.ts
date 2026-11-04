@@ -8,10 +8,11 @@
 //
 // Reads follow the repo: whoever may read it reads its projects (the public
 // view of a public repo included). The graph is the one at the trunk tip
-// (K13: projects are facts of trunk), detected lazily on its first read;
+// (K13: projects are facts of trunk), discovered when a push moves trunk and
+// otherwise on its first read;
 // `?sha=` needs Reporter+ and a trunk commit, and an uncached one is
 // rate-limited per principal. The project segment is a slug, a root, a
-// graph name or a raw cuenv name. The lists call `work_list` and
+// graph name or a raw declared name. The lists call `work_list` and
 // `changes_list` on the providers in force **as the viewer** (the tools' own
 // role check decides; anonymous callers are asked to sign in) and keep the
 // items whose footprint names the project and the changes whose latest
@@ -38,7 +39,7 @@ import {
 import { actorBoundsOf, type AuthContext } from "@tartan/contract/kernel.ts";
 import type { RouteContext, RouteHandler } from "../../router.ts";
 import { failure, json, optionalParam } from "../browse/http.ts";
-import { graphMode } from "../probe/projects.ts";
+import { isCurrentGraph } from "../probe/projects.ts";
 import { accessFacts, decide, memberRole } from "../tree/authz.ts";
 import { type ProjectsDeps, projectsDepsOf } from "./deps.ts";
 import { docsOf } from "./docs.ts";
@@ -119,7 +120,7 @@ const graphOf = async (
 	const seqs = await deps.repo(repoId).trunkSeqs([sha]);
 	if (seqs[sha] === undefined) throw notFound(`${sha} is not a trunk commit`);
 	const cached = await deps.cachedGraph(repoId, sha);
-	if (cached !== null && graphMode(cached) === deps.mode) return cached;
+	if (cached !== null && isCurrentGraph(cached)) return cached;
 	if (!deps.admit(auth.principal)) {
 		throw rateLimited("too many uncached project graph requests", 60_000);
 	}
@@ -292,7 +293,6 @@ async (c) => {
 			} finally {
 				reads.close();
 			}
-			const layers = view.graph.layers ?? [];
 			return json(
 				{
 					repo: target.repo,
@@ -300,9 +300,7 @@ async (c) => {
 					detector: view.graph.detector ?? null,
 					fidelity: view.graph.fidelity ?? null,
 					project,
-					layers: project.layers.flatMap((root) =>
-						layers.filter((l) => l.root === root)
-					),
+					layers: [],
 					deps: project.deps.flatMap((n) => view.ref(n) ?? []),
 					dependents: project.dependents.flatMap((n) => view.ref(n) ?? []),
 					...docs,

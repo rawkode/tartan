@@ -13,7 +13,6 @@ import {
 	type ObjectCache,
 } from "./cache.ts";
 import type { ProbeRepoPort, RepoProbeDeps } from "./probe.ts";
-import { projectsMode } from "../projects/mode.ts";
 
 /** RepoDO of `repoId` as RepoProbe's port. */
 export const repoPort = (env: Env, repoId: string): ProbeRepoPort => {
@@ -63,5 +62,4 @@ export const probeDepsFromEnv = (env: Env): RepoProbeDeps => ({
 	bucket: isolateReadBucket,
 	graphMemo,
 	repoConfig: env.TARTAN_REPO_CONFIG === "on",
-	projects: projectsMode(env),
 });

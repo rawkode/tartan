@@ -1,12 +1,11 @@
-// Project identity in a cuenv graph (WP25 slice A′): three names, one job
-// each. The **key** is the root (storage, installation targets, caching);
+// Project identity in a graph: three names, one job each. The **key** is the root (storage, installation targets, caching);
 // the **name** is the graph's primary key everywhere today (`projects.name`,
 // radar areas, Weave partitions, CI job ids, footprints), so it is made
 // unique by construction; the **slug** is the URL segment.
 //
-// - Names: the first root in path order keeps the bare cuenv name; every
+// - Names: the first root in path order keeps the bare declared name; every
 //   later root with the same name becomes `<name>@<slug(root)>` and keeps the
-//   raw name in `cuenvName`; both carry a `duplicate-name` issue. Names are a
+//   raw name in `declaredName`; both carry a `duplicate-name` issue. Names are a
 //   function of one tree, so unlike slugs they are NOT stable across commits
 //   while a name is duplicated: a new root that sorts earlier takes the bare
 //   name (the `duplicate-name` issue is the signal). Keeping the bare name
@@ -33,7 +32,7 @@ export const slugOf = (text: string): string => {
 
 export type IdentityInput = {
 	readonly root: string;
-	/** The cuenv name (or the fallback for an unresolved one). */
+	/** The literal name, or the directory name without one. */
 	readonly name: string;
 };
 
@@ -41,8 +40,8 @@ export type Identity = {
 	readonly root: string;
 	/** Unique within the graph. */
 	readonly name: string;
-	/** The raw cuenv name, present only when `name` carries a suffix. */
-	readonly cuenvName?: string;
+	/** The raw declared name, present only when `name` carries a suffix. */
+	readonly declaredName?: string;
 	/** Unique within the graph. */
 	readonly slug: string;
 	readonly issues: readonly ProjectIssue[];
@@ -78,7 +77,7 @@ export const assignIdentities = async (
 			name = `${p.name}@${slugOf(p.root)}-${k}`;
 		}
 		taken.add(name);
-		return { root: p.root, name, cuenvName: p.name, issues };
+		return { root: p.root, name, declaredName: p.name, issues };
 	});
 	const bases = named.map((p) => slugOf(p.name));
 	const groups = new Map<string, number>();

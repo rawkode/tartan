@@ -35,9 +35,8 @@ const graph = (sha: string, key: string): ProjectGraph => ({
 		dependents: [],
 		owners: [],
 		sensitive: false,
-		source: "pnpm-workspace",
-		manifestPath: "services/api/package.json",
-		testCmd: "pnpm test",
+		source: "tartan",
+		manifestPath: "services/api/forge.cue",
 	}],
 	globalFiles: [{ glob: "*.cue", source: "detector-default" }],
 });

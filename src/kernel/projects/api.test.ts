@@ -5,7 +5,10 @@
 // affected set.
 
 import { deepStrictEqual, equal, ok } from "node:assert/strict";
-import { CUENV_DEMO_FILES } from "../../../packages/monorepo/test/fixtures/cuenv-demo.ts";
+import {
+	TARTAN_DEMO_FILES,
+	TARTAN_DEMO_PROJECTS,
+} from "../../../packages/monorepo/test/fixtures/tartan-demo.ts";
 import { createAdmission } from "./deps.ts";
 import type {
 	ProjectChangesResponse,
@@ -39,23 +42,36 @@ Deno.test("list: the trunk graph, served to an anonymous reader of a public repo
 	const { status, body } = await get<ProjectsResponse>(f, "", null);
 	equal(status, 200);
 	equal(body.sha, TIP);
-	equal(body.detector, "cuenv");
+	equal(body.detector, "tartan");
 	equal(body.fidelity, "scan");
-	equal(body.projects.length, 38);
+	equal(body.projects.length, TARTAN_DEMO_PROJECTS.length);
 	deepStrictEqual(body.repo, { id: REPO_ID, path: "rawkode/academy" });
-	deepStrictEqual(body.layers.map((l) => l.root), [
-		"",
-		"projects",
-		"projects/rawkode.academy",
-	]);
-	deepStrictEqual(body.skipped, ["projects/code.rawkode.academy/config"]);
+	deepStrictEqual(body.layers, []);
+	deepStrictEqual(body.skipped, []);
 	equal(body.truncated, false);
 	ok(body.global.includes("bun.lock"));
 	const ds = body.projects.find((p) => p.name === DS)!;
 	deepStrictEqual(
 		[ds.slug, ds.root, ds.key, ds.source, ds.dependents],
-		[DS, "packages/design-system", "packages/design-system", "cuenv", [WEB]],
+		[DS, "packages/design-system", "packages/design-system", "tartan", [WEB]],
 	);
+	// The projects JSON the UI and the tool route share.
+	deepStrictEqual(
+		[ds.name, ds.root, ds.manifestPath, ds.deps, ds.extensions],
+		[
+			DS,
+			"packages/design-system",
+			"packages/design-system/forge.cue",
+			[],
+			{ "rawkode.issues": { enabled: true } },
+		],
+	);
+	const content = body.projects.find((p) =>
+		p.name === "rawkode-academy-content"
+	)!;
+	deepStrictEqual(content.extensions, {
+		"rawkode.issues": { enabled: false },
+	});
 	deepStrictEqual(f.graphCalls, [TIP]);
 });
 
@@ -96,19 +112,23 @@ Deno.test("?sha=: Reporter+ and a trunk commit; uncached requests are rate-limit
 	deepStrictEqual([refused.status, refused.body.error], [429, "rate_limited"]);
 });
 
-Deno.test("detail: by slug, root or name; README, the nearest agent doc, layers and edges", async () => {
+Deno.test("detail: by slug, root or name; README, the nearest agent doc and edges", async () => {
 	const f = fakes();
 	const bySlug = await get<ProjectDetailResponse>(f, `/${DS}`, null);
 	equal(bySlug.status, 200);
 	const d = bySlug.body;
-	deepStrictEqual([d.project.name, d.sha, d.total], [DS, TIP, 38]);
+	deepStrictEqual([d.project.name, d.sha, d.total], [
+		DS,
+		TIP,
+		TARTAN_DEMO_PROJECTS.length,
+	]);
 	deepStrictEqual(d.readme, {
 		path: "packages/design-system/README.md",
-		text: CUENV_DEMO_FILES["packages/design-system/README.md"],
+		text: TARTAN_DEMO_FILES["packages/design-system/README.md"],
 		truncated: false,
 	});
 	deepStrictEqual(d.agentsDoc, { path: "AGENTS.md" });
-	deepStrictEqual(d.layers, [{ root: "", paths: ["env.cue", "tartan.cue"] }]);
+	deepStrictEqual(d.layers, []);
 	deepStrictEqual(d.dependents, [{
 		name: WEB,
 		slug: WEB,
@@ -135,7 +155,6 @@ Deno.test("detail: by slug, root or name; README, the nearest agent doc, layers 
 	deepStrictEqual(content.body.agentsDoc, {
 		path: "projects/rawkode.academy/AGENTS.md",
 	});
-	equal(content.body.layers.length, 3);
 });
 
 Deno.test("detail: an unknown project is 404 naming the known slugs", async () => {
@@ -143,7 +162,7 @@ Deno.test("detail: an unknown project is 404 naming the known slugs", async () =
 		{ error: string; details: { known: string[] } }
 	>(fakes(), "/nope");
 	equal(status, 404);
-	equal(body.details.known.length, 38);
+	equal(body.details.known.length, TARTAN_DEMO_PROJECTS.length);
 	ok(body.details.known.includes(DS));
 	equal((await get(fakes(), `/${DS}/nope`)).status, 404);
 	equal((await get(fakes(), `/${DS}/issues/x`)).status, 404);

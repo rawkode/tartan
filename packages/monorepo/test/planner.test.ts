@@ -15,12 +15,8 @@ import {
 } from "../src/index.ts";
 import { createMemGit, type FileSpec, type MemGit } from "./memgit.ts";
 
-const pkg = (name: string, deps: Record<string, string> = {}, test = true) =>
-	JSON.stringify({
-		name,
-		dependencies: deps,
-		...(test ? { scripts: { test: "vitest" } } : {}),
-	});
+const forge = (name: string, deps: string[] = []) =>
+	`package tartan\n\nname: "${name}"\ndeps: ${JSON.stringify(deps)}\n`;
 
 /** The sample monorepo of the demo. */
 const SAMPLE: Record<string, FileSpec> = {
@@ -30,11 +26,11 @@ const SAMPLE: Record<string, FileSpec> = {
 	"pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
 	"tsconfig.json": "{}\n",
 	"scripts/x.sh": "echo hi\n",
-	"packages/shared/package.json": pkg("shared"),
+	"packages/shared/forge.cue": forge("shared"),
 	"packages/shared/src/index.ts": "export const x = 1;\n",
-	"services/api/package.json": pkg("api", { shared: "workspace:*" }),
+	"services/api/forge.cue": forge("api", ["shared"]),
 	"services/api/src/server.ts": "import 'shared';\n",
-	"apps/web/package.json": pkg("web", { shared: "workspace:^" }),
+	"apps/web/forge.cue": forge("web", ["shared"]),
 	"apps/web/src/main.ts": "import 'shared';\n",
 };
 
@@ -53,19 +49,18 @@ const changedPaths = async (
 		)).changes,
 	);
 
-Deno.test("detect: pnpm sample monorepo graph, manifests, test commands, defaults", async () => {
+Deno.test("detect: the sample's graph, manifests and global defaults", async () => {
 	const git = createMemGit();
 	const graph = await graphOf(git, SAMPLE);
 	deepStrictEqual(
 		graph.projects.map((p) => [p.name, p.root, p.deps, p.dependents, p.source]),
 		[
-			["api", "services/api", ["shared"], [], "pnpm-workspace"],
-			["shared", "packages/shared", [], ["api", "web"], "pnpm-workspace"],
-			["web", "apps/web", ["shared"], [], "pnpm-workspace"],
+			["api", "services/api", ["shared"], [], "tartan"],
+			["shared", "packages/shared", [], ["api", "web"], "tartan"],
+			["web", "apps/web", ["shared"], [], "tartan"],
 		],
 	);
-	equal(graph.projects[0].manifestPath, "services/api/package.json");
-	equal(graph.projects[0].testCmd, "pnpm test");
+	equal(graph.projects[0].manifestPath, "services/api/forge.cue");
 	deepStrictEqual(graph.globalFiles, [
 		{ glob: "*.cue", source: "detector-default" },
 		{ glob: "package-lock.json", source: "detector-default" },
@@ -107,7 +102,7 @@ Deno.test("affected: shared ⇒ shared+api+web; web ⇒ web; global file ⇒ all
 		}, path);
 	}
 	// A project manifest is global for K6.
-	equal(affectedBy(graph, ["apps/web/package.json"]).global, true);
+	equal(affectedBy(graph, ["apps/web/forge.cue"]).global, true);
 });
 
 Deno.test("K6: a landing adding api to web's deps makes a later api batch non-disjoint", async () => {
@@ -122,10 +117,7 @@ Deno.test("K6: a landing adding api to web's deps makes a later api batch non-di
 	);
 	const atT = {
 		...SAMPLE,
-		"apps/web/package.json": pkg("web", {
-			shared: "workspace:^",
-			api: "workspace:*",
-		}),
+		"apps/web/forge.cue": forge("web", ["shared", "api"]),
 	};
 	const landing = {
 		id: "L1",
@@ -141,7 +133,7 @@ Deno.test("K6: a landing adding api to web's deps makes a later api batch non-di
 	deepStrictEqual(result.reasons, [{
 		kind: "landing-global",
 		landing: "L1",
-		paths: ["apps/web/package.json"],
+		paths: ["apps/web/forge.cue"],
 	}]);
 	// Even a later web-only landing now overlaps the api batch on graph T.
 	const later = checkDisjoint(graphAtT, batch, [{
@@ -155,163 +147,16 @@ Deno.test("K6: a landing adding api to web's deps makes a later api batch non-di
 	}]);
 });
 
-Deno.test("detect: npm workspaces (yarn-style object too) link any dep naming a member", async () => {
-	const git = createMemGit();
-	const graph = await graphOf(git, {
-		"package.json": JSON.stringify({ workspaces: { packages: ["libs/*"] } }),
-		"libs/a/package.json": pkg("@acme/a", { "@acme/b": "^1.0.0" }, false),
-		"libs/b/package.json": pkg("@acme/b"),
-		"libs/notapkg/README.md": "x\n",
-	});
-	deepStrictEqual(
-		graph.projects.map((p) => [p.name, p.deps, p.source, p.testCmd ?? null]),
-		[
-			["@acme/a", ["@acme/b"], "npm-workspaces", null],
-			["@acme/b", [], "npm-workspaces", "npm test"],
-		],
-	);
-});
-
-Deno.test("detect: pnpm ignores registry-version deps on workspace names", async () => {
-	const git = createMemGit();
-	const graph = await graphOf(git, {
-		"pnpm-workspace.yaml": "packages: ['p/*']\n",
-		"p/a/package.json": pkg("a", { b: "^1.0.0" }),
-		"p/b/package.json": pkg("b"),
-	});
-	deepStrictEqual(graph.projects.map((p) => p.deps), [[], []]);
-});
-
-Deno.test("detect: deno workspace, Cargo workspace and go.work in one repo", async () => {
-	const git = createMemGit();
-	const graph = await graphOf(git, {
-		"deno.jsonc": '{ // root\n "workspace": ["./deno/core", "./deno/cli",] }',
-		"deno/core/deno.json": JSON.stringify({
-			name: "@x/core",
-			exports: "./mod.ts",
-		}),
-		"deno/cli/deno.json": JSON.stringify({
-			name: "@x/cli",
-			imports: { "@x/core": "jsr:@x/core@^1" },
-		}),
-		"Cargo.toml":
-			'[workspace]\nmembers = ["crates/*"]\nexclude = ["crates/skip"]\n[workspace.dependencies]\nengine = { path = "crates/engine" }\n',
-		"crates/engine/Cargo.toml": '[package]\nname = "engine"\n',
-		"crates/cli/Cargo.toml":
-			'[package]\nname = "cli-rs"\n[dependencies]\nengine.workspace = true\n[dev-dependencies]\nhelper = { path = "../helper" }\n',
-		"crates/helper/Cargo.toml": '[package]\nname = "helper"\n',
-		"crates/skip/Cargo.toml": '[package]\nname = "skip"\n',
-		"go.work": "go 1.22\nuse (\n  ./go/api\n  ./go/shared\n)\n",
-		"go/api/go.mod":
-			"module example.com/api\nrequire example.com/shared v0.0.0\n",
-		"go/shared/go.mod": "module example.com/shared\n",
-	});
-	deepStrictEqual(
-		graph.projects.map((
-			p,
-		) => [p.name, p.root, p.deps, p.source, p.manifestPath]),
-		[
-			[
-				"@x/cli",
-				"deno/cli",
-				["@x/core"],
-				"deno-workspace",
-				"deno/cli/deno.json",
-			],
-			["@x/core", "deno/core", [], "deno-workspace", "deno/core/deno.json"],
-			[
-				"cli-rs",
-				"crates/cli",
-				["engine", "helper"],
-				"cargo",
-				"crates/cli/Cargo.toml",
-			],
-			["engine", "crates/engine", [], "cargo", "crates/engine/Cargo.toml"],
-			[
-				"example.com/api",
-				"go/api",
-				["example.com/shared"],
-				"go.work",
-				"go/api/go.mod",
-			],
-			["example.com/shared", "go/shared", [], "go.work", "go/shared/go.mod"],
-			["helper", "crates/helper", [], "cargo", "crates/helper/Cargo.toml"],
-		],
-	);
-	deepStrictEqual(graph.globalFiles.map((g) => g.glob), [
-		"*.cue",
-		"Cargo.lock",
-		"Cargo.toml",
-		"deno.jsonc",
-		"deno.lock",
-		"go.work",
-		"go.work.sum",
-	]);
-});
-
-Deno.test("detect: the configured projects of package tartan win; global list and !opt-out; the config key moves the graph key", async () => {
+Deno.test("detect: the global list and its !opt-out; a projects key names nothing; the config key moves the graph key", async () => {
 	const git = createMemGit();
 	const config = {
 		key: "k1",
-		projects: {
-			core: { root: "packages/shared" },
-			svc: {
-				root: "services/api",
-				deps: ["core", "nope"],
-				sensitive: true,
-				owners: ["@platform"],
-			},
-			docs: { root: "docs" },
-		},
+		projects: { core: { root: "packages/shared" } },
 		global: ["tools/**", "!pnpm-lock.yaml"],
 	};
-	const graph = await detectProjects(
-		createTreeView(git.objects, git.writeTree(SAMPLE)),
-		config,
-	);
-	deepStrictEqual(
-		graph.projects.map((
-			p,
-		) => [
-			p.name,
-			p.root,
-			p.deps,
-			p.sensitive,
-			p.source,
-			p.manifestPath ?? null,
-		]),
-		[
-			[
-				"core",
-				"packages/shared",
-				[],
-				false,
-				"tartan-config",
-				"packages/shared/package.json",
-			],
-			["docs", "docs", [], false, "tartan-config", null],
-			[
-				"svc",
-				"services/api",
-				["core"],
-				true,
-				"tartan-config",
-				"services/api/package.json",
-			],
-		],
-	);
-	// A .tartan/pipeline.yaml in the tree is never read (ADR repo config).
-	const legacy = await graphOf(git, {
-		...SAMPLE,
-		".tartan/pipeline.yaml": "version: 1\nprojects:\n  x: { root: x }\n",
-	});
-	ok(legacy.projects.every((p) => p.source === "pnpm-workspace"));
-	// Another trunk config at the same tree: another manifestsTreeSha.
-	const other = await detectProjects(
-		createTreeView(git.objects, git.writeTree(SAMPLE)),
-		{ ...config, key: "k2" },
-	);
-	notEqual(other.manifestsTreeSha, graph.manifestsTreeSha);
+	const view = () => createTreeView(git.objects, git.writeTree(SAMPLE));
+	const graph = await detectProjects(view(), config);
+	deepStrictEqual(graph.projects.map((p) => p.name), ["api", "shared", "web"]);
 	deepStrictEqual(graph.globalFiles, [
 		{ glob: "*.cue", source: "detector-default" },
 		{ glob: "package-lock.json", source: "detector-default" },
@@ -319,6 +164,16 @@ Deno.test("detect: the configured projects of package tartan win; global list an
 		{ glob: "pnpm-workspace.yaml", source: "detector-default" },
 		{ glob: "tools/**", source: "config" },
 	]);
+	// A .tartan/pipeline.yaml or a central list in the tree is never read.
+	const legacy = await graphOf(git, {
+		...SAMPLE,
+		".tartan/pipeline.yaml": "version: 1\nprojects:\n  x: { root: x }\n",
+		".forge/projects.cue": 'package forge\n\nprojects: x: root: "x"\n',
+	});
+	deepStrictEqual(legacy.projects.map((p) => p.name), ["api", "shared", "web"]);
+	// Another trunk config at the same tree: another manifestsTreeSha.
+	const other = await detectProjects(view(), { ...config, key: "k2" });
+	notEqual(other.manifestsTreeSha, graph.manifestsTreeSha);
 });
 
 Deno.test("manifestsTreeSha: stable across source edits, moves with manifests and new members", async () => {
@@ -332,15 +187,12 @@ Deno.test("manifestsTreeSha: stable across source edits, moves with manifests an
 	equal(sourceEdit.manifestsTreeSha, base.manifestsTreeSha);
 	const manifestEdit = await graphOf(git, {
 		...SAMPLE,
-		"apps/web/package.json": pkg("web", {
-			shared: "workspace:^",
-			api: "workspace:*",
-		}),
+		"apps/web/forge.cue": forge("web", ["shared", "api"]),
 	});
 	notEqual(manifestEdit.manifestsTreeSha, base.manifestsTreeSha);
 	const newMember = await graphOf(git, {
 		...SAMPLE,
-		"apps/admin/package.json": pkg("admin"),
+		"apps/admin/forge.cue": forge("admin"),
 	});
 	notEqual(newMember.manifestsTreeSha, base.manifestsTreeSha);
 	equal(newMember.projects.length, 4);

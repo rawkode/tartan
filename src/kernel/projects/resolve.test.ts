@@ -1,6 +1,6 @@
 // Project resolution and the page filters (WP25 slice A′): every project
-// gets a slug (workspace graphs included), a project resolves by slug,
-// root, graph name or raw cuenv name, and the filters keep exactly the
+// gets a slug (a stored graph without slugs included), a project resolves by slug,
+// root, graph name or raw declared name, and the filters keep exactly the
 // items and changes that belong to it.
 
 import { deepStrictEqual, equal } from "node:assert/strict";
@@ -18,13 +18,13 @@ const graphOf = (projects: object[]): ProjectGraph =>
 			dependents: [],
 			owners: [],
 			sensitive: false,
-			source: "pnpm-workspace",
+			source: "tartan",
 			...p,
 		})),
 		globalFiles: [],
 	}) as unknown as ProjectGraph;
 
-Deno.test("view: workspace projects get unique slugs from their names", () => {
+Deno.test("view: projects without a stored slug get unique slugs from their names", () => {
 	const view = projectView(graphOf([
 		{ name: "@acme/web", root: "apps/web" },
 		{ name: "acme-web", root: "apps/acme-web" },
@@ -37,10 +37,10 @@ Deno.test("view: workspace projects get unique slugs from their names", () => {
 	]);
 });
 
-Deno.test("resolve: slug, then root, then name, then cuenv name", () => {
+Deno.test("resolve: slug, then root, then name, then declared name", () => {
 	const view = projectView(graphOf([
-		{ name: "api", root: "a", slug: "api", source: "cuenv" },
-		{ name: "api@b", root: "b", slug: "api-b", cuenvName: "api" },
+		{ name: "api", root: "a", slug: "api", source: "tartan" },
+		{ name: "api@b", root: "b", slug: "api-b", declaredName: "api" },
 		{ name: "web", root: "api-b", slug: "web" },
 	]));
 	equal(resolveProject(view, "api")?.root, "a");

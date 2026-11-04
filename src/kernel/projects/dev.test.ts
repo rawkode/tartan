@@ -5,7 +5,7 @@
 
 import { equal, notEqual } from "node:assert/strict";
 import { createMemGit } from "../../../packages/monorepo/test/memgit.ts";
-import { CUENV_DEMO_FILES } from "../../../packages/monorepo/test/fixtures/cuenv-demo.ts";
+import { TARTAN_DEMO_FILES } from "../../../packages/monorepo/test/fixtures/tartan-demo.ts";
 import { devLandKey } from "../land/dev.ts";
 import type { RouteContext } from "../../router.ts";
 import { commitOf, devProjectsKey, handleDevProjects } from "./dev.ts";
@@ -20,8 +20,8 @@ Deno.test("dev key: an HMAC of the secret under the projects label", async () =>
 
 Deno.test("seed: the commit's root tree is the tree the in-memory fixture writes", async () => {
 	const mem = createMemGit();
-	const { pack, head, tree } = await commitOf(CUENV_DEMO_FILES, "fixture");
-	equal(tree, mem.writeTree(CUENV_DEMO_FILES));
+	const { pack, head, tree } = await commitOf(TARTAN_DEMO_FILES, "fixture");
+	equal(tree, mem.writeTree(TARTAN_DEMO_FILES));
 	equal(head.length, 40);
 	equal(new TextDecoder("latin1").decode(pack.subarray(0, 4)), "PACK");
 });

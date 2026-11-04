@@ -8,7 +8,7 @@
 //   CUE package `tartan` (ADR repo config) declaring one project, `app` at
 //   `src/`, a router and a guide.
 // - `BROKEN_CONFIG_FIXTURE`: a package tartan that does not evaluate.
-// - `MONOREPO_FIXTURE`: two cuenv `#Project`s under a root layer.
+// - `MONOREPO_FIXTURE`: two `package tartan` project directories.
 // - `CUE_FIXTURE`: the CUE suite's repo, a `tartan.cue` and another tool's
 //   `env.cue` (package cuenv) beside it.
 
@@ -149,34 +149,18 @@ export const BROKEN_CONFIG_FIXTURE: Fixture = {
 };
 
 // ---------------------------------------------------------------------------
-// A monorepo whose projects are cuenv `#Project`s
+// A monorepo whose projects are `package tartan` directories
 // ---------------------------------------------------------------------------
 
-const CUENV_IMPORT = 'import "github.com/cuenv/cuenv/schema"';
-
-/** The two cuenv projects of the monorepo fixture: name, root. */
+/** The two projects of the monorepo fixture: name, root. */
 export const MONOREPO_PROJECTS = {
 	design: { name: "e2e-design", root: "packages/design" },
 	web: { name: "e2e-web", root: "apps/web" },
 } as const;
 export type MonorepoProject = keyof typeof MONOREPO_PROJECTS;
 
-const cuenvProject = (name: string): string =>
-	[
-		"package cuenv",
-		"",
-		CUENV_IMPORT,
-		"",
-		"schema.#Project",
-		"",
-		`name: "${name}"`,
-		"",
-		"tasks: check: schema.#Task & {",
-		'\tcommand: "bun"',
-		'\targs: ["run", "check"]',
-		"}",
-		"",
-	].join("\n");
+const forgeCue = (name: string): string =>
+	["package tartan", "", `name: "${name}"`, ""].join("\n");
 
 export const MONOREPO_COMMITS: readonly FixtureCommit[] = [
 	{
@@ -184,33 +168,15 @@ export const MONOREPO_COMMITS: readonly FixtureCommit[] = [
 		at: T0,
 		files: {
 			"README.md":
-				"# e2e monorepo\n\nTwo cuenv projects: a design system and a website.\n",
-			// A CUE module root: cuenv's projects live in one (the detector reads
-			// nothing without it). No deps: package tartan imports none.
-			"cue.mod/module.cue": [
-				'module: "example.com/e2e/monorepo"',
-				'language: version: "v0.14.0"',
-				"",
-			].join("\n"),
-			"env.cue": [
-				"package cuenv",
-				"",
-				CUENV_IMPORT,
-				"",
-				"// The root layer: every project inherits it.",
-				"schema.#Base",
-				"",
-				'env: LOG_LEVEL: "info"',
-				"",
-			].join("\n"),
-			[`${MONOREPO_PROJECTS.design.root}/env.cue`]: cuenvProject(
+				"# e2e monorepo\n\nTwo projects: a design system and a website.\n",
+			[`${MONOREPO_PROJECTS.design.root}/forge.cue`]: forgeCue(
 				MONOREPO_PROJECTS.design.name,
 			),
 			[`${MONOREPO_PROJECTS.design.root}/README.md`]:
 				"# Design system\n\nTokens and components for the e2e website.\n",
 			[`${MONOREPO_PROJECTS.design.root}/src/tokens.ts`]:
 				'export const brand = "#5b21b6";\n',
-			[`${MONOREPO_PROJECTS.web.root}/env.cue`]: cuenvProject(
+			[`${MONOREPO_PROJECTS.web.root}/forge.cue`]: forgeCue(
 				MONOREPO_PROJECTS.web.name,
 			),
 			[`${MONOREPO_PROJECTS.web.root}/README.md`]:
@@ -222,7 +188,7 @@ export const MONOREPO_COMMITS: readonly FixtureCommit[] = [
 ];
 
 export const MONOREPO_SHAS: readonly string[] = [
-	"cc4f4729c66d9c85e54ac2fe711192a111e66393",
+	"b989657b96d28e11f0e641021a1100f940650f26",
 ];
 
 export const MONOREPO_FIXTURE: Fixture = {

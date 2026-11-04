@@ -639,10 +639,9 @@ Deno.test("merge3: a blob only a lane repo holds is path-level unless the family
 Deno.test("projectGraph at a commit is computed once and cached in RepoDO", async () => {
 	const h = canonicalHarness();
 	const graph = await h.probe.projectGraph(REPO, T4);
-	deepStrictEqual(graph.projects.map((p) => [p.name, p.root]), [
-		["api", "services/api"],
-		["web", "apps/web"],
-	]);
+	// The fixture's pnpm workspace is no project: nothing is in `package tartan`.
+	deepStrictEqual(graph.projects, []);
+	equal(graph.detector, "tartan");
 	equal(graph.sha, T4);
 	ok(h.state.graphs.has(T4));
 	const reads = h.store.calls.length;
@@ -652,17 +651,26 @@ Deno.test("projectGraph at a commit is computed once and cached in RepoDO", asyn
 
 Deno.test("affected: lane range paths on the graph at head, or at a given trunk commit", async () => {
 	const h = canonicalHarness();
+	// No project claims them: every path is global.
 	deepStrictEqual(
 		await h.probe.affected(REPO, T2, head("at-base"), {
 			source: { repoId: REPO, laneId: LANE_X },
 		}),
-		{ projects: ["api"], global: false },
+		{
+			projects: [],
+			global: true,
+			globalPaths: ["services/api/a.ts", "services/api/b.ts"],
+		},
 	);
-	// trunk/t*.txt lie outside every project root: global.
 	deepStrictEqual(await h.probe.affected(REPO, T0, T4, { graphAt: T4 }), {
-		projects: ["api", "web"],
+		projects: [],
 		global: true,
-		globalPaths: ["trunk/t1.txt", "trunk/t2.txt", "trunk/t4.txt"],
+		globalPaths: [
+			"apps/web/main.ts",
+			"trunk/t1.txt",
+			"trunk/t2.txt",
+			"trunk/t4.txt",
+		],
 	});
 });
 
@@ -739,9 +747,8 @@ Deno.test("projects of package tartan come from the commit's trunk base: a lane 
 	const graph = await probe.projectGraph(REPO, lane);
 	// The lane head is not on trunk: its K17 merge base (T2) answers.
 	deepStrictEqual(asked, [lane, T2]);
-	deepStrictEqual(graph.projects.map((p) => [p.name, p.root, p.source]), [
-		["api", "services/api", "tartan-config"],
-	]);
+	// A `projects` key in the config names nothing: projects are discovered.
+	deepStrictEqual(graph.projects, []);
 	equal(graph.configKey, "k".repeat(64));
 	ok(graph.globalFiles.some((g) => g.glob === "*.cue"));
 	ok(graph.globalFiles.some((g) => g.glob === "pnpm-lock.yaml"));

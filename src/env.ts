@@ -97,11 +97,9 @@ export interface Env {
 	 */
 	readonly TARTAN_ECHO?: string;
 	/**
-	 * Monorepo projects (WP25 slice A′): `scan` makes cuenv
-	 * `#Project`s the primary project detector (a textual scan, Tier 0) and
-	 * serves the projects API and pages; absent or `off` (the default) keeps
-	 * the detector chain without cuenv and hides every project surface.
-	 * Rendered by `render-config.ts --projects scan`.
+	 * Monorepo projects: `scan` serves the projects API and pages and discovers
+	 * each trunk push eagerly; absent or `off` (the default) hides every project
+	 * surface. Rendered by `render-config.ts --projects scan`.
 	 */
 	readonly TARTAN_PROJECTS?: string;
 

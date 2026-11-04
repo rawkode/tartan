@@ -32,7 +32,6 @@ export {
 	detectProjects,
 	type GlobalFile,
 	MAX_PROJECTS,
-	MEMBER_GLOB_MAX_DEPTH,
 	NO_PROJECT_CONFIG,
 	type ProjectConfig,
 } from "./detect.ts";
@@ -63,7 +62,3 @@ export {
 	normaliseGlob,
 } from "./glob.ts";
 export { canonicalJson, sha256Hex } from "./hash.ts";
-export { parseYaml, type YamlValue } from "./parse/yaml.ts";
-export { parseToml, type TomlTable, type TomlValue } from "./parse/toml.ts";
-export { parseGoMod, parseGoWork } from "./parse/gomod.ts";
-export { parseJsonc } from "./parse/jsonc.ts";

@@ -1,13 +1,12 @@
 // Live: monorepo projects, the first slice. On a forge deployed with
 // `--projects` (scan), a
-// repository's cuenv `#Project` definitions (`package cuenv` files that
-// declare `schema.#Project` with a `name`) are its projects, `#Base` files
-// its layers. Each project gets a page at `/<repo>/-/p/<slug>` with its
+// repository's directories holding a `package tartan` file are its projects.
+// Each project gets a page at `/<repo>/-/p/<slug>` with its
 // README. A project's Issues and Pull requests came from the work and change
 // extensions, which this branch removed; those checks are gone with them.
 //
 // One shared setup per instance (support/shared.ts): the monorepo fixture
-// (`MONOREPO_FIXTURE`: two cuenv projects under a root layer) imported into
+// (`MONOREPO_FIXTURE`: two `package tartan` directories) imported into
 // `e2e/swarm`.
 
 import { expect } from "e2e";
@@ -27,7 +26,7 @@ import { fixtureRepo } from "../../support/repos.ts";
 import { keyOf } from "../../support/shared.ts";
 import { type Stage, tokensOf } from "../../support/stage.ts";
 
-const CUENV: ProjectsResponse["detector"] = "cuenv";
+const DETECTOR: ProjectsResponse["detector"] = "tartan";
 const MIN = 60_000;
 const PROJECTS = Object.keys(MONOREPO_PROJECTS) as MonorepoProject[];
 
@@ -88,11 +87,11 @@ const setupFor = async (stage: Stage, title: string) =>
 	);
 
 const T = {
-	graph: "a monorepo's cuenv #Projects are its projects, under its root layer",
+	graph: "a monorepo's package tartan directories are its projects",
 	card: "the repo home's Projects card lists the projects and opens one",
 } as const;
 
-test.describe("monorepo projects (cuenv)", {
+test.describe("monorepo projects", {
 	tags: ["projects", "m2", "regression", "developer"],
 	session: "developer",
 }, () => {
@@ -104,15 +103,13 @@ test.describe("monorepo projects (cuenv)", {
 			"/-/api/repos/<id>/projects",
 			await api(stage).get<ProjectsResponse>(projectsAt(s.repo.id)),
 		);
-		expect(graph.detector).toBe(CUENV);
+		expect(graph.detector).toBe(DETECTOR);
 		expect(graph.truncated).toBe(false);
 		expect(graph.projects.map((p) => p.name).sort()).toEqual(
 			PROJECTS.map((p) => MONOREPO_PROJECTS[p].name).sort(),
 		);
 		for (const p of graph.projects) {
-			expect(p.source).toBe(CUENV);
-			// Every project sits under the root layer.
-			expect(p.layers).toContain("");
+			expect(p.source).toBe(DETECTOR);
 		}
 		const detail = ok(
 			"GET",

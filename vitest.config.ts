@@ -108,7 +108,7 @@ const miniflare = {
 		// container-less TartanSandbox answering `unavailable` (WP23).
 		TARTAN_REPO_CONFIG: "on",
 		// Rendered only by `render-config.ts --projects scan` (absent = off in
-		// a deploy); the workerd tests detect cuenv projects (WP25).
+		// a deploy); the workerd tests serve the projects API.
 		TARTAN_PROJECTS: "scan",
 	},
 };

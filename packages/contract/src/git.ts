@@ -133,22 +133,10 @@ export type FileDiff = {
 	readonly patchOmitted?: PatchOmitted;
 };
 
-/**
- * Where a project came from: `tartan-config` is the top-level `projects`
- * of the repository's package `tartan` at the commit's trunk base
- * (ADR repo config); `cuenv` is a cuenv `#Project` (WP25, `TARTAN_PROJECTS`);
- * the others are workspace detectors.
- */
-export type ProjectSource =
-	| "tartan-config"
-	| "cuenv"
-	| "pnpm-workspace"
-	| "npm-workspaces"
-	| "deno-workspace"
-	| "cargo"
-	| "go.work";
+/** Where a project came from: a directory holding a `package tartan` file. */
+export type ProjectSource = "tartan";
 
-/** `scan`: a cuenv name from the textual scan (Tier 0); `eval`: from `cue export` (Tier 1). */
+/** `scan`: read textually from the project's `.cue` files, never evaluated. */
 export type ProjectFidelity = "scan" | "eval";
 
 /** A finding of project detection (never a failure). */
@@ -158,18 +146,20 @@ export type ProjectIssue = {
 	readonly message: string;
 };
 
-/** A cuenv `#Base` layer and the `.cue` paths under it outside every project root. */
-export type ProjectLayer = {
-	/** The layer directory ("" is the repo root). */
-	readonly root: string;
-	readonly paths: readonly string[];
-};
+/**
+ * Per-project extension switches, read textually from the project's `.cue`
+ * files. On/off only, and NOT policy-gated: a project-root `.cue` edit lands
+ * without the ADR's sign-off (docs/repo-config.md).
+ */
+export type ProjectExtensions = Readonly<
+	Record<string, { readonly enabled: boolean }>
+>;
 
 /** URL slugs of projects (`/<repo>/-/p/<slug>`), unique within one graph. */
 export const PROJECT_SLUG_RE = /^[a-z0-9][a-z0-9.-]{0,127}$/;
 
 export type Project = {
-	/** Unique within the graph (a duplicate cuenv name gets `@<root slug>`). */
+	/** Unique within the graph (a duplicate declared name gets `@<root slug>`). */
 	readonly name: string;
 	readonly root: string;
 	readonly deps: readonly string[];
@@ -180,16 +170,16 @@ export type Project = {
 	readonly source: ProjectSource;
 	/** Changes to this file are global for K6. */
 	readonly manifestPath?: string;
-	/** The root: the stable key of a project (present on cuenv projects). */
+	/** The root: the stable key of a project. */
 	readonly key?: string;
 	readonly slug?: string;
-	/** The raw cuenv name when `name` carries a uniqueness suffix. */
-	readonly cuenvName?: string;
-	readonly nameSource?: "literal" | "manifest" | "unresolved";
-	/** `#Base` directories above the root, root first ("" is the repo root). */
-	readonly layers?: readonly string[];
+	/** The raw declared name when `name` carries a uniqueness suffix. */
+	readonly declaredName?: string;
+	/** `literal`: a top-level `name: "x"`; `directory`: the directory's name. */
+	readonly nameSource?: "literal" | "directory";
 	readonly fidelity?: ProjectFidelity;
 	readonly issues?: readonly ProjectIssue[];
+	readonly extensions?: ProjectExtensions;
 };
 
 /** The project graph **at a commit** (K6 uses the graph at the trunk being landed onto). */
@@ -202,7 +192,7 @@ export type ProjectGraph = {
 		readonly source: "config" | "detector-default";
 	}[];
 	/**
-	 * The trunk config the configured projects came from (ADR repo config): its
+	 * The trunk config the global files came from (ADR repo config): its
 	 * input key, `none`, `off`, or `provisional:<key>`. Part of the cache key.
 	 */
 	readonly configKey?: string;
@@ -211,22 +201,16 @@ export type ProjectGraph = {
 	 * good one was used; K6 never sees it (lands of the repo are held, K13.1).
 	 */
 	readonly provisional?: boolean;
-	/**
-	 * The detector of a graph computed with `TARTAN_PROJECTS=scan` (absent on
-	 * every graph computed without it: RepoProbe recomputes on a mismatch).
-	 */
-	readonly detector?: "config" | "cuenv" | "workspaces";
-	readonly fidelity?: ProjectFidelity | "exact";
-	readonly layers?: readonly ProjectLayer[];
-	/** Nested CUE modules and the walk limits hit (`depth-limit`, `dir-limit`, `project-limit`, `packages-limit`). */
+	/** The detector of the graph; a stored graph without it is recomputed. */
+	readonly detector?: "tartan";
+	readonly fidelity?: ProjectFidelity;
+	/** Walk limits hit (`depth-limit`, `dir-limit`, `project-limit`, `packages-limit`). */
 	readonly skipped?: readonly string[];
 	readonly warnings?: readonly ProjectIssue[];
 	/** A walk limit was hit: every path is global. */
 	readonly truncated?: boolean;
-	/** The package clause of each `.cue` blob outside nested modules (null: none). */
+	/** The package clause of each `.cue` blob read (null: none). */
 	readonly packages?: Readonly<Record<string, string | null>>;
-	/** A root `env.cue` with `#Project` names the repository itself (no project row). */
-	readonly rootProject?: { readonly name: string };
 };
 
 export type Affected = {
