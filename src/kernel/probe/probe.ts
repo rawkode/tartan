@@ -528,7 +528,18 @@ export const createRepoProbe = (deps: RepoProbeDeps): RepoProbeApi => {
 				configKey: config.key,
 				...(config.provisional ? { provisional: true } : {}),
 			};
-			await port.putProjects(graph);
+			// Too large to store (SQLite's limit) is no failure of the read: this
+			// answer stands, and the next read detects again.
+			await port.putProjects(graph).catch((error: unknown) => {
+				console.error(
+					"[tartan] probe: project graph not cached",
+					JSON.stringify({
+						repoId: source.repoId,
+						sha: commit,
+						error: error instanceof Error ? error.message : String(error),
+					}),
+				);
+			});
 		}
 		if (graphMemo.size >= GRAPH_MEMO_MAX) {
 			graphMemo.delete(graphMemo.keys().next().value!);

@@ -8,6 +8,7 @@ import { packageClause } from "../src/tartan/clause.ts";
 import { assignIdentities, slugOf } from "../src/tartan/identity.ts";
 import { isCueSourceName } from "../src/tartan/limits.ts";
 import { mergeEnabled, readManifest } from "../src/tartan/manifest.ts";
+import { MANIFEST_MAX_BYTES } from "../src/objects.ts";
 import { scanCue } from "../src/tartan/scan.ts";
 
 Deno.test('scan: comments go, strings become "", depth is counted outside both', () => {
@@ -88,9 +89,8 @@ Deno.test("name: a literal top-level name, in any spacing or with a comma", () =
 	equal(readManifest('package tartan\nname?: "api"\n').name, "api");
 });
 
-Deno.test("name: not a usable literal, or not at the top level, is no name", () => {
+Deno.test("name: not a literal, or not at the top level, is no name", () => {
 	const computed = [
-		'name: "a b"',
 		'name: "\\(x)"',
 		"name: x",
 		'name: strings.ToLower("A")',
@@ -123,6 +123,7 @@ Deno.test("deps: literal lists on one line or several", () => {
 		{
 			name: "x",
 			computedName: false,
+			invalidName: false,
 			deps: ["a", "b"],
 			computedDeps: false,
 			issues: { state: "absent" },
@@ -302,4 +303,68 @@ Deno.test("identity: a slug shared by two names suffixes every colliding root, d
 	equal(ids[2].slug, "c");
 	for (const i of ids) ok(PROJECT_SLUG_RE.test(i.slug), i.slug);
 	deepStrictEqual(ids[0].issues.map((i) => i.code), ["slug-collision"]);
+});
+
+/** Pathological files of `MANIFEST_MAX_BYTES`: none may throw or take long. */
+Deno.test("readManifest: a hostile file at the size limit neither throws nor stalls", () => {
+	const fill = (unit: string) =>
+		`package tartan\n${unit.repeat(MANIFEST_MAX_BYTES / unit.length)}`;
+	const hostile = {
+		"nested fields": fill("a: "),
+		"nested fields, one per line": fill("a:\n"),
+		"open braces": fill("{"),
+		"open brackets": fill("["),
+		"open parens": fill("("),
+		"a field of braces": `package tartan\nx: ${"{".repeat(100_000)}`,
+		"a field of lists": `package tartan\nx: ${"[".repeat(100_000)}`,
+		"nested structs": fill("a: {"),
+		"nested lists": fill("a: ["),
+		"closers": fill("}"),
+		"hashes": fill("#"),
+		"a hashed string of quotes": `package tartan\nx: ${"#".repeat(16)}"${
+			'"'.repeat(200_000)
+		}`,
+		"interpolations": fill('"\\('),
+		"identifiers on one line": fill("a "),
+		"unterminated strings": fill('"\n'),
+		"quotes": fill('"'),
+		"many fields": fill("a: 1\n"),
+		"many names": fill('name: "x"\n'),
+		"many deps": `package tartan\ndeps: [${'"a",'.repeat(60_000)}]`,
+	};
+	for (const [label, text] of Object.entries(hostile)) {
+		const started = performance.now();
+		const facts = readManifest(text);
+		const ms = performance.now() - started;
+		ok(ms < 2_000, `${label}: ${Math.round(ms)} ms`);
+		ok(facts.issues.state !== "read", label);
+	}
+});
+
+Deno.test("readManifest: past the nesting limit a value is opaque, and what is above it still reads", () => {
+	const deep = "x: ".repeat(1_000) + "1";
+	const facts = readManifest(
+		`package tartan\nname: "kept"\ndeps: ["a"]\nother: ${deep}\n`,
+	);
+	equal(facts.name, "kept");
+	deepStrictEqual(facts.deps, ["a"]);
+	// A switch buried past the limit cannot be read: it stays on, with a warning.
+	const buried = readManifest(
+		`package tartan\nextensions: ${
+			"{".repeat(100)
+		}"rawkode.issues": enabled: false\n`,
+	);
+	equal(buried.issues.state, "unreadable");
+});
+
+Deno.test("readManifest: a literal name with characters a name cannot hold is invalid, not computed", () => {
+	for (const name of ["a:b", "c/d", "has space", "<script>"]) {
+		const facts = readManifest(`package tartan\nname: "${name}"\n`);
+		equal(facts.name, undefined, name);
+		ok(facts.invalidName, name);
+		ok(!facts.computedName, name);
+	}
+	ok(readManifest("package tartan\nname: x\n").computedName);
+	ok(!readManifest("package tartan\nname: x\n").invalidName);
+	ok(!readManifest('package tartan\nname: "ok"\n').invalidName);
 });

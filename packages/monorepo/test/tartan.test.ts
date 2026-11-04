@@ -11,6 +11,7 @@ import {
 } from "../src/index.ts";
 import {
 	MAX_PACKAGE_CLAUSES,
+	MAX_PROJECT_ISSUES,
 	MAX_TARTAN_PROJECTS,
 	MAX_WALK_DEPTH,
 	MAX_WALK_DIRS,
@@ -240,6 +241,37 @@ Deno.test("rule: a file too large to read is a warning, never a silent miss", as
 	deepStrictEqual(graph.warnings?.map((w) => [w.code, w.path]), [
 		["cue-too-large", "big/forge.cue"],
 	]);
+});
+
+Deno.test("rule: a hostile file costs its project only its own facts, never the graph", async () => {
+	const nested = `package tartan\n${"a: ".repeat(5_000)}\n`;
+	const graph = await detect({
+		"bomb/forge.cue": nested,
+		"ok/forge.cue": FORGE(),
+	});
+	deepStrictEqual(names(graph), ["bomb", "ok"]);
+});
+
+Deno.test("rule: deps and issues per project are capped, so the graph stays storable", async () => {
+	const many = Array.from({ length: 30_000 }, (_, i) => `"d${i}"`).join(",");
+	const graph = await detect({
+		"a/forge.cue": `package tartan\ndeps: [${many}]\n`,
+	});
+	const project = graph.projects.find((p) => p.name === "a")!;
+	const issues = project.issues ?? [];
+	equal(issues.length, MAX_PROJECT_ISSUES);
+	equal(issues[0].code, "too-many-deps");
+	equal(issues.at(-1)?.code, "issues-truncated");
+	ok(JSON.stringify(graph).length < 64 * 1024, "well under SQLite's limit");
+});
+
+Deno.test("rule: a literal name a name cannot hold says so, and the directory names the project", async () => {
+	const graph = await detect({
+		"svc/forge.cue": 'package tartan\nname: "a:b"\n',
+	});
+	const project = graph.projects.find((p) => p.root === "svc")!;
+	equal(project.name, "svc");
+	deepStrictEqual(project.issues?.map((i) => i.code), ["invalid-name"]);
 });
 
 Deno.test("rule: an attribute before the clause counts, with a warning", async () => {

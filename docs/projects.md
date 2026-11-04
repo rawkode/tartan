@@ -40,6 +40,7 @@ form. Whatever is not a literal cannot be read, and the result is the safe one w
 | Written                                                 | Result                                    |
 | ------------------------------------------------------- | ----------------------------------------- |
 | `name: strings.ToLower("X")`                            | the directory's name, `computed-name`     |
+| `name: "a:b"`, or any literal outside `A-Za-z0-9._-`    | the directory's name, `invalid-name`      |
 | `deps: other` or `deps: ["a", other]`                   | the literal strings only, `computed-deps` |
 | `deps: ["nope"]`                                        | dropped, `unknown-dep`                    |
 | `extensions: "rawkode.issues": enabled: *false \| bool` | **enabled**, `extension-config-unread`    |
@@ -47,6 +48,10 @@ form. Whatever is not a literal cannot be read, and the result is the safe one w
 
 So a CUE file that evaluates to `enabled: false` through a definition, a comprehension or an import still reads as
 enabled here.
+
+The read is bounded, so a file on trunk cannot fail its repo's address. A `.cue` file over 256 KiB is not read at all
+(`cue-too-large`, and its directory is a project only if another file says so). A value nested past 32 levels is opaque, as
+above. A project reads at most 128 deps (`too-many-deps`) and keeps at most 32 issues (`issues-truncated`).
 
 ## Per-project config is not enforced
 

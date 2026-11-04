@@ -68,7 +68,7 @@ export const createLimiter = (n: number) => {
 export type Limiter = ReturnType<typeof createLimiter>;
 
 /** Manifests larger than this are not parsed (they cannot be real manifests). */
-export const MANIFEST_MAX_BYTES = 1024 * 1024;
+export const MANIFEST_MAX_BYTES = 256 * 1024;
 
 const decoder = new TextDecoder();
 

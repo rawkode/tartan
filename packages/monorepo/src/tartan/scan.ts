@@ -16,27 +16,23 @@ export type CueString = {
 	readonly simple: boolean;
 };
 
-export type CueBracket = { readonly id: number; readonly ch: "{" | "[" | "(" };
-
 export type CueLine = {
 	/** 1-based line number. */
 	readonly n: number;
 	/** Brackets (`{`, `[`, `(`) open at the start of the line, outside strings and comments. */
 	readonly depth: number;
-	/** The innermost bracket open at the start of the line (0 = top level). */
-	readonly block: number;
 	/** The line starts inside a multi-line string: never a declaration. */
 	readonly continued: boolean;
 	/** The line without comments, each string literal replaced by `""`. */
 	readonly code: string;
 	/** String literals that start on this line, in order. */
 	readonly strings: readonly CueString[];
-	/** Brackets opened on this line and still open at its end, outermost first. */
-	readonly opened: readonly CueBracket[];
 };
 
 /** Characters of a literal kept in `CueString.raw` (names are ≤ 128). */
 const RAW_KEEP = 512;
+/** `#`s a string delimiter may have; a longer run is not a string (CUE sets no limit, nobody needs one). */
+const MAX_HASHES = 16;
 
 type StringFrame = {
 	readonly kind: "string";
@@ -59,40 +55,33 @@ const CLOSERS = new Set(["}", "]", ")"]);
 export const scanCue = (text: string): CueLine[] => {
 	const src = text.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
 	const lines: CueLine[] = [];
-	const open: CueBracket[] = [];
 	const frames: Frame[] = [];
-	let nextId = 1;
+	let open = 0;
 	let n = 1;
 	let code = "";
 	let strings: CueString[] = [];
-	let pushed: CueBracket[] = [];
 	let startDepth = 0;
-	let startBlock = 0;
 	let continued = false;
 
 	const endLine = (): void => {
 		lines.push({
 			n,
 			depth: startDepth,
-			block: startBlock,
 			continued,
 			code,
 			strings,
-			opened: pushed.filter((b) => open.includes(b)),
 		});
 		n++;
 		code = "";
 		strings = [];
-		pushed = [];
-		startDepth = open.length;
-		startBlock = open.at(-1)?.id ?? 0;
+		startDepth = open;
 		continued = frames.some((f) => f.kind === "string");
 	};
 
 	/** At `i`: `#`* then a quote starts a string; returns its length or 0. */
 	const stringStart = (i: number, base: boolean): number => {
 		let j = i;
-		while (src[j] === "#") j++;
+		while (src[j] === "#" && j - i <= MAX_HASHES) j++;
 		const q = src[j];
 		if (q !== '"' && q !== "'") return 0;
 		const hashes = j - i;
@@ -189,16 +178,8 @@ export const scanCue = (text: string): CueLine[] => {
 			i += started;
 			continue;
 		}
-		if (OPENERS.has(ch)) {
-			const bracket: CueBracket = {
-				id: nextId++,
-				ch: ch as CueBracket["ch"],
-			};
-			open.push(bracket);
-			pushed.push(bracket);
-		} else if (CLOSERS.has(ch)) {
-			open.pop();
-		}
+		if (OPENERS.has(ch)) open++;
+		else if (CLOSERS.has(ch) && open > 0) open--;
 		code += ch;
 		i++;
 	}

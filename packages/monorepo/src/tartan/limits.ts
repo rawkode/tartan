@@ -8,6 +8,10 @@ export const MAX_WALK_DIRS = 4096;
 export const MAX_PACKAGE_CLAUSES = 2000;
 /** Projects per graph. */
 export const MAX_TARTAN_PROJECTS = 500;
+/** Literal deps read per project (more are dropped, with an issue). */
+export const MAX_PROJECT_DEPS = 128;
+/** Issues kept per project (the rest are counted in one last issue). */
+export const MAX_PROJECT_ISSUES = 32;
 /** Longest literal name (`FootprintSchema`'s project strings). */
 export const NAME_MAX = 128;
 /**

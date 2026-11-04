@@ -20,6 +20,9 @@ import { type CueLine, scanCue } from "./scan.ts";
 /** The characters a literal name may hold (`FootprintSchema`-safe). */
 export const NAME_CHARS_RE = /^[A-Za-z0-9._-]+$/;
 
+/** Nesting the reader follows; a deeper value is opaque, whatever it holds. */
+const MAX_NESTING = 32;
+
 /** The extension whose per-project switch is read. */
 export const ISSUES_EXTENSION = "rawkode.issues";
 
@@ -33,8 +36,10 @@ export type EnabledRead =
 export type ManifestFacts = {
 	/** The first literal top-level `name`. */
 	readonly name?: string;
-	/** A top-level `name` that is not a usable literal. */
+	/** A top-level `name` that is not a literal. */
 	readonly computedName: boolean;
+	/** A top-level `name` that is a literal, but not in `NAME_CHARS_RE`. */
+	readonly invalidName: boolean;
 	/** Literal strings of top-level `deps`. */
 	readonly deps: readonly string[];
 	/** A top-level `deps` (or an item of it) that is not a literal string. */
@@ -98,6 +103,7 @@ const OPENERS: Readonly<Record<string, string>> = {
 
 const createReader = (tokens: readonly Token[]) => {
 	let at = 0;
+	let nesting = 0;
 	const isPunct = (token: Token | undefined, text: string): boolean =>
 		token?.kind === "punct" && token.text === text;
 
@@ -199,6 +205,11 @@ const createReader = (tokens: readonly Token[]) => {
 
 	/** The value at the cursor; a composite expression is opaque as a whole. */
 	const valueAt = (): Value => {
+		if (nesting >= MAX_NESTING) {
+			skipDeclaration();
+			return { kind: "other" };
+		}
+		nesting++;
 		const start = tokens[at];
 		const value = ((): Value => {
 			if (start === undefined) return { kind: "other" };
@@ -226,6 +237,7 @@ const createReader = (tokens: readonly Token[]) => {
 			at--;
 			return { kind: "other" };
 		})();
+		nesting--;
 		if (atValueEnd()) return value;
 		skipDeclaration();
 		return { kind: "other" };
@@ -295,6 +307,7 @@ export const readManifest = (text: string): ManifestFacts => {
 	const { fields } = createReader(tokensOf(lines)).fields();
 
 	const names = named(fields, "name");
+	const isLiteral = (v: Value) => v.kind === "string" && v.simple;
 	const literal = names.find((v) =>
 		v.kind === "string" && v.simple && NAME_CHARS_RE.test(v.raw)
 	);
@@ -331,7 +344,8 @@ export const readManifest = (text: string): ManifestFacts => {
 
 	return {
 		...(literal?.kind === "string" ? { name: literal.raw } : {}),
-		computedName: names.length > 0 && literal === undefined,
+		computedName: literal === undefined && names.some((v) => !isLiteral(v)),
+		invalidName: literal === undefined && names.some(isLiteral),
 		deps,
 		computedDeps,
 		issues,

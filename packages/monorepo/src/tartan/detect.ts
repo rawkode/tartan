@@ -32,6 +32,8 @@ import {
 	isCueSourceName,
 	isSkippedDirName,
 	MAX_PACKAGE_CLAUSES,
+	MAX_PROJECT_DEPS,
+	MAX_PROJECT_ISSUES,
 	MAX_TARTAN_PROJECTS,
 	MAX_WALK_DEPTH,
 	MAX_WALK_DIRS,
@@ -197,6 +199,49 @@ const extensionsOf = (read: EnabledRead): ProjectExtensions => ({
 	},
 });
 
+/**
+ * The facts of one file. The reader is bounded, so this should never throw; if
+ * it does, the file counts for nothing and the project keeps its safe defaults.
+ * A file in a repo must not be able to fail the repo's whole address.
+ */
+const factsOf = (
+	path: string,
+	text: string,
+	issues: ProjectIssue[],
+): ManifestFacts & { readonly path: string } => {
+	try {
+		return { path, ...readManifest(text) };
+	} catch {
+		issues.push({
+			code: "cue-unreadable",
+			path,
+			message: `${path} could not be read; nothing in it counts`,
+		});
+		return {
+			path,
+			computedName: false,
+			invalidName: false,
+			deps: [],
+			computedDeps: false,
+			issues: { state: "absent" },
+		};
+	}
+};
+
+/** At most `MAX_PROJECT_ISSUES`, the last saying how many more there were. */
+const cappedIssues = (
+	issues: readonly ProjectIssue[],
+	path: string,
+): readonly ProjectIssue[] =>
+	issues.length <= MAX_PROJECT_ISSUES ? issues : [
+		...issues.slice(0, MAX_PROJECT_ISSUES - 1),
+		{
+			code: "issues-truncated",
+			path,
+			message: `and ${issues.length - MAX_PROJECT_ISSUES + 1} more`,
+		},
+	];
+
 /** Detects the projects of a tree: every directory holding a `package tartan` file. */
 export const detectTartan = async (
 	reads: TartanReads,
@@ -291,11 +336,11 @@ export const detectTartan = async (
 		const manifestPath = files.find((f) =>
 			basename(f) === CONVENTIONAL_MANIFEST
 		) ?? files[0];
-		const facts: (ManifestFacts & { path: string })[] = [
+		const issues: ProjectIssue[] = [];
+		const facts = [
 			manifestPath,
 			...files.filter((f) => f !== manifestPath),
-		].map((path) => ({ path, ...readManifest(texts.get(path) ?? "") }));
-		const issues: ProjectIssue[] = [];
+		].map((path) => factsOf(path, texts.get(path) ?? "", issues));
 		const literal = facts.find((f) => f.name !== undefined);
 		if (literal?.name !== undefined && literal.name.length > NAME_MAX) {
 			issues.push({
@@ -312,6 +357,15 @@ export const detectTartan = async (
 				code: "computed-name",
 				path: computed.path,
 				message: "name is not a literal: the directory name is used",
+			});
+		}
+		const invalid = facts.find((f) => f.invalidName);
+		if (!resolved && invalid !== undefined) {
+			issues.push({
+				code: "invalid-name",
+				path: invalid.path,
+				message:
+					"a name holds only letters, digits, dots, dashes and underscores: the directory name is used",
 			});
 		}
 		const computedDeps = facts.find((f) => f.computedDeps);
@@ -332,12 +386,22 @@ export const detectTartan = async (
 					`${ISSUES_EXTENSION} could not be read textually (${enabled.why}): it stays enabled`,
 			});
 		}
+		const named = [...new Set(facts.flatMap((f) => f.deps))]
+			.filter((dep) => dep.length <= NAME_MAX).sort();
+		if (named.length > MAX_PROJECT_DEPS) {
+			issues.push({
+				code: "too-many-deps",
+				path: manifestPath,
+				message:
+					`only the first ${MAX_PROJECT_DEPS} of ${named.length} deps are read`,
+			});
+		}
 		return {
 			root,
 			manifestPath,
 			name: resolved ? literal.name! : slugOf(basename(root)),
 			nameSource: (resolved ? "literal" : "directory") as NameSource,
-			deps: [...new Set(facts.flatMap((f) => f.deps))].sort(),
+			deps: named.slice(0, MAX_PROJECT_DEPS),
 			extensions: extensionsOf(enabled),
 			issues,
 		};
@@ -351,7 +415,7 @@ export const detectTartan = async (
 		const id = identities.get(d.root)!;
 		const outer = roots.find((r) => r !== d.root && isUnder(d.root, r));
 		const unknown = d.deps.filter((dep) => !known.has(dep));
-		const issues = [
+		const issues = cappedIssues([
 			...d.issues,
 			...id.issues,
 			...unknown.map((dep) => ({
@@ -366,7 +430,7 @@ export const detectTartan = async (
 					message: `inside the project at ${outer}; the longest root wins`,
 				}]
 				: []),
-		];
+		], d.manifestPath);
 		for (const issue of issues) warn(issue);
 		return {
 			name: id.name,
