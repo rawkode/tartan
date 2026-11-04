@@ -1214,7 +1214,7 @@ export type ProjectDto = {
 	readonly key: string;
 	/** Unique in the graph (a duplicate declared name carries `@<root slug>`). */
 	readonly name: string;
-	/** The URL segment of `/<repo>/-/p/<slug>`. */
+	/** A URL-safe key for `/-/api/repos/<id>/projects/<slug>`. */
 	readonly slug: string;
 	readonly root: string;
 	/** The raw declared name when `name` carries a uniqueness suffix. */

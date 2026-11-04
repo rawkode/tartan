@@ -14,7 +14,6 @@ import { createForgeStore, FORGE } from "./forge/data/index.ts";
 import { createAppRouter } from "./router/index.ts";
 import { SETUP_TOKEN, takeSetupToken } from "./setup/fragment.ts";
 import { createToasts, TOASTS } from "./shell/toasts.ts";
-import { createProjectsClient, PROJECTS } from "./views/project/client.ts";
 import { applyThemePreference, readThemePreference } from "./theme.ts";
 // Order matters: base.css declares the lowest cascade layer, before Panda's.
 import "./styles/fonts.css";
@@ -68,7 +67,6 @@ const boot = async (): Promise<void> => {
 	createApp(App)
 		.provide(SETUP_TOKEN, setupToken)
 		.provide(API, api)
-		.provide(PROJECTS, createProjectsClient(http))
 		.provide(SESSION, session)
 		.provide(FORGE, createForgeStore(api, session, signedIn))
 		.provide(LIVE, createLiveStore({ connect }))

@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.vue";
 import type { FetchLike } from "../src/api/http.ts";
 import { CHANGE_ID, SHAS } from "../src/api/mock/fixtures.ts";
-import { withMockProjects } from "../src/api/mock/projects.ts";
 import { createMockFetch } from "../src/api/mock/server.ts";
 import { SAMPLE_CATALOG } from "./support/catalog.ts";
 import { mountApp } from "./support/app.ts";
@@ -130,9 +129,7 @@ describe("node pages", () => {
 	});
 
 	it("marks archived children, which stay listed", async () => {
-		const inner = withMockProjects(
-			createMockFetch({ catalog: SAMPLE_CATALOG }),
-		);
+		const inner = createMockFetch({ catalog: SAMPLE_CATALOG });
 		const app = await mountApp("/acme", {
 			fetch: async (input, init) => {
 				const response = await inner(input, init);

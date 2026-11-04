@@ -98,10 +98,15 @@ describe("routes", () => {
 
 	it("does not treat other shapes as shell pages", async () => {
 		expect((await resolve("/-/new/project")).name).toBe("forge-not-found");
-		expect((await resolve("/-/issues/abc")).name).toBe("forge-not-found");
+		expect((await resolve("/-/issues/abc")).name).toBe("forge-issue-unknown");
+		expect((await resolve("/acme/-/issues/abc")).name).toBe(
+			"node-issue-unknown",
+		);
 		expect((await resolve("/-/changes")).name).toBe("forge-not-found");
 		expect((await resolve("/acme/-/new/project")).name).toBe("slot-tab");
-		expect((await resolve("/acme/r/-/issues/abc")).name).toBe("slot-tab");
+		expect((await resolve("/acme/r/-/issues/abc")).name).toBe(
+			"node-issue-unknown",
+		);
 	});
 
 	it("keeps a ref with slashes as one segment and the rest as the path", async () => {

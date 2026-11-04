@@ -9,7 +9,6 @@ import { sameOriginPath } from "../../ui/links.ts";
 import type { FetchLike } from "../http.ts";
 import { MOCK_NOW, OWNER_VIEWER } from "./fixtures.ts";
 import { createMockConnect } from "./live.ts";
-import { withMockProjects } from "./projects.ts";
 import {
 	createMockFetch,
 	createMockState,
@@ -61,7 +60,7 @@ export const mockServices = (location: MockLocation, history: MockHistory) => {
 	}
 	save();
 
-	const inner = withMockProjects(createMockFetch(options, state));
+	const inner = createMockFetch(options, state);
 	const fetch: FetchLike = async (input, init) => {
 		const response = await inner(input, init);
 		save();

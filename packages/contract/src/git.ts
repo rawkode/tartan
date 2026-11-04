@@ -155,7 +155,7 @@ export type ProjectExtensions = Readonly<
 	Record<string, { readonly enabled: boolean }>
 >;
 
-/** URL slugs of projects (`/<repo>/-/p/<slug>`), unique within one graph. */
+/** URL slugs of projects, unique within one graph. */
 export const PROJECT_SLUG_RE = /^[a-z0-9][a-z0-9.-]{0,127}$/;
 
 export type Project = {

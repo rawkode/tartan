@@ -15,7 +15,6 @@ import { useApi } from "../../../app/context.ts";
 import { useResource } from "../../../composables/resource.ts";
 import { blobHref, logHref, pathCrumbs, treeHref } from "../../../router/params.ts";
 import UiMarkdown from "../../../ui/nodes/UiMarkdown.ts";
-import ProjectsCard from "../../project/ProjectsCard.vue";
 
 const props = defineProps<{
 	view: ViewResponse;
@@ -52,8 +51,6 @@ const cloneUrl = computed(() =>
 );
 
 const crumbs = computed(() => pathCrumbs(loc.value.path));
-/** The repo's home (default branch, root): where the Projects card lives (WP25). */
-const isHome = computed(() => props.refName === "" && props.path === "");
 const parent = computed(() => {
 	const parts = loc.value.path.split("/").filter((p) => p !== "");
 	return parts.length === 0 ? null : parts.slice(0, -1).join("/");
@@ -111,11 +108,6 @@ const parent = computed(() => {
 				</div>
 			</AsyncState>
 			<CopyField label="Clone over HTTPS" :value="cloneUrl" />
-			<ProjectsCard
-				v-if="isHome && view.repo?.id"
-				:repo-id="view.repo.id"
-				:repo-path="repoPath"
-			/>
 			<section v-if="readme.data.value?.text" class="tt-panel readme" aria-labelledby="readme-title">
 				<h2 id="readme-title" class="readme__title">
 					<TtIcon name="file" /> {{ readme.data.value.path }}

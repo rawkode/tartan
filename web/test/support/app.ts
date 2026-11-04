@@ -6,7 +6,6 @@ import { type Component, h } from "vue";
 import { createMemoryHistory, type Router, RouterView } from "vue-router";
 import { type Api, createApi } from "../../src/api/client.ts";
 import { createHttp, type FetchLike } from "../../src/api/http.ts";
-import { withMockProjects } from "../../src/api/mock/projects.ts";
 import {
 	createMockFetch,
 	type MockOptions,
@@ -19,10 +18,6 @@ import { createAppRouter } from "../../src/router/index.ts";
 import { NODE_SEGMENT } from "../../src/router/routes.ts";
 import { SETUP_TOKEN } from "../../src/setup/fragment.ts";
 import { createToasts, TOASTS, type Toasts } from "../../src/shell/toasts.ts";
-import {
-	createProjectsClient,
-	PROJECTS,
-} from "../../src/views/project/client.ts";
 import NodeView from "../../src/views/node/NodeView.vue";
 import { SAMPLE_CATALOG } from "./catalog.ts";
 import { type FakeClock, fakeClock } from "./fakes.ts";
@@ -101,9 +96,7 @@ export const mountApp = async (
 ): Promise<AppHarness> => {
 	const recorder = recordingFetch(
 		options.fetch ??
-			withMockProjects(
-				createMockFetch({ catalog: SAMPLE_CATALOG, ...options.mock }),
-			),
+			createMockFetch({ catalog: SAMPLE_CATALOG, ...options.mock }),
 	);
 	const http = createHttp(recorder.fetch);
 	const api = createApi(http);
@@ -125,7 +118,6 @@ export const mountApp = async (
 		{
 			provide: [
 				[API, api],
-				[PROJECTS, createProjectsClient(http)],
 				[SESSION, session],
 				[LIVE, live],
 				[TOASTS, toasts],

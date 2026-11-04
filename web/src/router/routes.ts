@@ -20,7 +20,6 @@
 // everything else belongs to WP18.
 
 import type { RouteRecordRaw } from "vue-router";
-import { PROJECT_ROUTES } from "../views/project/routes.ts";
 
 /**
  * One node-path segment. Slugs match `[a-z0-9][a-z0-9-]*` (`nodes.slug`), so
@@ -33,7 +32,7 @@ export const NODE_SEGMENT = "[^/-][^/]*";
 /** `/<nodePath>` (one or more segments) followed by `suffix`. */
 const node = (suffix = ""): string => `/:nodePath(${NODE_SEGMENT})+${suffix}`;
 
-export type RouteOwner = "WP18" | "WP19" | "WP23" | "WP25";
+export type RouteOwner = "WP18" | "WP19" | "WP23";
 
 export type ViewMeta = {
 	readonly title: string;
@@ -66,6 +65,8 @@ const forgePages = (
 		["issues", "/-/issues", "Issues"],
 		["issue-new", "/-/issues/new", "New issue"],
 		["issue", "/-/issues/:n(\\d+)", "Issue"],
+		// Issues are the shell's whole page, so nothing below it is an extension tab.
+		["issue-unknown", "/-/issues/:rest(.*)+", "Issue"],
 	].map(([name, suffix, title]) => ({
 		path: at(suffix!),
 		name: `${prefix}-${name}`,
@@ -300,10 +301,6 @@ export const routes: readonly RouteRecordRaw[] = [
 		component: () => import("../views/coord/AdvanceView.vue"),
 		meta: meta("Advance", "WP19"),
 	},
-
-	// Monorepo projects (WP25): `/-/p` and `/-/p/<slug>[/<tab>]`, before the
-	// extension tabs so `p` is never one.
-	...PROJECT_ROUTES,
 
 	// Extension-contributed node.tab / repo.tab pages. Manifest routes match
 	// `^[a-z0-9-/*]{1,64}$`; kernel views above win because

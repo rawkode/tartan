@@ -1,7 +1,7 @@
 // Live: monorepo projects, the first slice. On a forge deployed with
 // `--projects` (scan), a
 // repository's directories holding a `package tartan` file are its projects.
-// Each project gets a page at `/<repo>/-/p/<slug>` with its
+// Each project gets a page at `/<repo>:<name>` with its
 // README. A project's Issues and Pull requests came from the work and change
 // extensions, which this branch removed; those checks are gone with them.
 //
@@ -131,19 +131,18 @@ test.describe("monorepo projects", {
 		const s = await setupFor(stage, T.card);
 		await app.open(`/${s.repo.path}`);
 		await watchApi(browser);
-		const card = browser.locator('[data-testid="projects-card"]');
+		const main = browser.locator("#main");
 		for (const p of PROJECTS) {
-			await expect(
-				card.getByRole("link", MONOREPO_PROJECTS[p].name),
-			).toBeVisible();
+			await expect(main.getByRole("link", MONOREPO_PROJECTS[p].name))
+				.toBeVisible();
 		}
-		await card.getByRole("link", MONOREPO_PROJECTS.design.name).tap();
+		await main.getByRole("link", MONOREPO_PROJECTS.design.name).tap();
 		await expect(browser).toHaveURL(
-			urlOf(stage.origin, `/${s.repo.path}/-/p/${s.slugs.design}`),
+			urlOf(stage.origin, `/${s.repo.path}:${MONOREPO_PROJECTS.design.name}`),
 		);
-		const page = browser.locator(`article[data-project="${s.slugs.design}"]`);
-		await expect(page.getByRole("heading", MONOREPO_PROJECTS.design.name))
+		await expect(main.getByRole("heading", MONOREPO_PROJECTS.design.name))
 			.toBeVisible();
+		const page = main;
 		await expect(page).toContainText("Tokens and components");
 		await expectApiClean(browser);
 	});
