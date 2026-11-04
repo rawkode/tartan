@@ -3,7 +3,8 @@
 Per-repository issues for Tartan, written in **Rust and compiled to a WebAssembly component** (`tartan:ext@0.1.0`). It
 is published and installed like any third-party package (`id` outside `tartan.*`, `runtime: "wasm"`, no permissions),
 and runs as a Dynamic Worker facet of its installation's own Durable Object, with its own SQLite: `storage.scope:
-"repo"`, so each repository has its own database and its own issue numbers (`#1`, `#2`, …).
+"repo"`, so each repository has its own database and its own issue numbers (`#1`, `#2`, …). An issue may belong to a
+project of the repository.
 
 | Contribution        | Role      | What it does                                                                         |
 | ------------------- | --------- | ------------------------------------------------------------------------------------ |
@@ -22,8 +23,33 @@ same role. Changing an issue's state needs Developer and has no button in the ta
 the slot's role. An issue's author is the actor the host gives the call (`kind` and `id`, and `on_behalf_of` for an
 agent acting for a user).
 
+## Projects
+
+Every tool takes an optional `project` and every issue carries `project` (null for an issue of the whole repository). It
+is the project's **root path** (`crates/lsp`), not its name, and it is stored as written when the issue is opened:
+
+- `list` with `project` filters the issues and their counts to it, by exact root: a nested project's issues are its own.
+- `create` files the issue against it. The tab's form files repo-wide issues and never reads `project`.
+- `get`, `close` and `reopen` with `project` answer `not_found` for another project's issue. Without it they reach any
+  issue in the repository.
+- Without `project`, `list` is repo-wide: every issue, whichever project it belongs to.
+
+The extension cannot see the project graph, so it checks only the path's shape. The kernel's JSON route
+(`POST /-/api/repos/<repoId>/ext/rawkode.issues/tools/<tool>`, [docs/projects.md](../../docs/projects.md)) resolves a
+project's name to its root, refuses an unknown one and refuses one that switched Issues off.
+
+What follows from that, and is not handled:
+
+- **Renaming a project keeps its issues; moving it does not.** A change to `name:` leaves the root alone. A moved
+  directory is a new root, so its old issues stay filed under the old path: the project's list no longer shows them, and
+  the project's `get`, `close` and `reopen` answer `not_found`. They still appear repo-wide. Nothing rewrites them, and
+  no issue can be refiled.
+- **A deleted project's issues stay** under its old path, and repo-wide.
+- **Over MCP, `project` is not checked.** An MCP caller's string is stored as written, against any path or against a
+  project with Issues switched off. The per-project switch scopes the JSON route only ([docs/projects.md](../../docs/projects.md)).
+
 Layout: `src/issue.rs` (argument checks, JSON shapes and the tab document; pure), `src/store.rs` (the `issues` table),
-`src/lib.rs` (the hooks), `migrations/0001_init.sql`, `protocol.md`, `tartan.json`.
+`src/lib.rs` (the hooks), `migrations/` (`0002` adds the nullable `project` and its index), `protocol.md`, `tartan.json`.
 
 ```sh
 cargo test --manifest-path extensions/issues/Cargo.toml

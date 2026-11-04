@@ -117,7 +117,7 @@ Deno.test("extensions/**/tartan.json validate: JSON Schema, zod and policy", asy
 			[],
 			`${dir} policy`,
 		);
-		equal(manifest.version, "0.1.0", `${dir} version`);
+		equal(manifest.version, "0.2.0", `${dir} version`);
 	}
 });
 

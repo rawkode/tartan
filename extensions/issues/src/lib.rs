@@ -1,5 +1,8 @@
 //! `rawkode.issues`: per-repository issues for Tartan, written in Rust and
-//! run as a WebAssembly component.
+//! run as a WebAssembly component. An issue may belong to a project: every
+//! tool takes an optional `project`, the project's root path. The extension
+//! cannot see the project graph; the kernel's JSON route resolves a project's
+//! name to that path and refuses a project with the extension switched off.
 //!
 //! - tools (`issues_<name>` over MCP): `list`, `get`, `create`, `close`,
 //!   `reopen`;
@@ -17,14 +20,23 @@ use serde_json::{json, Value};
 use tartan_ext::serde_json;
 use tartan_ext::{export, parse_json, Actor, Error, Extension, Json, SlotContext};
 
-use issue::{State, CREATE_ACTION, TAB_LIMIT};
+use issue::{Issue, State, CREATE_ACTION, TAB_LIMIT};
 
 fn not_found(number: u32) -> Error {
 	Error::not_found(format!("issue #{number}"))
 }
 
-fn transition(args: &Value, state: State) -> Result<Value, Error> {
+/// The issue called for, unless a `project` was given and it is another's.
+fn scoped(args: &Value) -> Result<Issue, Error> {
 	let number = issue::number_arg(args)?;
+	let project = issue::project_arg(args)?;
+	store::get(number)?
+		.filter(|found| project.is_none() || found.project == project)
+		.ok_or_else(|| not_found(number))
+}
+
+fn transition(args: &Value, state: State) -> Result<Value, Error> {
+	let number = scoped(args)?.number;
 	let (issue, changed) = store::set_state(number, state)?.ok_or_else(|| not_found(number))?;
 	Ok(json!({ "issue": issue::issue_json(&issue, false), "changed": changed }))
 }
@@ -34,23 +46,22 @@ pub fn tool(name: &str, args: &Value, actor: Option<&Actor>) -> Result<Value, Er
 	match name {
 		"list" => {
 			let (filter, limit) = issue::list_args(args)?;
-			let issues = store::list(filter, limit)?;
-			let (open, closed) = store::counts()?;
+			let project = issue::project_arg(args)?;
+			let issues = store::list(filter, project.as_deref(), limit)?;
+			let (open, closed) = store::counts(project.as_deref())?;
 			Ok(json!({
 				"state": filter.as_str(),
+				"project": project,
 				"issues": issues.iter().map(|i| issue::issue_json(i, false)).collect::<Vec<_>>(),
 				"open": open,
 				"closed": closed,
 			}))
 		}
-		"get" => {
-			let number = issue::number_arg(args)?;
-			let found = store::get(number)?.ok_or_else(|| not_found(number))?;
-			Ok(json!({ "issue": issue::issue_json(&found, true) }))
-		}
+		"get" => Ok(json!({ "issue": issue::issue_json(&scoped(args)?, true) })),
 		"create" => {
 			let new = issue::new_issue(args)?;
-			let created = store::create(&new, &issue::author_of(actor)?)?;
+			let project = issue::project_arg(args)?;
+			let created = store::create(&new, project.as_deref(), &issue::author_of(actor)?)?;
 			Ok(json!({ "issue": issue::issue_json(&created, true) }))
 		}
 		"close" => transition(args, State::Closed),
@@ -66,8 +77,8 @@ impl Extension for Issues {
 		if slot != "issues" {
 			return Err(Error::not_found(format!("slot {slot}")));
 		}
-		let (open, closed) = store::counts()?;
-		let issues = store::list(issue::Filter::All, TAB_LIMIT)?;
+		let (open, closed) = store::counts(None)?;
+		let issues = store::list(issue::Filter::All, None, TAB_LIMIT)?;
 		Ok(issue::tab_doc(&issues, open, closed).to_string())
 	}
 
@@ -80,7 +91,7 @@ impl Extension for Issues {
 			Err(Error::Invalid(message)) => return Ok(issue::refused_result(&message).to_string()),
 			Err(e) => return Err(e),
 		};
-		let created = store::create(&new, &issue::author_of(ctx.viewer.as_ref())?)?;
+		let created = store::create(&new, None, &issue::author_of(ctx.viewer.as_ref())?)?;
 		Ok(issue::created_result(&created).to_string())
 	}
 

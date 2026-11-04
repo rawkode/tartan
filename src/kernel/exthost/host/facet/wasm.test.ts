@@ -103,6 +103,7 @@ type IssueOut = {
 	number: number;
 	title: string;
 	body?: string;
+	project: string | null;
 	state: string;
 	author: { kind: string; id: string };
 	closedAt: number | null;
@@ -149,6 +150,10 @@ const setup = async (runtime: Runtime) => {
 			n: 1,
 			name: "init",
 			sql: new TextDecoder().decode(f.get("migrations/0001_init.sql")),
+		}, {
+			n: 2,
+			name: "project",
+			sql: new TextDecoder().decode(f.get("migrations/0002_project.sql")),
 		}],
 	}], clock);
 	const host = createExtensionHost({
@@ -195,6 +200,7 @@ for (const runtime of ["wasm", "wasm-bundled"] as const) {
 				number: 1,
 				title: "Push hangs on large packs",
 				body: "Steps: push 2 GB.",
+				project: null,
 				state: "open",
 				author: { kind: "user", id: PRINCIPALS.dev },
 				createdAt: 1_762_128_000_000,
@@ -257,7 +263,7 @@ for (const runtime of ["wasm", "wasm-bundled"] as const) {
 				// One loader id per installation and package.
 				strictEqual(t.facet.gets[0], loaderIdOf(t.snapshot()));
 				ok(
-					/^x:rawkode\.issues@0\.1\.0#[0-9a-f]{16}:i_[0-9a-z]{26}$/.test(
+					/^x:rawkode\.issues@0\.2\.0#[0-9a-f]{16}:i_[0-9a-z]{26}$/.test(
 						t.facet.gets[0],
 					),
 				);
@@ -273,6 +279,117 @@ for (const runtime of ["wasm", "wasm-bundled"] as const) {
 					"shim.js",
 				]);
 			}
+		},
+	});
+
+	Deno.test({
+		name:
+			`${runtime}: tools file issues against a project and filter and scope by it`,
+		ignore,
+		fn: async () => {
+			const t = await setup(runtime);
+			const code = (want: string) => (e: unknown) =>
+				(e as { code?: string }).code === want;
+			const create = (title: string, project?: string) =>
+				t.tool("create", {
+					title,
+					...(project === undefined ? {} : { project }),
+				}) as Promise<{ issue: IssueOut }>;
+			const list = (args: Record<string, unknown>) =>
+				t.tool("list", args) as Promise<{
+					project: string | null;
+					issues: IssueOut[];
+					open: number;
+					closed: number;
+				}>;
+			strictEqual(
+				(await create("Repo-wide")).issue.project,
+				null,
+				"an issue of the whole repository",
+			);
+			strictEqual(
+				(await create("In core", "crates/core")).issue.project,
+				"crates/core",
+			);
+			strictEqual(
+				(await create("In the nested one", "crates/core/sub")).issue.project,
+				"crates/core/sub",
+			);
+			await create("Also in core", "crates/core");
+
+			const core = await list({ project: "crates/core", state: "all" });
+			strictEqual(core.project, "crates/core");
+			deepStrictEqual(core.issues.map((i) => i.number), [4, 2]);
+			deepStrictEqual(core.issues.map((i) => i.project), [
+				"crates/core",
+				"crates/core",
+			]);
+			deepStrictEqual([core.open, core.closed], [2, 0]);
+			const wide = await list({ state: "all" });
+			strictEqual(wide.project, null);
+			deepStrictEqual(wide.issues.map((i) => i.number), [4, 3, 2, 1]);
+			deepStrictEqual([wide.open, wide.closed], [4, 0]);
+			deepStrictEqual(
+				(await list({ project: "crates/none", state: "all" })).issues,
+				[],
+			);
+
+			// With a project, another's issue is not found; repo-wide reaches it.
+			await rejects(
+				t.tool("get", { number: 1, project: "crates/core" }),
+				code("not_found"),
+			);
+			await rejects(
+				t.tool("close", { number: 3, project: "crates/core" }),
+				code("not_found"),
+			);
+			strictEqual(
+				(await t.tool("get", { number: 2, project: "crates/core" }) as {
+					issue: IssueOut;
+				}).issue.project,
+				"crates/core",
+			);
+			const closed = await t.tool("close", {
+				number: 2,
+				project: "crates/core",
+			}) as { issue: IssueOut; changed: boolean };
+			strictEqual(closed.issue.state, "closed");
+			strictEqual(closed.issue.project, "crates/core");
+			const stateful = await list({ project: "crates/core" });
+			deepStrictEqual(stateful.issues.map((i) => i.number), [4]);
+			deepStrictEqual([stateful.open, stateful.closed], [1, 1]);
+			const reopened = await t.tool("reopen", { number: 2 }) as {
+				issue: IssueOut;
+			};
+			strictEqual(reopened.issue.project, "crates/core");
+
+			for (
+				const bad of ["", "/crates", "../x", "crates//core", "crates/core/"]
+			) {
+				await rejects(create("Bad", bad), code("invalid"), bad);
+				await rejects(list({ project: bad }), code("invalid"), bad);
+			}
+			await rejects(list({ project: 1 }), code("invalid"));
+
+			// The tab's form files repo-wide issues, whatever its payload says.
+			await t.host.action(
+				"issues",
+				"create",
+				{ title: "From the tab", project: "crates/core" },
+				tabCtx,
+				userActor(PRINCIPALS.dev),
+				bounds,
+			);
+			deepStrictEqual(
+				t.rows("SELECT project FROM issues ORDER BY number DESC LIMIT 1"),
+				[{ project: null }],
+			);
+			ok(
+				JSON.stringify(
+					await t.host.render("issues", tabCtx, viewer(PRINCIPALS.dev)),
+				).includes("crates/core"),
+				"the tab shows an issue's project",
+			);
 		},
 	});
 
@@ -373,7 +490,7 @@ Deno.test({
 		await t.tool("create", { title: "two" });
 		deepStrictEqual(
 			t.rows("SELECT n, name FROM _ext_migrations"),
-			[{ n: 1, name: "init" }],
+			[{ n: 1, name: "init" }, { n: 2, name: "project" }],
 		);
 		strictEqual(t.facet.loads(), 1);
 		await t.host.abort("upgrade");

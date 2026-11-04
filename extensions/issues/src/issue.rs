@@ -16,6 +16,8 @@ pub const LIST_MAX_LIMIT: u32 = 100;
 pub const TAB_LIMIT: u32 = 100;
 /// The largest issue number a tool accepts.
 pub const NUMBER_MAX: u32 = i32::MAX as u32;
+/// A project's root path, in bytes.
+pub const PROJECT_MAX_BYTES: usize = 512;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum State {
@@ -69,6 +71,8 @@ pub struct Issue {
 	pub number: u32,
 	pub title: String,
 	pub body: String,
+	/// The project's root path; None for an issue of the whole repository.
+	pub project: Option<String>,
 	pub state: State,
 	pub author: Author,
 	pub created_at: u64,
@@ -116,6 +120,27 @@ pub fn new_issue(args: &Value) -> Result<NewIssue, Error> {
 		title: title.to_string(),
 		body: body.to_string(),
 	})
+}
+
+/// The optional `project` argument of every tool: a project's root path, as
+/// the kernel passes it. The extension cannot see the project graph, so it
+/// checks the shape only. Only tools read it; the tab's form never sets one.
+pub fn project_arg(args: &Value) -> Result<Option<String>, Error> {
+	let root = match &args["project"] {
+		Value::Null => return Ok(None),
+		Value::String(s) => s.as_str(),
+		_ => return Err(Error::invalid("project is a string")),
+	};
+	let clean = !root.is_empty()
+		&& root.len() <= PROJECT_MAX_BYTES
+		&& !root.chars().any(|c| c == '\\' || c.is_control())
+		&& root.split('/').all(|s| !s.is_empty() && s != "." && s != "..");
+	if !clean {
+		return Err(Error::invalid(
+			"project is a repository-relative root path, like crates/lsp",
+		));
+	}
+	Ok(Some(root.to_string()))
 }
 
 /// The `number` argument of `get`, `close` and `reopen`.
@@ -181,6 +206,7 @@ pub fn issue_json(i: &Issue, with_body: bool) -> Value {
 	let mut v = json!({
 		"number": i.number,
 		"title": i.title,
+		"project": i.project,
 		"state": i.state.as_str(),
 		"author": author_json(&i.author),
 		"createdAt": i.created_at,
@@ -243,13 +269,14 @@ pub fn tab_doc(issues: &[Issue], open: i64, closed: i64) -> Value {
 		)
 	} else {
 		ui::table(
-			&["#", "Title", "State", "Author", "Updated"],
+			&["#", "Title", "Project", "State", "Author", "Updated"],
 			issues
 				.iter()
 				.map(|i| {
 					vec![
 						json!(format!("#{}", i.number)),
 						json!(i.title),
+						i.project.as_deref().map_or(json!("—"), ui::mono),
 						match i.state {
 							State::Open => ui::badge("open", Tone::Success),
 							State::Closed => ui::badge("closed", Tone::Muted),
@@ -298,6 +325,7 @@ mod tests {
 			number,
 			title: format!("Issue {number}"),
 			body: "body".into(),
+			project: None,
 			state,
 			author: author(),
 			created_at: 1_700_000_000_000,
@@ -381,10 +409,42 @@ mod tests {
 		let full = issue_json(&i, true);
 		assert_eq!(full["number"], 3);
 		assert_eq!(full["state"], "open");
+		assert_eq!(full["project"], Value::Null);
 		assert_eq!(full["author"], json!({ "kind": "user", "id": "usr_dev" }));
 		assert_eq!(full["body"], "body");
 		assert_eq!(full["closedAt"], Value::Null);
 		assert!(issue_json(&i, false).get("body").is_none());
+		let scoped = Issue {
+			project: Some("crates/lsp".into()),
+			..i
+		};
+		assert_eq!(issue_json(&scoped, false)["project"], "crates/lsp");
+	}
+
+	#[test]
+	fn a_project_is_a_clean_root_path() {
+		assert_eq!(project_arg(&json!({})).unwrap(), None);
+		assert_eq!(project_arg(&json!({ "project": null })).unwrap(), None);
+		assert_eq!(
+			project_arg(&json!({ "project": "crates/lsp" }))
+				.unwrap()
+				.as_deref(),
+			Some("crates/lsp")
+		);
+		for bad in [
+			json!({ "project": "" }),
+			json!({ "project": 1 }),
+			json!({ "project": "/crates" }),
+			json!({ "project": "crates/" }),
+			json!({ "project": "crates//lsp" }),
+			json!({ "project": "../etc" }),
+			json!({ "project": "a/./b" }),
+			json!({ "project": "a\\b" }),
+			json!({ "project": "a\nb" }),
+			json!({ "project": "x".repeat(PROJECT_MAX_BYTES + 1) }),
+		] {
+			assert!(matches!(project_arg(&bad), Err(Error::Invalid(_))), "{bad}");
+		}
 	}
 
 	#[test]
@@ -402,9 +462,10 @@ mod tests {
 		assert_eq!(children[1]["children"][0]["value"], 1.0);
 		assert_eq!(children[2]["t"], "table");
 		assert_eq!(children[2]["rows"][0][0], "#2");
-		assert_eq!(children[2]["rows"][0][2]["text"], "closed");
-		assert_eq!(children[2]["rows"][1][2]["tone"], "success");
-		assert_eq!(children[2]["rows"][1][4], "2025-11-03");
+		assert_eq!(children[2]["rows"][0][2], "—");
+		assert_eq!(children[2]["rows"][0][3]["text"], "closed");
+		assert_eq!(children[2]["rows"][1][3]["tone"], "success");
+		assert_eq!(children[2]["rows"][1][5], "2025-11-03");
 		let form = &children[3]["children"][0];
 		assert_eq!(form["t"], "form");
 		assert_eq!(form["submit"]["action"]["id"], CREATE_ACTION);
