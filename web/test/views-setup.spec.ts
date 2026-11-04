@@ -342,7 +342,7 @@ describe("setup wizard: post-claim", () => {
 		expect(title(app.root)).toBe("Content");
 	});
 
-	it("creates a first group and repository (sample) in the content step", async () => {
+	it("creates a first group and repository in the content step", async () => {
 		const app = await mountApp("/-/setup", { mock: { setupState: "done" } });
 		await flush();
 		click(button(app.root, "Continue"));
@@ -357,15 +357,6 @@ describe("setup wizard: post-claim", () => {
 			.toEqual({ kind: "group", slug: "studio", visibility: "private" });
 		expect(text(app.root)).toContain("Group studio created");
 		type(input(app.root, "slug"), "demo");
-		const sample = findAll(
-			app.root,
-			(el) => el.tag === "input" && el.attrs["value"] === "sample",
-		)[0]!;
-		sample.checked = true;
-		for (const fn of sample.domListeners["change"] ?? []) {
-			fn({ type: "change", target: sample } as never);
-		}
-		await flush();
 		submit(byTag(app.root, "form")[0]!);
 		await flush();
 		expect(app.calls.find((c) => c.path === "/-/api/nodes/repos")?.body)
@@ -373,7 +364,6 @@ describe("setup wizard: post-claim", () => {
 				parent: "studio",
 				slug: "demo",
 				visibility: "private",
-				sample: true,
 			});
 		expect(text(app.root)).toContain("Repository studio/demo created");
 	});

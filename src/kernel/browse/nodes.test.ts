@@ -255,14 +255,6 @@ Deno.test("POST /-/api/nodes/repos: the forge Owner only: create, URL import and
 		)).status,
 		403,
 	);
-	equal(
-		(await nodes(b, "POST", "repos", session(owner), {
-			parent: "acme/platform",
-			slug: "z",
-			sample: true,
-		})).body.reason,
-		"sample",
-	);
 	// Import mode: the forge Owner only, never an agent.
 	const byMaint = await nodes(b, "POST", "repos", session(maint), {
 		parent: "acme/platform",

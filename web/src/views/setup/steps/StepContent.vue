@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Post-claim step (optional): a first group, then a repository in it — empty,
-// the bundled sample monorepo, or an import of a public repo.
+// or an import of a public repo.
 import { ref } from "vue";
 import type { NodeDto } from "@tartan/contract/api.ts";
 import CreateNodeForm from "../../../components/CreateNodeForm.vue";

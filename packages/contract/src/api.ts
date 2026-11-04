@@ -313,8 +313,6 @@ export const RepoCreateRequestSchema = z.strictObject({
 	defaultBranch: z.string().max(200).optional(),
 	/** Import instead of create. */
 	import: RepoImportSourceSchema.optional(),
-	/** Seed the bundled sample monorepo. */
-	sample: z.boolean().optional(),
 });
 
 /**

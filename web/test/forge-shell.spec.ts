@@ -544,8 +544,9 @@ describe("ForgeApp", () => {
 		);
 	});
 
-	it("has no way to make a repo at the root, which the kernel needs a parent for", async () => {
+	it("can make a repo at the root", async () => {
 		const html = await render("/-/new/repo");
-		expect(html).toContain("Nothing at that address.");
+		expect(html).toContain("Create repo");
+		expect(html).not.toContain("Nothing at that address.");
 	});
 });

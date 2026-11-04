@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Create a group or a repo under a parent (or a top-level group). A repo can
-// start empty, from the bundled sample monorepo, or as an import of a public
-// `https://` git URL. Slugs follow the node grammar.
+// start empty, or as an import of a public `https://` git URL. Slugs follow the
+// node grammar.
 import { computed, ref, useId } from "vue";
 import type { NodeDto } from "@tartan/contract/api.ts";
 import type { Visibility } from "@tartan/contract/common.ts";
@@ -21,7 +21,7 @@ const id = useId();
 const slug = ref("");
 const visibility = ref<Visibility>("private");
 const description = ref("");
-const source = ref<"empty" | "sample" | "import">("empty");
+const source = ref<"empty" | "import">("empty");
 const importUrl = ref("");
 const busy = ref(false);
 const error = ref<string | null>(null);
@@ -55,7 +55,6 @@ const submit = async (): Promise<void> => {
 			: await api.nodes.createRepo({
 				parent: props.parent ?? "",
 				...common,
-				...(source.value === "sample" ? { sample: true } : {}),
 				...(source.value === "import"
 					? { import: { url: httpsUrl(importUrl.value.trim()) ?? "" } }
 					: {}),
@@ -108,10 +107,6 @@ const submit = async (): Promise<void> => {
 			<label class="create-node__radio">
 				<input v-model="source" type="radio" value="empty" name="source" />
 				Empty repository (one initial commit)
-			</label>
-			<label class="create-node__radio">
-				<input v-model="source" type="radio" value="sample" name="source" />
-				Sample monorepo (api, web and a shared package)
 			</label>
 			<label class="create-node__radio">
 				<input v-model="source" type="radio" value="import" name="source" />

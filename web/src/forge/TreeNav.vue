@@ -46,7 +46,6 @@ const footLinks = css({
 			<a href="/-/explore">Explore</a>
 			<a class="member-only" href="/-/agents">Agents</a>
 			<a class="member-only" href="/-/extensions">Extensions</a>
-			<a href="/-/design-system">Design system</a>
 		</p>
 	</nav>
 </template>

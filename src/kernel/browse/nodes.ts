@@ -30,7 +30,6 @@ import {
 	notFound,
 	RepoCreateRequestSchema,
 	ROLE,
-	tartanError,
 } from "@tartan/contract";
 import type { AuthContext, GrantRow } from "@tartan/contract/kernel.ts";
 import { z } from "zod";
@@ -238,13 +237,6 @@ async (c) => {
 		if (rest === "repos" && method === "POST") {
 			const auth = requireAuth(c.auth);
 			const body = await readJson(c.req, RepoCreateRequestSchema);
-			if (body.sample) {
-				throw tartanError(
-					"invalid",
-					"the bundled sample monorepo is not available on this forge yet",
-					{ reason: "sample" },
-				);
-			}
 			let parentId: string | null = null;
 			if (body.parent === undefined) {
 				if (auth.kind !== "user" || !auth.isAdmin) {
