@@ -26,6 +26,8 @@
 		"cli": "deno run -A tools/cli/main.ts",
 		"dev": "deno run -A tools/dev/main.ts",
 		"dev:bootstrap": "deno run -A --unsafely-ignore-certificate-errors=localhost tools/dev/bootstrap.ts",
+		"poc": "deno run -A --unsafely-ignore-certificate-errors=localhost scripts/poc/seed.ts",
+		"poc:proof": "deno run -A --unsafely-ignore-certificate-errors=localhost scripts/poc/proof.ts",
 		"patch:workerd": "bash scripts/patch-workerd.sh",
 		"build:cli": "deno compile -A -o dist/tt tools/cli/main.ts",
 		"license:check": "deno run -A scripts/license-check.ts",

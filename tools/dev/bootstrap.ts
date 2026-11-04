@@ -65,7 +65,7 @@ const waitForSetupCode = async (log: string): Promise<string> => {
 	throw new Error(`no setup code in ${log}`);
 };
 
-const bootstrap = async ({ origin, log }: BootstrapArgs) => {
+export const bootstrap = async ({ origin, log }: BootstrapArgs) => {
 	const jar = new Map<string, string>();
 	const request = async (path: string, init: RequestInit = {}) => {
 		const headers = new Headers(init.headers);
