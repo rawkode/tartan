@@ -14,8 +14,11 @@ import { SETUP_TOKEN, takeSetupToken } from "./setup/fragment.ts";
 import { createToasts, TOASTS } from "./shell/toasts.ts";
 import { createProjectsClient, PROJECTS } from "./views/project/client.ts";
 import { applyThemePreference, readThemePreference } from "./theme.ts";
+// Order matters: base.css declares the lowest cascade layer, before Panda's.
+import "./styles/fonts.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
+import "./styles/panda.css";
 
 // Take the setup token out of the URL before the router reads the location
 // and before the first render. This runs first,

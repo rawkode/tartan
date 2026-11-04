@@ -1,62 +1,81 @@
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
-}
+/*
+ * Element rules live in `tartan-base`, the lowest cascade layer: this file is
+ * imported before Panda's CSS (`panda.css`), so its layer is declared first. Unlayered
+ * CSS beats every layer, so these rules left unlayered would override Panda's
+ * layered reset, recipes and utilities on the forge pages. Class rules below stay
+ * unlayered, as do the views' scoped styles.
+ */
+@layer tartan-base {
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
 
-html {
-	-webkit-text-size-adjust: 100%;
-	text-size-adjust: 100%;
-}
+	html {
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
+	}
 
-body {
-	margin: 0;
-	min-height: 100vh;
-	background: var(--tt-bg);
-	color: var(--tt-text);
-	font-family: var(--tt-font-sans);
-	font-size: var(--tt-text-md);
-	line-height: 1.5;
-	overflow-x: hidden;
-}
+	body {
+		margin: 0;
+		min-height: 100vh;
+		background: var(--tt-bg);
+		color: var(--tt-text);
+		font-family: var(--tt-font-sans);
+		font-size: var(--tt-text-md);
+		line-height: 1.5;
+		overflow-x: hidden;
+	}
 
-h1,
-h2,
-h3 {
-	line-height: 1.25;
-	margin: 0;
-}
+	h1,
+	h2,
+	h3 {
+		line-height: 1.25;
+		margin: 0;
+	}
 
-h1 {
-	font-size: var(--tt-text-xl);
-}
+	h1 {
+		font-size: var(--tt-text-xl);
+	}
 
-a {
-	color: var(--tt-accent);
-}
+	a {
+		color: var(--tt-accent);
+	}
 
-a:hover {
-	color: var(--tt-accent-strong);
-}
+	a:hover {
+		color: var(--tt-accent-strong);
+	}
 
-code,
-pre {
-	font-family: var(--tt-font-mono);
-	font-size: var(--tt-text-sm);
-}
+	code,
+	pre {
+		font-family: var(--tt-font-mono);
+		font-size: var(--tt-text-sm);
+	}
 
-code {
-	overflow-wrap: anywhere;
-}
+	code {
+		overflow-wrap: anywhere;
+	}
 
-:focus-visible {
-	outline: 2px solid var(--tt-focus);
-	outline-offset: 2px;
-}
+	:focus-visible {
+		outline: 2px solid var(--tt-focus);
+		outline-offset: 2px;
+	}
 
-button {
-	font: inherit;
-	color: inherit;
+	button {
+		font: inherit;
+		color: inherit;
+	}
+
+	pre {
+		margin: 0;
+		padding: var(--tt-space-3);
+		background: var(--tt-surface-sunken);
+		border-radius: var(--tt-radius);
+		overflow-x: auto;
+		max-width: 100%;
+		white-space: pre;
+	}
 }
 
 .visually-hidden:not(:focus):not(:active) {
@@ -273,7 +292,6 @@ textarea.tt-input {
 	min-width: 0;
 }
 
-pre,
 .ui-code__pre {
 	margin: 0;
 	padding: var(--tt-space-3);

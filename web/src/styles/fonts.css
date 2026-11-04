@@ -1,0 +1,29 @@
+/*
+ * Red Hat, as variable fonts with a Latin subset (web/src/assets/fonts/README.md).
+ * Vite fingerprints them into /assets/, which the Worker serves same-origin and
+ * exempts from setup gating, and `font-src` falls back to `default-src 'self'`.
+ */
+
+@font-face {
+	font-family: "Red Hat Display";
+	src: url("../assets/fonts/red-hat-display-latin.woff2") format("woff2");
+	font-weight: 300 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Red Hat Text";
+	src: url("../assets/fonts/red-hat-text-latin.woff2") format("woff2");
+	font-weight: 300 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Red Hat Mono";
+	src: url("../assets/fonts/red-hat-mono-latin.woff2") format("woff2");
+	font-weight: 300 700;
+	font-style: normal;
+	font-display: swap;
+}
