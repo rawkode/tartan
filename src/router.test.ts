@@ -171,6 +171,12 @@ const TABLE: readonly [string, string, string, string][] = [
 		"WP25",
 	],
 	[
+		"POST",
+		`/-/api/repos/${REPO_ID}/ext/rawkode.issues/tools/list`,
+		"api.repos.ext.tools",
+		"WP25",
+	],
+	[
 		"GET",
 		`/-/api/repos/${REPO_ID}/config`,
 		"api.repos.config",
