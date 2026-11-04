@@ -4,6 +4,7 @@ node_modules
 .claude/worktrees/
 dist/
 .direnv/
+styled-system/
 .wrangler/
 .dev.vars*
 !.dev.vars.example

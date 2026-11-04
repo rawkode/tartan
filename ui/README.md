@@ -1,19 +1,14 @@
-# t21
+# Forge UI
 
-Mockup UI for a single-user Git forge. Astro, static mock data, no backend.
+Mockup UI for a single-user Git forge, static mock data, no backend. It is being moved into `web/`, and does not build on its own: its Astro setup is gone, and its dependencies are in the root `package.json`.
 
-```sh
-bun install
-bun run dev
-```
-
-Specs and change proposals live in `openspec/`, managed with [OpenSpec](https://github.com/Fission-AI/OpenSpec) (`bun x --bun openspec`).
+Specs and change proposals live in the root `openspec/`, managed with [OpenSpec](https://github.com/Fission-AI/OpenSpec) (`openspec` in the dev shell).
 
 ## Model
 
 - **One owner.** Only the owner creates groups and repos, and sees settings. Registered contributors can open issues and changes, and add notes. Use "View as" to switch between them.
 - **Addresses.** Groups and repos join with `/`, a project joins its repo with `:`, as in `oss/devtools/build/kiln:lsp`. The Jump box matches prefixes of each segment, so `o/d/k:l` finds that address.
-- **Projects** come from `.forge/projects.cue` in the repo, each on its own path. A repo without that file is a single project. `root` holds files no other project claims. The Projects tab on the root and on every group lists all the projects below it.
+- **Projects** are the non-root directories holding a `.cue` file in `package tartan`. A repo with none is a single project. `root` holds files no other project claims. The Projects tab on the root and on every group lists all the projects below it.
 - **Issues** belong to one project and are numbered per project (`kiln:lsp#128`). They can move, and the old address redirects.
 - **Changes** belong to a repo and are numbered per repo (`kiln!412`). They list every project they edit or rebuild, and each edited project is reviewed separately.
 - **Settings** inherit down the tree. For a value, the nearest level wins unless a level above locked it. For a list, each level adds and can drop.

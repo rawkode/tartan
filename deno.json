@@ -53,6 +53,7 @@
 		".claude/worktrees",
 		".direnv",
 		"dist",
+		"ui",
 		"web/dist",
 		".wrangler",
 		"target",
@@ -62,7 +63,12 @@
 	"fmt": {
 		"useTabs": true,
 		"proseWrap": "preserve",
-		"exclude": ["docs/design/"]
+		"exclude": [
+			"docs/design/",
+			"openspec/",
+			".claude/skills/",
+			".claude/commands/"
+		]
 	},
 	"lint": {
 		"rules": {
