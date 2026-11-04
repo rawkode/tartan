@@ -16,8 +16,8 @@ pub const LIST_MAX_LIMIT: u32 = 100;
 pub const TAB_LIMIT: u32 = 100;
 /// The largest issue number a tool accepts.
 pub const NUMBER_MAX: u32 = i32::MAX as u32;
-/// A project's root path, in bytes.
-pub const PROJECT_MAX_BYTES: usize = 512;
+/// A project's root path, in bytes: the walk's 12 levels of the longest names.
+pub const PROJECT_MAX_BYTES: usize = 4096;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum State {
@@ -124,7 +124,9 @@ pub fn new_issue(args: &Value) -> Result<NewIssue, Error> {
 
 /// The optional `project` argument of every tool: a project's root path, as
 /// the kernel passes it. The extension cannot see the project graph, so it
-/// checks the shape only. Only tools read it; the tab's form never sets one.
+/// checks the shape only, and any directory git can hold has to pass: a
+/// backslash or a newline in a name is a project like any other. Only tools
+/// read it; the tab's form never sets one.
 pub fn project_arg(args: &Value) -> Result<Option<String>, Error> {
 	let root = match &args["project"] {
 		Value::Null => return Ok(None),
@@ -133,7 +135,7 @@ pub fn project_arg(args: &Value) -> Result<Option<String>, Error> {
 	};
 	let clean = !root.is_empty()
 		&& root.len() <= PROJECT_MAX_BYTES
-		&& !root.chars().any(|c| c == '\\' || c.is_control())
+		&& !root.contains('\0')
 		&& root.split('/').all(|s| !s.is_empty() && s != "." && s != "..");
 	if !clean {
 		return Err(Error::invalid(
@@ -431,6 +433,12 @@ mod tests {
 				.as_deref(),
 			Some("crates/lsp")
 		);
+		for odd in ["back\\slash", "new\nline", "tab\there"] {
+			assert_eq!(
+				project_arg(&json!({ "project": odd })).unwrap().as_deref(),
+				Some(odd)
+			);
+		}
 		for bad in [
 			json!({ "project": "" }),
 			json!({ "project": 1 }),
@@ -439,8 +447,7 @@ mod tests {
 			json!({ "project": "crates//lsp" }),
 			json!({ "project": "../etc" }),
 			json!({ "project": "a/./b" }),
-			json!({ "project": "a\\b" }),
-			json!({ "project": "a\nb" }),
+			json!({ "project": "a\0b" }),
 			json!({ "project": "x".repeat(PROJECT_MAX_BYTES + 1) }),
 		] {
 			assert!(matches!(project_arg(&bad), Err(Error::Invalid(_))), "{bad}");
